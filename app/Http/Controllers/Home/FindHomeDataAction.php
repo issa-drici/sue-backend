@@ -26,7 +26,7 @@ class FindHomeDataAction extends Controller
         // Données temporaires de test
         return response()->json([
             'stats' => [
-                'total_training_time' => 7200,
+                'total_training_time' => 360,
                 'total_xp' => 1500,
                 'completed_videos' => 15
             ],
