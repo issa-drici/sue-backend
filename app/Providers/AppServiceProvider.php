@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\DB;
+use App\Repositories\UserExercise\UserExerciseRepository;
+use App\Repositories\UserExercise\UserExerciseRepositoryInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(UserExerciseRepositoryInterface::class, UserExerciseRepository::class);
     }
 
     /**

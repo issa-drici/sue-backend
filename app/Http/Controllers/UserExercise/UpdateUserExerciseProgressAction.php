@@ -3,11 +3,17 @@
 namespace App\Http\Controllers\UserExercise;
 
 use App\Http\Controllers\Controller;
+use App\UseCases\UserExercise\UpdateUserExerciseProgressUseCase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class UpdateUserExerciseProgressAction extends Controller
 {
+    public function __construct(
+        private UpdateUserExerciseProgressUseCase $useCase
+    ) {}
+
     /**
      * Met à jour le temps de visionnage d'un exercice
      * 
@@ -25,10 +31,21 @@ class UpdateUserExerciseProgressAction extends Controller
      */
     public function __invoke(Request $request, string $exerciseId): JsonResponse
     {
-        // Données temporaires de test
-        return response()->json([
-            'watch_time' => $request->input('watch_time', 0),
-            'is_completed' => false
-        ]);
+        try {
+            $watchTime = $request->input('watch_time', 0);
+            $result = $this->useCase->execute($exerciseId, $watchTime);
+
+            return response()->json($result);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Erreur de validation',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Une erreur est survenue',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 } 
