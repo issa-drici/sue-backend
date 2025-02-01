@@ -3,11 +3,17 @@
 namespace App\Http\Controllers\Exercise;
 
 use App\Http\Controllers\Controller;
+use App\UseCases\Exercise\FindAllExercisesUseCase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class FindAllExercisesAction extends Controller
 {
+    public function __construct(
+        private FindAllExercisesUseCase $useCase
+    ) {}
+
     /**
      * Récupère la liste des exercices avec pagination optionnelle
      * 
@@ -24,33 +30,14 @@ class FindAllExercisesAction extends Controller
      */
     public function __invoke(Request $request): JsonResponse
     {
-        // Données temporaires de test
-        return response()->json([
-            'data' => [
-                [
-                    'id' => 'exercise-1',
-                    'level' => 1,
-                    'title' => 'Exercise 1',
-                    'description' => 'Description of exercise 1',
-                    'duration' => 300,
-                    'xp_value' => 100,
-                    'is_completed' => false
-                ],
-                [
-                    'id' => 'exercise-2',
-                    'level' => 2,
-                    'title' => 'Exercise 2',
-                    'description' => 'Description of exercise 2',
-                    'duration' => 600,
-                    'xp_value' => 200,
-                    'is_completed' => true
-                ]
-            ],
-            'meta' => [
-                'current_page' => 1,
-                'per_page' => 10,
-                'total' => 2
-            ]
-        ]);
+        try {
+            $result = $this->useCase->execute();
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Une erreur est survenue',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 } 
