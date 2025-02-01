@@ -39,4 +39,20 @@ class UserExerciseRepository implements UserExerciseRepositoryInterface
             ->where('exercise_id', $exerciseId)
             ->update(['completed_at' => now()]);
     }
+
+    public function findRecent(string $userId, int $limit): array
+    {
+        return UserExerciseModel::where('user_id', $userId)
+            ->orderBy('updated_at', 'desc')
+            ->limit($limit)
+            ->get(['exercise_id', 'completed_at', 'updated_at'])
+            ->map(function ($userExercise) {
+                return [
+                    'exercise_id' => $userExercise->exercise_id,
+                    'completed_at' => $userExercise->completed_at?->toIso8601String(),
+                    'updated_at' => $userExercise->updated_at->toIso8601String()
+                ];
+            })
+            ->toArray();
+    }
 } 

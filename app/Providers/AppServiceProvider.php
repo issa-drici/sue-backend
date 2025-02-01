@@ -9,6 +9,8 @@ use App\Repositories\UserExercise\UserExerciseRepository;
 use App\Repositories\UserExercise\UserExerciseRepositoryInterface;
 use App\Repositories\Exercise\ExerciseRepository;
 use App\Repositories\Exercise\ExerciseRepositoryInterface;
+use App\Repositories\UserProfile\UserProfileRepository;
+use App\Repositories\UserProfile\UserProfileRepositoryInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(UserExerciseRepositoryInterface::class, UserExerciseRepository::class);
         $this->app->bind(ExerciseRepositoryInterface::class, ExerciseRepository::class);
+        $this->app->bind(UserProfileRepositoryInterface::class, UserProfileRepository::class);
     }
 
     /**

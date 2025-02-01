@@ -15,6 +15,9 @@ return new class extends Migration
             $table->timestamp('completed_at')->nullable();
             $table->integer('watch_time')->default(0);
             $table->timestamps();
+
+            // Ajout de la contrainte unique
+            $table->unique(['user_id', 'exercise_id']);
         });
     }
 
@@ -22,4 +25,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('user_exercises');
     }
-}; 
+};

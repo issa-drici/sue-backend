@@ -3,16 +3,13 @@
 namespace App\UseCases\Exercise;
 
 use App\Repositories\Exercise\ExerciseRepositoryInterface;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
 
 class FindAllExercisesUseCase
 {
     private const LEVEL_MAPPING = [
         1 => 'beginner',
         2 => 'intermediate',
-        3 => 'intermediate',
-        4 => 'advanced'
+        3 => 'advanced'
     ];
 
     public function __construct(
@@ -38,14 +35,15 @@ class FindAllExercisesUseCase
             }
 
             $grouped['levels'][$apiLevel][] = [
-                'name' => $exercise['name'],
+                'id' => $exercise['id'],
+                'title' => $exercise['title'],
                 'duration_seconds' => $exercise['duration_seconds'],
                 'xp' => $exercise['xp'],
-                'thumbnail' => $exercise['thumbnail'],
-                'url' => $exercise['url']
+                'banner_url' => $exercise['banner_url'],
+                'video_url' => $exercise['video_url']
             ];
         }
 
         return $grouped;
     }
-} 
+}

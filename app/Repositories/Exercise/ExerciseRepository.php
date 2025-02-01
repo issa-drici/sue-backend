@@ -12,12 +12,12 @@ class ExerciseRepository implements ExerciseRepositoryInterface
         return ExerciseModel::all()->map(function ($exercise) {
             return [
                 'id' => $exercise->id,
-                'name' => $exercise->name,
+                'title' => $exercise->title,
                 'level' => $exercise->level,
                 'duration_seconds' => $exercise->duration,
                 'xp' => $exercise->xp_value,
-                'thumbnail' => $exercise->thumbnail_url,
-                'url' => $exercise->video_url
+                'banner_url' => $exercise->banner_url,
+                'video_url' => $exercise->video_url
             ];
         })->toArray();
     }
@@ -27,6 +27,24 @@ class ExerciseRepository implements ExerciseRepositoryInterface
         return UserExerciseModel::where('user_id', $userId)
             ->whereNotNull('completed_at')
             ->pluck('exercise_id')
+            ->toArray();
+    }
+
+    public function findByIds(array $ids): array
+    {
+        return ExerciseModel::whereIn('id', $ids)
+            ->get()
+            ->map(function ($exercise) {
+                return [
+                    'id' => $exercise->id,
+                    'title' => $exercise->title,
+                    'level' => $exercise->level,
+                    'duration_seconds' => $exercise->duration,
+                    'xp' => $exercise->xp_value,
+                    'banner_url' => $exercise->banner_url,
+                    'video_url' => $exercise->video_url
+                ];
+            })
             ->toArray();
     }
 } 
