@@ -20,6 +20,7 @@ class ExerciseModel extends Model
     protected $fillable = [
         'level',
         'banner_url',
+        'video_url',
         'title',
         'description',
         'duration',
@@ -42,6 +43,7 @@ class ExerciseModel extends Model
             id: $this->id,
             level: $this->level,
             bannerUrl: $this->banner_url,
+            videoUrl: $this->video_url,
             title: $this->title,
             description: $this->description,
             duration: $this->duration,
@@ -54,6 +56,7 @@ class ExerciseModel extends Model
         return new self([
             'level' => $exercise->getLevel(),
             'banner_url' => $exercise->getBannerUrl(),
+            'video_url' => $exercise->getVideoUrl(),
             'title' => $exercise->getTitle(),
             'description' => $exercise->getDescription(),
             'duration' => $exercise->getDuration(),

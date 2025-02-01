@@ -12,6 +12,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->tinyInteger('level');
             $table->text('banner_url')->nullable();
+            $table->text('video_url')->nullable();
             $table->string('title');
             $table->text('description')->nullable();
             $table->integer('duration');

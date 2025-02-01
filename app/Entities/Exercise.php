@@ -7,6 +7,7 @@ class Exercise
     private ?string $id;
     private int $level;
     private ?string $bannerUrl;
+    private ?string $videoUrl;
     private string $title;
     private ?string $description;
     private int $duration;
@@ -16,6 +17,7 @@ class Exercise
         ?string $id,
         int $level,
         ?string $bannerUrl,
+        ?string $videoUrl,
         string $title,
         ?string $description,
         int $duration,
@@ -24,6 +26,7 @@ class Exercise
         $this->id = $id;
         $this->level = $level;
         $this->bannerUrl = $bannerUrl;
+        $this->videoUrl = $videoUrl;
         $this->title = $title;
         $this->description = $description;
         $this->duration = $duration;
@@ -58,6 +61,16 @@ class Exercise
     public function setBannerUrl(?string $bannerUrl): void
     {
         $this->bannerUrl = $bannerUrl;
+    }
+
+    public function getVideoUrl(): ?string
+    {
+        return $this->videoUrl;
+    }
+
+    public function setVideoUrl(?string $videoUrl): void
+    {
+        $this->videoUrl = $videoUrl;
     }
 
     public function getTitle(): string
@@ -106,6 +119,7 @@ class Exercise
             'id' => $this->id,
             'level' => $this->level,
             'banner_url' => $this->bannerUrl,
+            'video_url' => $this->videoUrl,
             'title' => $this->title,
             'description' => $this->description,
             'duration' => $this->duration,
@@ -119,6 +133,7 @@ class Exercise
             id: $data['id'] ?? null,
             level: $data['level'],
             bannerUrl: $data['banner_url'] ?? null,
+            videoUrl: $data['video_url'] ?? null,
             title: $data['title'],
             description: $data['description'] ?? null,
             duration: $data['duration'],
