@@ -49,8 +49,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth:sanctum')
     ->name('logout');
 
-// User routes
-Route::get('/user/{userId}', FindUserByIdAction::class);
+
 
 // Exercise routes
 Route::get('/exercises', FindAllExercisesAction::class);
@@ -84,3 +83,6 @@ Route::post('/profile/avatar', UpdateUserAvatarAction::class)->middleware('auth:
 // Support routes
 Route::post('/support-requests', CreateSupportRequestAction::class)->middleware('auth:sanctum');
 Route::get('/support-requests', FindAllSupportRequestsAction::class)->middleware('auth:sanctum');
+
+// User routes
+Route::get('/user/{userId}', FindUserByIdAction::class);

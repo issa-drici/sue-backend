@@ -3,9 +3,11 @@
 namespace App\UseCases\UserExercise;
 
 use App\Repositories\UserExercise\UserExerciseRepositoryInterface;
+use App\Entities\UserExercise;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use App\Repositories\Exercise\ExerciseRepositoryInterface;
+use Illuminate\Support\Str;
 
 class UpdateUserExerciseProgressUseCase
 {
@@ -23,34 +25,45 @@ class UpdateUserExerciseProgressUseCase
                 'auth' => ['Utilisateur non authentifié']
             ]);
         }
+
         $exercise = $this->exerciseRepository->findById($exerciseId);
         if (!$exercise) {
             throw ValidationException::withMessages([
                 'exercise' => ['Exercice non trouvé']
             ]);
         }
+
         $today = now()->startOfDay();
-        $existingExercise = $this->userExerciseRepository->findByUserAndExerciseForDate(
+        
+        $userExercise = $this->userExerciseRepository->findByUserAndExerciseForDate(
             $user->id, 
-            $exerciseId, 
+            $exerciseId,
             $today
         );
 
-        // On ajoute toujours le watch_time
-        $newWatchTime = $existingExercise 
-            ? $existingExercise->getWatchTime() + $watchTime 
-            : $watchTime;
-            
-        $userExercise = $this->userExerciseRepository->updateWatchTime(
-            $user->id,
-            $exerciseId,
-            $newWatchTime
-        );
+        if (!$userExercise) {
+            // Création d'une nouvelle entité
+            $userExercise = new UserExercise(
+                (string) Str::uuid(),
+                $user->id,
+                $exerciseId,
+                null,
+                $watchTime,
+                $today
+            );
+        } else {
+            // Mise à jour du temps de visionnage
+            $userExercise->setWatchTime($userExercise->getWatchTime() + $watchTime);
+        }
+
+        // Sauvegarde de l'entité
+        $userExercise = $this->userExerciseRepository->save($userExercise);
 
         // Marquer comme complété si nécessaire
         $isCompleted = false;
         if ($userExercise->getWatchTime() >= $exercise->getDuration() && !$userExercise->getCompletedAt()) {
-            $this->userExerciseRepository->markAsCompleted($user->id, $exerciseId);
+            $userExercise->setCompletedAt(now());
+            $this->userExerciseRepository->save($userExercise);
             $isCompleted = true;
         }
 

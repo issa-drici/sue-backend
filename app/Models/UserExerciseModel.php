@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use DateTime;
 
 class UserExerciseModel extends Model
 {
@@ -18,10 +19,12 @@ class UserExerciseModel extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
+        'id',
         'user_id',
         'exercise_id',
         'completed_at',
         'watch_time',
+        'created_at'
     ];
 
     protected $casts = [
@@ -41,11 +44,12 @@ class UserExerciseModel extends Model
     public function toEntity(): UserExercise
     {
         return new UserExercise(
-            id: $this->id,
-            userId: $this->user_id,
-            exerciseId: $this->exercise_id,
-            completedAt: $this->completed_at,
-            watchTime: $this->watch_time,
+            $this->id,
+            $this->user_id,
+            $this->exercise_id,
+            $this->completed_at ? new DateTime($this->completed_at) : null,
+            $this->watch_time,
+            new DateTime($this->created_at)
         );
     }
 
@@ -54,8 +58,9 @@ class UserExerciseModel extends Model
         return new self([
             'user_id' => $userExercise->getUserId(),
             'exercise_id' => $userExercise->getExerciseId(),
-            'completed_at' => $userExercise->getCompletedAt(),
+            'completed_at' => $userExercise->getCompletedAt() ? $userExercise->getCompletedAt()->format('Y-m-d H:i:s') : null,
             'watch_time' => $userExercise->getWatchTime(),
+            'created_at' => $userExercise->getCreatedAt()->format('Y-m-d H:i:s'),
         ]);
     }
 } 

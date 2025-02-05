@@ -16,8 +16,8 @@ return new class extends Migration
             $table->integer('watch_time')->default(0);
             $table->timestamps();
 
-            // Ajout de la contrainte unique
-            $table->unique(['user_id', 'exercise_id']);
+            // Modification de la contrainte unique pour inclure created_at
+            $table->unique(['user_id', 'exercise_id', 'created_at']);
         });
     }
 

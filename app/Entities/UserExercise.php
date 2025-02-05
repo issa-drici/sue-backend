@@ -11,6 +11,7 @@ class UserExercise
     private string $exerciseId;
     private ?DateTime $completedAt;
     private int $watchTime;
+    private DateTime $createdAt;
 
     public function __construct(
         ?string $id,
@@ -18,12 +19,14 @@ class UserExercise
         string $exerciseId,
         ?DateTime $completedAt,
         int $watchTime,
+        DateTime $createdAt
     ) {
         $this->id = $id;
         $this->userId = $userId;
         $this->exerciseId = $exerciseId;
         $this->completedAt = $completedAt;
         $this->watchTime = $watchTime;
+        $this->createdAt = $createdAt;
     }
 
     public function getId(): ?string
@@ -76,6 +79,16 @@ class UserExercise
         $this->watchTime = $watchTime;
     }
 
+    public function getCreatedAt(): DateTime
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(DateTime $createdAt): void
+    {
+        $this->createdAt = $createdAt;
+    }
+
     public function toArray(): array
     {
         return [
@@ -95,6 +108,7 @@ class UserExercise
             exerciseId: $data['exercise_id'],
             completedAt: isset($data['completed_at']) ? new DateTime($data['completed_at']) : null,
             watchTime: $data['watch_time'],
+            createdAt: new DateTime($data['created_at']),
         );
     }
 } 

@@ -6,6 +6,8 @@ use App\Entities\UserExercise;
 use App\Models\UserExerciseModel;
 use Illuminate\Support\Facades\DB;
 use DateTime;
+use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class UserExerciseRepository implements UserExerciseRepositoryInterface
 {
@@ -20,8 +22,20 @@ class UserExerciseRepository implements UserExerciseRepositoryInterface
 
     public function save(UserExercise $userExercise): UserExercise
     {
-        $model = UserExerciseModel::fromEntity($userExercise);
+        $model = UserExerciseModel::find($userExercise->getId());
+        
+        if (!$model) {
+            $model = new UserExerciseModel();
+            $model->id = (string) Str::uuid();
+            $model->user_id = $userExercise->getUserId();
+            $model->exercise_id = $userExercise->getExerciseId();
+            $model->created_at = $userExercise->getCreatedAt();
+        }
+        
+        $model->watch_time = $userExercise->getWatchTime();
+        $model->completed_at = $userExercise->getCompletedAt();
         $model->save();
+
         return $model->toEntity();
     }
 
@@ -65,5 +79,24 @@ class UserExerciseRepository implements UserExerciseRepositoryInterface
             ->first();
 
         return $model ? $model->toEntity() : null;
+    }
+
+    public function findCompletedByPeriod(string $userId, DateTime $start, DateTime $end): array
+    {
+        return UserExerciseModel::where('user_id', $userId)
+            ->whereBetween('created_at', [$start, $end])
+            ->whereNotNull('completed_at')
+            ->select(['id', 'exercise_id', 'completed_at', 'watch_time'])
+            ->get()
+            ->toArray();
+    }
+
+    public function findByPeriod(string $userId, DateTime $start, DateTime $end): array
+    {
+        return UserExerciseModel::where('user_id', $userId)
+            ->whereBetween('created_at', [$start, $end])
+            ->select(['id', 'exercise_id', 'watch_time', 'created_at'])
+            ->get()
+            ->toArray();
     }
 } 
