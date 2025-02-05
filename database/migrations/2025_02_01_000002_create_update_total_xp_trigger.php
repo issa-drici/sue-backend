@@ -15,10 +15,13 @@ return new class extends Migration
                 UPDATE user_profiles
                 SET total_xp = (
                     SELECT COALESCE(SUM(e.xp_value), 0)
-                    FROM user_exercises ue
+                    FROM (
+                        SELECT DISTINCT exercise_id
+                        FROM user_exercises
+                        WHERE user_id = COALESCE(NEW.user_id, OLD.user_id)
+                        AND completed_at IS NOT NULL
+                    ) ue
                     JOIN exercises e ON e.id = ue.exercise_id
-                    WHERE ue.user_id = COALESCE(NEW.user_id, OLD.user_id)
-                    AND ue.completed_at IS NOT NULL
                 )
                 WHERE user_id = COALESCE(NEW.user_id, OLD.user_id);
                 

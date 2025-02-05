@@ -5,6 +5,7 @@ namespace App\Repositories\UserExercise;
 use App\Entities\UserExercise;
 use App\Models\UserExerciseModel;
 use Illuminate\Support\Facades\DB;
+use DateTime;
 
 class UserExerciseRepository implements UserExerciseRepositoryInterface
 {
@@ -54,5 +55,15 @@ class UserExerciseRepository implements UserExerciseRepositoryInterface
                 ];
             })
             ->toArray();
+    }
+
+    public function findByUserAndExerciseForDate(string $userId, string $exerciseId, DateTime $date): ?UserExercise
+    {
+        $model = UserExerciseModel::where('user_id', $userId)
+            ->where('exercise_id', $exerciseId)
+            ->whereDate('created_at', $date)
+            ->first();
+
+        return $model ? $model->toEntity() : null;
     }
 } 

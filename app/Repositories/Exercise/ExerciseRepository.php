@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Exercise;
 
+use App\Entities\Exercise;
 use App\Models\ExerciseModel;
 use App\Models\UserExerciseModel;
 
@@ -46,5 +47,11 @@ class ExerciseRepository implements ExerciseRepositoryInterface
                 ];
             })
             ->toArray();
+    }
+
+    public function findById(string $id): ?Exercise
+    {
+        $model = ExerciseModel::find($id);
+        return $model ? $model->toEntity() : null;
     }
 } 
