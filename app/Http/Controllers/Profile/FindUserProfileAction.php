@@ -3,11 +3,17 @@
 namespace App\Http\Controllers\Profile;
 
 use App\Http\Controllers\Controller;
+use App\UseCases\Profile\FindUserProfileUseCase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class FindUserProfileAction extends Controller
 {
+    public function __construct(
+        private FindUserProfileUseCase $useCase
+    ) {}
+
     /**
      * Récupère le profil complet de l'utilisateur
      * 
@@ -26,31 +32,19 @@ class FindUserProfileAction extends Controller
      */
     public function __invoke(Request $request): JsonResponse
     {
-        // Données temporaires de test
-        return response()->json([
-            'user' => [
-                'id' => 'user-1',
-                'full_name' => 'John Doe',
-                'email' => 'john@example.com',
-                'avatar_url' => 'https://example.com/avatar.jpg'
-            ],
-            'stats' => [
-                'total_xp' => 2000,
-                'total_training_time' => 7200,
-                'completed_videos' => 20,
-                'completed_days' => 15,
-                'current_goals' => 'Atteindre 3000 XP ce mois-ci'
-            ],
-            'favorites' => [
-                [
-                    'id' => 'favorite-1',
-                    'exercise' => [
-                        'id' => 'exercise-1',
-                        'title' => 'Exercise Title',
-                        'level' => 2
-                    ]
-                ]
-            ]
-        ]);
+        try {
+            $result = $this->useCase->execute();
+            return response()->json($result);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Erreur de validation',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Une erreur est survenue',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 } 
