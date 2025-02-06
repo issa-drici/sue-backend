@@ -3,11 +3,17 @@
 namespace App\Http\Controllers\Favorite;
 
 use App\Http\Controllers\Controller;
+use App\UseCases\Favorite\CreateFavoriteUseCase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class CreateFavoriteAction extends Controller
 {
+    public function __construct(
+        private CreateFavoriteUseCase $useCase
+    ) {}
+
     /**
      * Ajoute un exercice aux favoris de l'utilisateur
      * 
@@ -24,14 +30,32 @@ class CreateFavoriteAction extends Controller
      */
     public function __invoke(Request $request): JsonResponse
     {
-        // Données temporaires de test
-        return response()->json([
-            'id' => 'favorite-1',
-            'exercise' => [
-                'id' => $request->input('exercise_id'),
-                'title' => 'Exercise Title',
-                'level' => 1
-            ]
-        ], 201);
+        try {
+            $exerciseId = $request->input('exercise_id');
+            if (!$exerciseId) {
+                throw ValidationException::withMessages([
+                    'exercise_id' => ['Le champ exercise_id est obligatoire']
+                ]);
+            }
+
+            $result = $this->useCase->execute($exerciseId);
+            return response()->json($result, 201);
+        } catch (ValidationException $e) {
+            if (isset($e->errors()['favorite'])) {
+                return response()->json([
+                    'message' => 'Conflit',
+                    'errors' => $e->errors()
+                ], 409);
+            }
+            return response()->json([
+                'message' => 'Erreur de validation',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Une erreur est survenue',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
     }
 } 

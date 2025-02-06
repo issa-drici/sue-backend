@@ -21,4 +21,9 @@ class FavoriteRepository implements FavoriteRepositoryInterface
             ->select(['id', 'exercise_id'])
             ->first()?->toArray();
     }
+
+    public function create(array $data): array
+    {
+        return FavoriteModel::create($data)->toArray();
+    }
 } 

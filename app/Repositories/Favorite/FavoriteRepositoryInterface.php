@@ -6,4 +6,5 @@ interface FavoriteRepositoryInterface
 {
     public function findByUserId(string $userId): array;
     public function findByUserAndExercise(string $userId, string $exerciseId): ?array;
+    public function create(array $data): array;
 } 
