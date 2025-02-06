@@ -26,4 +26,9 @@ class FavoriteRepository implements FavoriteRepositoryInterface
     {
         return FavoriteModel::create($data)->toArray();
     }
+
+    public function delete(string $id): void
+    {
+        FavoriteModel::where('id', $id)->delete();
+    }
 } 

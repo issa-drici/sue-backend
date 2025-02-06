@@ -66,7 +66,7 @@ Route::post('/user-exercises/{exerciseId}/progress', UpdateUserExerciseProgressA
 // Favorites routes
 Route::get('/favorites', FindAllFavoritesAction::class)->middleware('auth:sanctum');
 Route::post('/favorites', CreateFavoriteAction::class)->middleware('auth:sanctum');
-Route::delete('/favorites/{favoriteId}', DeleteFavoriteAction::class)->middleware('auth:sanctum');
+Route::delete('/favorites/exercise/{exerciseId}', DeleteFavoriteAction::class)->middleware('auth:sanctum');
 
 // Home route
 Route::get('/home', FindHomeDataAction::class)->middleware('auth:sanctum');
