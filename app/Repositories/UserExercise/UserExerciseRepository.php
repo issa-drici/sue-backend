@@ -99,4 +99,13 @@ class UserExerciseRepository implements UserExerciseRepositoryInterface
             ->get()
             ->toArray();
     }
+
+    public function findCompletedByUserId(string $userId): array
+    {
+        return UserExerciseModel::where('user_id', $userId)
+            ->whereNotNull('completed_at')
+            ->select(['id', 'exercise_id', 'completed_at', 'watch_time'])
+            ->get()
+            ->toArray();
+    }
 } 

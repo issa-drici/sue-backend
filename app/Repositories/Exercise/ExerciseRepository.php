@@ -10,17 +10,16 @@ class ExerciseRepository implements ExerciseRepositoryInterface
 {
     public function findAll(): array
     {
-        return ExerciseModel::all()->map(function ($exercise) {
-            return [
-                'id' => $exercise->id,
-                'title' => $exercise->title,
-                'level' => $exercise->level,
-                'duration_seconds' => $exercise->duration,
-                'xp' => $exercise->xp_value,
-                'banner_url' => $exercise->banner_url,
-                'video_url' => $exercise->video_url
-            ];
-        })->toArray();
+        return ExerciseModel::select([
+            'id',
+            'title',
+            'description',
+            'duration',
+            'level',
+            'xp_value',
+            'banner_url',
+            'video_url'
+        ])->get()->toArray();
     }
 
     public function findCompletedExerciseIds(string $userId): array
