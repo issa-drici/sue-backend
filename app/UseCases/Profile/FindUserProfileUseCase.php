@@ -47,12 +47,13 @@ class FindUserProfileUseCase
         $formattedFavorites = array_map(function ($favorite) use ($exercises) {
             $exercise = $exercises[array_search($favorite['exercise_id'], array_column($exercises, 'id'))];
             return [
-                'id' => $favorite['id'],
-                'exercise' => [
-                    'id' => $exercise['id'],
-                    'title' => $exercise['title'],
-                    'level' => $exercise['level']
-                ]
+
+                'id' => $exercise['id'],
+                'title' => $exercise['title'],
+                'level' => $exercise['level'],
+                'banner_url' => $exercise['banner_url'],
+                'duration' => $exercise['duration_seconds'],
+
             ];
         }, $favorites);
 
@@ -72,4 +73,4 @@ class FindUserProfileUseCase
             'favorites' => $formattedFavorites
         ];
     }
-} 
+}

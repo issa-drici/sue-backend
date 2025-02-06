@@ -37,6 +37,19 @@ class FindHomeDataUseCase
 
         // Récupération des derniers exercices
         $recentExercises = $this->userExerciseRepository->findRecent($user->id, 3);
+
+        // Regrouper les exercices par exercise_id et garder le plus récent
+        $uniqueExercises = [];
+        foreach ($recentExercises as $exercise) {
+            $exerciseId = $exercise['exercise_id'];
+            if (!isset($uniqueExercises[$exerciseId]) || 
+                strtotime($exercise['updated_at']) > strtotime($uniqueExercises[$exerciseId]['updated_at'])) {
+                $uniqueExercises[$exerciseId] = $exercise;
+            }
+        }
+        $recentExercises = array_values($uniqueExercises);
+
+        // Récupérer les informations des exercices uniques
         $exerciseIds = array_column($recentExercises, 'exercise_id');
         $exercises = $this->exerciseRepository->findByIds($exerciseIds);
 
@@ -48,7 +61,8 @@ class FindHomeDataUseCase
                 'title' => $exercise['title'],
                 'completed_at' => $recent['completed_at'],
                 'updated_at' => $recent['updated_at'],
-                'banner_url' => $exercise['banner_url']
+                'banner_url' => $exercise['banner_url'],
+                'duration' => $exercise['duration_seconds']
             ];
         }, $recentExercises);
 
