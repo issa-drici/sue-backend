@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\User\FindUserByIdAction;
 use App\Http\Controllers\Exercise\{
     FindAllExercisesAction,
-    FindExerciseByIdAction,
+    FindExerciseByIdAndUserIdAction,
     CreateExerciseAction,
     FindAllExercisesByUserIdAction,
     UpdateExerciseAction
@@ -55,7 +55,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 // Exercise routes
 Route::get('/exercises', FindAllExercisesAction::class);
 Route::get('/exercises/user/{userId}', FindAllExercisesByUserIdAction::class);
-Route::get('/exercises/{exerciseId}', FindExerciseByIdAction::class);
+Route::get('/exercises/{exerciseId}/user/{userId}', FindExerciseByIdAndUserIdAction::class);
 // Route::post('/exercises', CreateExerciseAction::class)->middleware('auth:sanctum');
 // Route::put('/exercises/{exerciseId}', UpdateExerciseAction::class)->middleware('auth:sanctum');
 

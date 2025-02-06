@@ -13,4 +13,12 @@ class FavoriteRepository implements FavoriteRepositoryInterface
             ->get()
             ->toArray();
     }
+
+    public function findByUserAndExercise(string $userId, string $exerciseId): ?array
+    {
+        return FavoriteModel::where('user_id', $userId)
+            ->where('exercise_id', $exerciseId)
+            ->select(['id', 'exercise_id'])
+            ->first()?->toArray();
+    }
 } 

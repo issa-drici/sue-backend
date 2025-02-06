@@ -11,13 +11,13 @@ use Illuminate\Support\Str;
 
 class UserExerciseRepository implements UserExerciseRepositoryInterface
 {
-    public function findByUserAndExercise(string $userId, string $exerciseId): ?UserExercise
+    public function findByUserAndExercise(string $userId, string $exerciseId): array
     {
-        $model = UserExerciseModel::where('user_id', $userId)
+        return UserExerciseModel::where('user_id', $userId)
             ->where('exercise_id', $exerciseId)
-            ->first();
-
-        return $model ? $model->toEntity() : null;
+            ->select(['id', 'watch_time', 'completed_at'])
+            ->get()
+            ->toArray();
     }
 
     public function save(UserExercise $userExercise): UserExercise
