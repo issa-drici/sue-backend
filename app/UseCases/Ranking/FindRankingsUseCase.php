@@ -38,15 +38,23 @@ class FindRankingsUseCase
              
              // Récupération des dates d'exercices pour tous les utilisateurs
              $exerciseDates = $this->userExerciseRepository->findAllUserExerciseDates($userIds, $startDate, $endDate);
-             
+
              // Fusion des données
              $rankings = array_map(function($user) use ($exerciseDates) {
                  $userStats = $exerciseDates[$user['user_id']] ?? [];
+                 $dates = collect($userStats['exercises'] ?? [])
+                     ->pluck('created_at')
+                     ->map(fn($date) => Carbon::parse($date)->format('Y-m-d'))
+                     ->unique()
+                     ->sort()
+                     ->values()
+                     ->toArray();
+
                  return [
                      'user_id' => $user['user_id'],
                      'full_name' => $user['full_name'],
                      'total_xp' => $userStats['total_xp'] ?? 0,
-                     'streak' => $this->calculateMaxStreak($userStats)
+                     'streak' => $this->calculateMaxStreak($dates)
                  ];
              }, $allUsers);
 
@@ -110,5 +118,33 @@ class FindRankingsUseCase
         }
         
         return $maxStreak;
+    }
+
+    private function calculateUserStats(array $exercises): array
+    {
+        if (empty($exercises)) {
+            return ['total_xp' => 0, 'streak' => 0];
+        }
+
+        // Calcul de l'XP total (uniquement pour les exercices complétés)
+        $totalXp = collect($exercises)->filter(function ($exercise) {
+            return !is_null($exercise['completed_at']);
+        })->sum('xp_value');
+
+        // Calcul du streak (jours consécutifs)
+        $dates = collect($exercises)
+            ->pluck('created_at')
+            ->map(fn($date) => Carbon::parse($date)->format('Y-m-d'))
+            ->unique()
+            ->sort()
+            ->values()
+            ->toArray();
+
+        $maxStreak = $this->calculateMaxStreak($dates);
+
+        return [
+            'total_xp' => $totalXp,
+            'streak' => $maxStreak
+        ];
     }
 } 
