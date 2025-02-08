@@ -145,4 +145,21 @@ class UserExerciseRepository implements UserExerciseRepositoryInterface
             ->keyBy('user_id')
             ->toArray();
     }
+
+    public function findAllUserExerciseDates(array $userIds, Carbon $startDate, Carbon $endDate): array
+    {
+        return UserExerciseModel::select([
+                'user_id',
+                DB::raw('DATE(created_at) as exercise_date')
+            ])
+            ->whereIn('user_id', $userIds)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->distinct()
+            ->get()
+            ->groupBy('user_id')
+            ->map(function ($dates) {
+                return $dates->pluck('exercise_date')->toArray();
+            })
+            ->toArray();
+    }
 } 

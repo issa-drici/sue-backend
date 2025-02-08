@@ -32,23 +32,23 @@ class FindRankingsUseCase
             'month' => $endDate->copy()->subDays(29)->startOfDay(),
         };
 
-        // Récupération de tous les utilisateurs
-        $allUsers = $this->userProfileRepository->findAllUsers();
-        $userIds = array_column($allUsers, 'user_id');
-        
-        // Récupération des stats en une seule requête
-        $stats = $this->userExerciseRepository->findStatsForUsers($userIds, $startDate, $endDate);
-        
-        // Fusion des données
-        $rankings = array_map(function($user) use ($stats) {
-            $userStats = $stats[$user['user_id']] ?? ['total_xp' => 0, 'streak' => 0];
-            return [
-                'user_id' => $user['user_id'],
-                'full_name' => $user['full_name'],
-                'total_xp' => $userStats['total_xp'],
-                'streak' => $userStats['streak']
-            ];
-        }, $allUsers);
+             // Récupération de tous les utilisateurs
+             $allUsers = $this->userProfileRepository->findAllUsers();
+             $userIds = array_column($allUsers, 'user_id');
+             
+             // Récupération des dates d'exercices pour tous les utilisateurs
+             $exerciseDates = $this->userExerciseRepository->findAllUserExerciseDates($userIds, $startDate, $endDate);
+             
+             // Fusion des données
+             $rankings = array_map(function($user) use ($exerciseDates) {
+                 $userStats = $exerciseDates[$user['user_id']] ?? [];
+                 return [
+                     'user_id' => $user['user_id'],
+                     'full_name' => $user['full_name'],
+                     'total_xp' => $userStats['total_xp'] ?? 0,
+                     'streak' => $this->calculateMaxStreak($userStats)
+                 ];
+             }, $allUsers);
 
         // Tri par XP décroissant
         usort($rankings, fn($a, $b) => $b['total_xp'] - $a['total_xp']);
@@ -85,5 +85,30 @@ class FindRankingsUseCase
                 'end_date' => $endDate->toDateString()
             ]
         ];
+    }
+
+    private function calculateMaxStreak(array $dates): int
+    {
+        if (empty($dates)) {
+            return 0;
+        }
+
+        sort($dates);
+        $maxStreak = 1;
+        $currentStreak = 1;
+        
+        for ($i = 1; $i < count($dates); $i++) {
+            $previousDate = Carbon::parse($dates[$i - 1]);
+            $currentDate = Carbon::parse($dates[$i]);
+            
+            if ($previousDate->addDay()->eq($currentDate)) {
+                $currentStreak++;
+                $maxStreak = max($maxStreak, $currentStreak);
+            } else {
+                $currentStreak = 1;
+            }
+        }
+        
+        return $maxStreak;
     }
 } 
