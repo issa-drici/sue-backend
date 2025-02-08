@@ -108,4 +108,41 @@ class UserExerciseRepository implements UserExerciseRepositoryInterface
             ->get()
             ->toArray();
     }
+
+    public function calculateStreak(string $userId, Carbon $startDate, Carbon $endDate): int
+    {
+        $streak = 0;
+        $currentDate = $endDate->copy();
+
+        while ($currentDate->greaterThanOrEqualTo($startDate)) {
+            $hasExercise = UserExerciseModel::where('user_id', $userId)
+                ->whereDate('created_at', $currentDate->format('Y-m-d'))
+                ->exists();
+
+            if (!$hasExercise) {
+                break;
+            }
+
+            $streak++;
+            $currentDate->subDay();
+        }
+
+        return $streak;
+    }
+
+    public function findStatsForUsers(array $userIds, Carbon $startDate, Carbon $endDate): array
+    {
+        return UserExerciseModel::select([
+                'user_exercises.user_id',
+                DB::raw('COALESCE(SUM(exercises.xp_value), 0) as total_xp'),
+                DB::raw('COUNT(DISTINCT DATE(user_exercises.completed_at)) as streak')
+            ])
+            ->whereIn('user_exercises.user_id', $userIds)
+            ->whereBetween('user_exercises.completed_at', [$startDate, $endDate])
+            ->join('exercises', 'user_exercises.exercise_id', '=', 'exercises.id')
+            ->groupBy('user_exercises.user_id')
+            ->get()
+            ->keyBy('user_id')
+            ->toArray();
+    }
 } 

@@ -17,4 +17,6 @@ interface UserExerciseRepositoryInterface
     public function findByPeriod(string $userId, DateTime $start, DateTime $end): array;
     public function findCompletedByUserId(string $userId): array;
     public function findByUserAndExercise(string $userId, string $exerciseId): ?array;
+    public function calculateStreak(string $userId, Carbon $startDate, Carbon $endDate): int;
+    public function findStatsForUsers(array $userIds, Carbon $startDate, Carbon $endDate): array;
 }
