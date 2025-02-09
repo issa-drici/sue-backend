@@ -150,6 +150,7 @@ class UserExerciseRepository implements UserExerciseRepositoryInterface
     {
         return UserExerciseModel::select([
                 'user_exercises.user_id',
+                'user_exercises.exercise_id',
                 'user_exercises.created_at',
                 'user_exercises.completed_at',
                 'exercises.xp_value'
@@ -163,6 +164,7 @@ class UserExerciseRepository implements UserExerciseRepositoryInterface
                 return [
                     'exercises' => $userExercises->map(function ($exercise) {
                         return [
+                            'exercise_id' => $exercise->exercise_id,
                             'created_at' => $exercise->created_at,
                             'completed_at' => $exercise->completed_at,
                             'xp_value' => $exercise->xp_value

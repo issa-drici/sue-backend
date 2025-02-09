@@ -42,19 +42,13 @@ class FindRankingsUseCase
              // Fusion des données
              $rankings = array_map(function($user) use ($exerciseDates) {
                  $userStats = $exerciseDates[$user['user_id']] ?? [];
-                 $dates = collect($userStats['exercises'] ?? [])
-                     ->pluck('created_at')
-                     ->map(fn($date) => Carbon::parse($date)->format('Y-m-d'))
-                     ->unique()
-                     ->sort()
-                     ->values()
-                     ->toArray();
-
+                 $stats = $this->calculateUserStats($userStats['exercises'] ?? []);
+                 
                  return [
                      'user_id' => $user['user_id'],
                      'full_name' => $user['full_name'],
-                     'total_xp' => $userStats['total_xp'] ?? 0,
-                     'streak' => $this->calculateMaxStreak($dates)
+                     'total_xp' => $stats['total_xp'],
+                     'streak' => $stats['streak']
                  ];
              }, $allUsers);
 
@@ -126,10 +120,11 @@ class FindRankingsUseCase
             return ['total_xp' => 0, 'streak' => 0];
         }
 
-        // Calcul de l'XP total (uniquement pour les exercices complétés)
-        $totalXp = collect($exercises)->filter(function ($exercise) {
-            return !is_null($exercise['completed_at']);
-        })->sum('xp_value');
+        // Calcul de l'XP total (uniquement pour les exercices complétés, sans doublons)
+        $totalXp = collect($exercises)
+            ->filter(fn($exercise) => !is_null($exercise['completed_at']))
+            ->unique('exercise_id')
+            ->sum('xp_value');
 
         // Calcul du streak (jours consécutifs)
         $dates = collect($exercises)
@@ -140,11 +135,9 @@ class FindRankingsUseCase
             ->values()
             ->toArray();
 
-        $maxStreak = $this->calculateMaxStreak($dates);
-
         return [
             'total_xp' => $totalXp,
-            'streak' => $maxStreak
+            'streak' => $this->calculateMaxStreak($dates)
         ];
     }
 } 
