@@ -137,7 +137,7 @@ http {
 
         add_header X-Content-Type-Options "nosniff";
 
-        client_max_body_size 35M;
+        client_max_body_size 50M;
 
         index index.php;
 
@@ -166,7 +166,7 @@ http {
             include $!{nginx}/conf/fastcgi_params;
             include $!{nginx}/conf/fastcgi.conf;
 
-            fastcgi_param PHP_VALUE "upload_max_filesize=30M \n post_max_size=35M";
+            fastcgi_param PHP_VALUE "upload_max_filesize=50M \n post_max_size=50M";
         }
 
         location ~ /\.(?!well-known).* {

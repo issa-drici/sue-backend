@@ -4,8 +4,6 @@ namespace App\Repositories\UserProfile;
 
 use App\Entities\UserProfile;
 use App\Models\UserProfileModel;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class UserProfileRepository implements UserProfileRepositoryInterface
 {
@@ -27,5 +25,21 @@ class UserProfileRepository implements UserProfileRepositoryInterface
             ->select('users.id as user_id', 'users.full_name')
             ->get()
             ->toArray();
+    }
+
+
+    public function save(UserProfile $userProfile): UserProfile
+    {
+        $model = UserProfileModel::updateOrCreate(
+            ['user_id' => $userProfile->getUserId()],
+            [
+                'avatar_file_id' => $userProfile->getAvatarFileId(),
+                'total_xp' => $userProfile->getTotalXp(),
+                'completed_videos' => $userProfile->getCompletedVideos(),
+                'total_training_time' => $userProfile->getTotalTrainingTime()
+            ]
+        );
+
+        return $model ? $model->toEntity() : null;
     }
 } 
