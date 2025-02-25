@@ -11,7 +11,7 @@ class UserProfileRepository implements UserProfileRepositoryInterface
     public function findByUserId(string $userId): ?UserProfile
     {
         $profile = UserProfileModel::where('user_id', $userId)->first();
-        
+
         if (!$profile) {
             return null;
         }
@@ -36,10 +36,11 @@ class UserProfileRepository implements UserProfileRepositoryInterface
                 'avatar_file_id' => $userProfile->getAvatarFileId(),
                 'total_xp' => $userProfile->getTotalXp(),
                 'completed_videos' => $userProfile->getCompletedVideos(),
-                'total_training_time' => $userProfile->getTotalTrainingTime()
+                'total_training_time' => $userProfile->getTotalTrainingTime(),
+                'current_goals' => $userProfile->getCurrentGoals(),
             ]
         );
 
         return $model ? $model->toEntity() : null;
     }
-} 
+}

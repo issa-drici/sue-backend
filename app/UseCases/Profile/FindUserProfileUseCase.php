@@ -47,7 +47,6 @@ class FindUserProfileUseCase
         $formattedFavorites = array_map(function ($favorite) use ($exercises) {
             $exercise = $exercises[array_search($favorite['exercise_id'], array_column($exercises, 'id'))];
             return [
-
                 'id' => $exercise['id'],
                 'title' => $exercise['title'],
                 'level' => $exercise['level'],
@@ -70,7 +69,8 @@ class FindUserProfileUseCase
                 'completed_videos' => $stats->getCompletedVideos(),
                 'completed_days' => $stats->getCompletedDays()
             ],
-            'favorites' => $formattedFavorites
+            'favorites' => $formattedFavorites,
+            'current_goals' => $stats->getCurrentGoals()
         ];
     }
 }
