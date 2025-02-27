@@ -6,6 +6,7 @@ use App\Repositories\UserProfile\UserProfileRepositoryInterface;
 use App\Repositories\UserExercise\UserExerciseRepositoryInterface;
 use App\Repositories\Exercise\ExerciseRepositoryInterface;
 use App\Repositories\Favorite\FavoriteRepositoryInterface;
+use App\Repositories\File\FileRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
@@ -15,7 +16,8 @@ class FindUserProfileUseCase
         private UserProfileRepositoryInterface $userProfileRepository,
         private UserExerciseRepositoryInterface $userExerciseRepository,
         private ExerciseRepositoryInterface $exerciseRepository,
-        private FavoriteRepositoryInterface $favoriteRepository
+        private FavoriteRepositoryInterface $favoriteRepository,
+        private FileRepositoryInterface $fileRepository
     ) {}
 
     public function execute(): array
@@ -52,16 +54,24 @@ class FindUserProfileUseCase
                 'level' => $exercise['level'],
                 'banner_url' => $exercise['banner_url'],
                 'duration' => $exercise['duration_seconds'],
-
             ];
         }, $favorites);
+
+        // Récupérer l'avatar si présent
+        $avatarUrl = null;
+        if ($stats && $stats->getAvatarFileId()) {
+            $avatarFile = $this->fileRepository->findById($stats->getAvatarFileId());
+            if ($avatarFile) {
+                $avatarUrl = $avatarFile->getUrl();
+            }
+        }
 
         return [
             'user' => [
                 'id' => $user->id,
                 'full_name' => $user->name,
                 'email' => $user->email,
-                'avatar_url' => $user->avatar_url
+                'avatar_url' => $avatarUrl
             ],
             'stats' => [
                 'total_xp' => $stats->getTotalXp(),

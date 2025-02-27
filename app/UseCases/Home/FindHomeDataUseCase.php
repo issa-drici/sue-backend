@@ -5,6 +5,7 @@ namespace App\UseCases\Home;
 use App\Repositories\UserProfile\UserProfileRepositoryInterface;
 use App\Repositories\UserExercise\UserExerciseRepositoryInterface;
 use App\Repositories\Exercise\ExerciseRepositoryInterface;
+use App\Repositories\File\FileRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
@@ -13,7 +14,8 @@ class FindHomeDataUseCase
     public function __construct(
         private UserProfileRepositoryInterface $userProfileRepository,
         private UserExerciseRepositoryInterface $userExerciseRepository,
-        private ExerciseRepositoryInterface $exerciseRepository
+        private ExerciseRepositoryInterface $exerciseRepository,
+        private FileRepositoryInterface $fileRepository
     ) {}
 
     public function execute(): array
@@ -42,7 +44,7 @@ class FindHomeDataUseCase
         $uniqueExercises = [];
         foreach ($recentExercises as $exercise) {
             $exerciseId = $exercise['exercise_id'];
-            if (!isset($uniqueExercises[$exerciseId]) || 
+            if (!isset($uniqueExercises[$exerciseId]) ||
                 strtotime($exercise['updated_at']) > strtotime($uniqueExercises[$exerciseId]['updated_at'])) {
                 $uniqueExercises[$exerciseId] = $exercise;
             }
@@ -66,7 +68,19 @@ class FindHomeDataUseCase
             ];
         }, $recentExercises);
 
+         // Récupérer l'avatar si présent
+         $avatarUrl = null;
+         if ($stats && $stats->getAvatarFileId()) {
+             $avatarFile = $this->fileRepository->findById($stats->getAvatarFileId());
+             if ($avatarFile) {
+                 $avatarUrl = $avatarFile->getUrl();
+             }
+         }
+
         return [
+            'user' => [
+                'avatar_url' => $avatarUrl
+            ],
             'stats' => [
                 'total_training_time' => $stats->getTotalTrainingTime(),
                 'total_xp' => $stats->getTotalXp(),
@@ -75,4 +89,4 @@ class FindHomeDataUseCase
             'recent_exercises' => $recentExercises
         ];
     }
-} 
+}
