@@ -27,7 +27,8 @@ use App\Http\Controllers\Ranking\FindRankingsAction;
 use App\Http\Controllers\Profile\{
     FindUserProfileAction,
     UpdateUserGoalsAction,
-    UpdateUserAvatarAction
+    UpdateUserAvatarAction,
+    UpdateUserEmailAction
 };
 use App\Http\Controllers\Support\{
     CreateSupportRequestAction,
@@ -81,6 +82,7 @@ Route::get('/rankings', FindRankingsAction::class)->middleware('auth:sanctum');
 Route::get('/profile', FindUserProfileAction::class)->middleware('auth:sanctum');
 Route::put('/user/goals', UpdateUserGoalsAction::class)->middleware('auth:sanctum');
 Route::post('/profile/avatar', UpdateUserAvatarAction::class)->middleware('auth:sanctum');
+// Route::put('/profile/email', UpdateUserEmailAction::class)->middleware('auth:sanctum');
 
 // Support routes
 Route::post('/support-requests', CreateSupportRequestAction::class)->middleware('auth:sanctum');
