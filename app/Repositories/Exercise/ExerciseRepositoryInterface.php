@@ -10,4 +10,5 @@ interface ExerciseRepositoryInterface
     public function findByIds(array $ids): array;
     public function findById(string $id): ?Exercise;
     public function findCompletedExerciseIds(string $userId): array;
-} 
+    public function findByLevelId(string $levelId): array;
+}

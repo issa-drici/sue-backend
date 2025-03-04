@@ -10,16 +10,29 @@ class ExerciseRepository implements ExerciseRepositoryInterface
 {
     public function findAll(): array
     {
-        return ExerciseModel::select([
-            'id',
-            'title',
-            'description',
-            'duration',
-            'level',
-            'xp_value',
-            'banner_url',
-            'video_url'
-        ])->get()->toArray();
+        return ExerciseModel::with('level')
+            ->select([
+                'id',
+                'title',
+                'description',
+                'duration',
+                // 'level',
+                'level_id',
+                'xp_value',
+                'banner_url',
+                'video_url'
+            ])
+            ->get()
+            ->map(function ($exercise) {
+                $data = $exercise->toArray();
+                if ($exercise->level) {
+                    $data['level_name'] = $exercise->level->name;
+                    $data['level_category'] = $exercise->level->category;
+                    $data['level_banner_url'] = $exercise->level->banner_url;
+                }
+                return $data;
+            })
+            ->toArray();
     }
 
     public function findCompletedExerciseIds(string $userId): array
@@ -53,4 +66,22 @@ class ExerciseRepository implements ExerciseRepositoryInterface
         $model = ExerciseModel::find($id);
         return $model ? $model->toEntity() : null;
     }
-} 
+
+    public function findByLevelId(string $levelId): array
+    {
+        return ExerciseModel::where('level_id', $levelId)
+            ->select([
+                'id',
+                'title',
+                'description',
+                'duration',
+                'level',
+                'level_id',
+                'xp_value',
+                'banner_url',
+                'video_url'
+            ])
+            ->get()
+            ->toArray();
+    }
+}

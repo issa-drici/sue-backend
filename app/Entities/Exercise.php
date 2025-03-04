@@ -6,6 +6,7 @@ class Exercise
 {
     private ?string $id;
     private int $level;
+    private ?string $levelId;
     private ?string $bannerUrl;
     private ?string $videoUrl;
     private string $title;
@@ -16,6 +17,7 @@ class Exercise
     public function __construct(
         ?string $id,
         int $level,
+        ?string $levelId,
         ?string $bannerUrl,
         ?string $videoUrl,
         string $title,
@@ -25,6 +27,7 @@ class Exercise
     ) {
         $this->id = $id;
         $this->level = $level;
+        $this->levelId = $levelId;
         $this->bannerUrl = $bannerUrl;
         $this->videoUrl = $videoUrl;
         $this->title = $title;
@@ -51,6 +54,16 @@ class Exercise
     public function setLevel(int $level): void
     {
         $this->level = $level;
+    }
+
+    public function getLevelId(): ?string
+    {
+        return $this->levelId;
+    }
+
+    public function setLevelId(?string $levelId): void
+    {
+        $this->levelId = $levelId;
     }
 
     public function getBannerUrl(): ?string
@@ -118,6 +131,7 @@ class Exercise
         return [
             'id' => $this->id,
             'level' => $this->level,
+            'level_id' => $this->levelId,
             'banner_url' => $this->bannerUrl,
             'video_url' => $this->videoUrl,
             'title' => $this->title,
@@ -132,6 +146,7 @@ class Exercise
         return new self(
             id: $data['id'] ?? null,
             level: $data['level'],
+            levelId: $data['level_id'] ?? null,
             bannerUrl: $data['banner_url'] ?? null,
             videoUrl: $data['video_url'] ?? null,
             title: $data['title'],
@@ -140,4 +155,4 @@ class Exercise
             xpValue: $data['xp_value'],
         );
     }
-} 
+}

@@ -15,6 +15,8 @@ use App\Repositories\Favorite\FavoriteRepositoryInterface;
 use App\Repositories\Favorite\FavoriteRepository;
 use App\Repositories\File\FileRepository;
 use App\Repositories\File\FileRepositoryInterface;
+use App\Repositories\Level\LevelRepository;
+use App\Repositories\Level\LevelRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
 use App\Repositories\User\UserRepository;
 
@@ -31,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(FavoriteRepositoryInterface::class, FavoriteRepository::class);
         $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
         $this->app->bind(FileRepositoryInterface::class, FileRepository::class);
+        $this->app->bind(LevelRepositoryInterface::class, LevelRepository::class);
     }
 
     /**

@@ -10,6 +10,7 @@ use App\Http\Controllers\Exercise\{
     FindExerciseByIdAndUserIdAction,
     CreateExerciseAction,
     FindAllExercisesByUserIdAction,
+    FindExercisesByLevelIdAction,
     UpdateExerciseAction
 };
 use App\Http\Controllers\UserExercise\{
@@ -22,6 +23,8 @@ use App\Http\Controllers\Favorite\{
     FindAllFavoritesAction
 };
 use App\Http\Controllers\Home\FindHomeDataAction;
+use App\Http\Controllers\Level\FindAllLevelsAction;
+use App\Http\Controllers\Level\FindLevelsByCategoryAction;
 use App\Http\Controllers\Stats\FindUserStatsAction;
 use App\Http\Controllers\Ranking\FindRankingsAction;
 use App\Http\Controllers\Profile\{
@@ -90,3 +93,8 @@ Route::get('/support-requests', FindAllSupportRequestsAction::class)->middleware
 
 // User routes
 Route::get('/user/{userId}', FindUserByIdAction::class);
+
+// Level routes
+Route::get('/levels', FindAllLevelsAction::class);
+Route::get('/levels/category/{category}', FindLevelsByCategoryAction::class);
+Route::get('/levels/{id}/exercises', FindExercisesByLevelIdAction::class);
