@@ -4,16 +4,31 @@ namespace App\UseCases\Exercise;
 
 use App\Repositories\Exercise\ExerciseRepositoryInterface;
 use App\Repositories\UserExercise\UserExerciseRepositoryInterface;
+use App\Repositories\Level\LevelRepositoryInterface;
 
 class FindAllExercisesByLevelIdAndUserIdUseCase
 {
     public function __construct(
         private ExerciseRepositoryInterface $exerciseRepository,
-        private UserExerciseRepositoryInterface $userExerciseRepository
+        private UserExerciseRepositoryInterface $userExerciseRepository,
+        private LevelRepositoryInterface $levelRepository
     ) {}
 
     public function execute(string $levelId, string $userId): array
     {
+        // Récupérer les informations du niveau
+        $level = $this->levelRepository->findById($levelId);
+
+        if (!$level) {
+            return [
+                'status' => 'error',
+                'message' => 'Niveau non trouvé'
+            ];
+        }
+
+        // Convertir l'entité Level en tableau
+        $levelData = $level->toArray();
+
         // Récupérer les exercices du niveau spécifié
         $exercises = $this->exerciseRepository->findByLevelId($levelId);
 
@@ -41,9 +56,9 @@ class FindAllExercisesByLevelIdAndUserIdUseCase
             ];
         }, $exercises);
 
-        return [
-            'level_id' => $levelId,
-            'exercises' => $enrichedExercises
-        ];
+        // Ajouter les exercices aux données du niveau
+        $levelData['exercises'] = $enrichedExercises;
+
+        return $levelData;
     }
 }
