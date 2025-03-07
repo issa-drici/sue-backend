@@ -9,6 +9,7 @@ use App\Http\Controllers\Exercise\{
     FindAllExercisesAction,
     FindExerciseByIdAndUserIdAction,
     CreateExerciseAction,
+    FindAllExercisesByLevelIdAndUserIdAction,
     FindAllExercisesByUserIdAction,
     FindExercisesByLevelIdAction,
     UpdateExerciseAction
@@ -55,10 +56,10 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
 
 
-
 // Exercise routes
 Route::get('/exercises', FindAllExercisesAction::class);
 Route::get('/exercises/user/{userId}', FindAllExercisesByUserIdAction::class);
+Route::get('/exercises/level/{levelId}/user/{userId}', FindAllExercisesByLevelIdAndUserIdAction::class);
 Route::get('/exercises/{exerciseId}/user/{userId}', FindExerciseByIdAndUserIdAction::class);
 // Route::post('/exercises', CreateExerciseAction::class)->middleware('auth:sanctum');
 // Route::put('/exercises/{exerciseId}', UpdateExerciseAction::class)->middleware('auth:sanctum');
