@@ -51,6 +51,7 @@ class ExerciseRepository implements ExerciseRepositoryInterface
                 return [
                     'id' => $exercise->id,
                     'title' => $exercise->title,
+                    'description' => $exercise->description,
                     'level' => $exercise->level,
                     'duration_seconds' => $exercise->duration,
                     'xp' => $exercise->xp_value,
