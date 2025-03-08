@@ -52,6 +52,7 @@ class FindUserProfileUseCase
                 'id' => $exercise['id'],
                 'title' => $exercise['title'],
                 'level' => $exercise['level'],
+                'description' => $exercise['description'],
                 'banner_url' => $exercise['banner_url'],
                 'duration' => $exercise['duration_seconds'],
             ];

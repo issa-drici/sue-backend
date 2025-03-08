@@ -61,6 +61,7 @@ class FindHomeDataUseCase
             return [
                 'id' => $exercise['id'],
                 'title' => $exercise['title'],
+                'description' => $exercise['description'],
                 'completed_at' => $recent['completed_at'],
                 'updated_at' => $recent['updated_at'],
                 'banner_url' => $exercise['banner_url'],
