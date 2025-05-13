@@ -7,8 +7,6 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Models\UserModel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -30,9 +28,9 @@ class AuthenticatedSessionController extends Controller
 
             if (!$user || !Hash::check($request->password, $user->password)) {
                 return response()->json([
-                    'message' => 'Les identifiants fournis sont incorrects',
+                    'message' => 'The provided credentials are incorrect',
                     'errors' => [
-                        'email' => ['Email ou mot de passe incorrect']
+                        'email' => ['Email or password is incorrect']
                     ]
                 ], 422);
             }
@@ -47,13 +45,13 @@ class AuthenticatedSessionController extends Controller
 
         } catch (ValidationException $e) {
             return response()->json([
-                'message' => 'Erreur de validation',
+                'message' => 'Validation error',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            
+
             return response()->json([
-                'message' => 'Une erreur est survenue lors de la connexion',
+                'message' => 'An error occurred during login',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
@@ -67,20 +65,20 @@ class AuthenticatedSessionController extends Controller
         try {
             if (!$request->user()) {
                 return response()->json([
-                    'message' => 'Utilisateur non authentifié'
+                    'message' => 'Unauthorized user'
                 ], 401);
             }
 
             $request->user()->currentAccessToken()->delete();
 
             return response()->json([
-                'message' => 'Déconnexion réussie'
+                'message' => 'Successfully logged out'
             ], 200);
 
         } catch (\Exception $e) {
-            
+
             return response()->json([
-                'message' => 'Une erreur est survenue lors de la déconnexion',
+                'message' => 'An error occurred during logout',
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }

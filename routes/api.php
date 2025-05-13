@@ -35,6 +35,7 @@ use App\Http\Controllers\Support\{
     CreateSupportRequestAction,
     FindAllSupportRequestsAction
 };
+use App\Http\Controllers\User\DeleteUserDataAction;
 use App\Http\Controllers\Version\VersionCheckAction;
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
@@ -52,6 +53,8 @@ Route::post('/login', [AuthenticatedSessionController::class, 'store'])
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth:sanctum')
     ->name('logout');
+
+Route::delete('/user', DeleteUserDataAction::class)->middleware('auth:sanctum');
 
 
 // Exercise routes
