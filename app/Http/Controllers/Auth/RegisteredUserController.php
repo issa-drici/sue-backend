@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class RegisteredUserController extends Controller
 {
-    private const VERIFICATION_CODE = '123456'; // Code statique pour la démonstration
+    private const VERIFICATION_CODE = 'PRO-8X24-UT'; // Code statique pour la démonstration
 
     /**
      * Handle an incoming registration request.
@@ -29,15 +29,15 @@ class RegisteredUserController extends Controller
                 'password' => ['required', 'string', Rules\Password::defaults()],
                 'full_name' => ['required', 'string', 'max:255'],
                 'device_name' => ['required', 'string'],
-                'verification_code' => ['required', 'string', 'size:6'],
+                'verification_code' => ['required', 'string'],
             ]);
-            
+
             if ($request->verification_code !== self::VERIFICATION_CODE) {
                 throw ValidationException::withMessages([
-                    'verification_code' => ['Le code de vérification est incorrect']
+                    'verification_code' => ['The verification code is incorrect']
                 ]);
             }
-            
+
             $user = UserModel::create([
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
@@ -52,15 +52,14 @@ class RegisteredUserController extends Controller
                 'token' => $user->createToken($request->device_name)->plainTextToken,
                 'user' => $user
             ], 201);
-
         } catch (ValidationException $e) {
             return response()->json([
-                'message' => 'L\'inscription a échoué',
+                'message' => "Registration failed",
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Une erreur est survenue lors de l\'inscription',
+                'message' => "An error occurred during registration",
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
