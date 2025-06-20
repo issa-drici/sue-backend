@@ -68,6 +68,9 @@ class FindRankingsUseCase
         // Tri par XP décroissant
         usort($rankings, fn($a, $b) => $b['total_xp'] - $a['total_xp']);
 
+        // Limiter à 20 résultats
+        $rankings = array_slice($rankings, 0, 20);
+
         // Ajout du rang et identification de l'utilisateur courant
         $currentUser = Auth::user();
         $currentUserRank = 0;
