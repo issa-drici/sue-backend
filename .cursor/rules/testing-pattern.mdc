@@ -1,0 +1,353 @@
+# Tests - Patterns avec Pest
+
+## Conventions générales
+
+### Structure des tests
+
+- **Pest** : Framework de test moderne et expressif
+- **Feature Tests** : Tests d'intégration des fonctionnalités
+- **Unit Tests** : Tests unitaires des composants
+- **Factories** : Génération de données de test
+
+### Exemple de test Feature
+
+```php
+<?php
+
+use App\Models\UserModel;
+use App\Models\ExerciseModel;
+
+test('users can authenticate using the login screen', function () {
+    $user = UserModel::factory()->create();
+
+    $response = $this->post('/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $this->assertAuthenticated();
+    $response->assertNoContent();
+});
+
+test('users can not authenticate with invalid password', function () {
+    $user = UserModel::factory()->create();
+
+    $this->post('/login', [
+        'email' => $user->email,
+        'password' => 'wrong-password',
+    ]);
+
+    $this->assertGuest();
+});
+
+test('users can logout', function () {
+    $user = UserModel::factory()->create();
+
+    $response = $this->actingAs($user)->post('/logout');
+
+    $this->assertGuest();
+    $response->assertNoContent();
+});
+```
+
+### Exemple de test API
+
+```php
+<?php
+
+use App\Models\UserModel;
+use App\Models\ExerciseModel;
+
+test('can get all exercises', function () {
+    $exercises = ExerciseModel::factory()->count(3)->create();
+
+    $response = $this->getJson('/api/exercises');
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'levels' => [
+                '*' => [
+                    'id',
+                    'title',
+                    'duration_seconds',
+                    'xp',
+                    'banner_url',
+                    'video_url'
+                ]
+            ]
+        ]);
+});
+
+test('can get exercises by user id', function () {
+    $user = UserModel::factory()->create();
+    $exercises = ExerciseModel::factory()->count(2)->create();
+
+    $response = $this->getJson("/api/exercises/user/{$user->id}");
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'exercises' => [
+                '*' => [
+                    'id',
+                    'title',
+                    'is_completed',
+                    'progress'
+                ]
+            ]
+        ]);
+});
+
+test('can complete an exercise', function () {
+    $user = UserModel::factory()->create();
+    $exercise = ExerciseModel::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->postJson("/api/user-exercises/{$exercise->id}/complete", [
+            'completion_time' => 120,
+            'score' => 85
+        ]);
+
+    $response->assertStatus(201)
+        ->assertJson([
+            'message' => 'Exercice complété avec succès'
+        ]);
+
+    $this->assertDatabaseHas('user_exercises', [
+        'user_id' => $user->id,
+        'exercise_id' => $exercise->id,
+        'completed_at' => now()
+    ]);
+});
+```
+
+### Tests unitaires
+
+```php
+<?php
+
+use App\UseCases\Exercise\FindAllExercisesUseCase;
+use App\Repositories\Exercise\ExerciseRepositoryInterface;
+
+test('FindAllExercisesUseCase formats response correctly', function () {
+    // Arrange
+    $mockRepository = Mockery::mock(ExerciseRepositoryInterface::class);
+    $mockRepository->shouldReceive('findAll')
+        ->once()
+        ->andReturn([
+            [
+                'id' => '1',
+                'level' => 1,
+                'title' => 'Exercise 1',
+                'duration_seconds' => 120,
+                'xp' => 100,
+                'banner_url' => 'url1',
+                'video_url' => 'video1'
+            ],
+            [
+                'id' => '2',
+                'level' => 2,
+                'title' => 'Exercise 2',
+                'duration_seconds' => 180,
+                'xp' => 150,
+                'banner_url' => 'url2',
+                'video_url' => 'video2'
+            ]
+        ]);
+
+    $useCase = new FindAllExercisesUseCase($mockRepository);
+
+    // Act
+    $result = $useCase->execute();
+
+    // Assert
+    expect($result)->toHaveKey('levels');
+    expect($result['levels'])->toHaveKey('beginner');
+    expect($result['levels'])->toHaveKey('intermediate');
+    expect($result['levels']['beginner'])->toHaveCount(1);
+    expect($result['levels']['intermediate'])->toHaveCount(1);
+});
+```
+
+### Factories
+
+```php
+<?php
+
+namespace Database\Factories;
+
+use App\Models\ExerciseModel;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+class ExerciseFactory extends Factory
+{
+    protected $model = ExerciseModel::class;
+
+    public function definition(): array
+    {
+        return [
+            'level' => $this->faker->numberBetween(1, 3),
+            'level_id' => null, // Sera défini dans la relation
+            'title' => $this->faker->sentence(3),
+            'description' => $this->faker->paragraph(),
+            'duration' => $this->faker->numberBetween(60, 300),
+            'xp_value' => $this->faker->numberBetween(50, 200),
+            'banner_url' => $this->faker->imageUrl(),
+            'video_url' => $this->faker->url(),
+        ];
+    }
+
+    public function beginner(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'level' => 1,
+        ]);
+    }
+
+    public function intermediate(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'level' => 2,
+        ]);
+    }
+
+    public function advanced(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'level' => 3,
+        ]);
+    }
+}
+```
+
+### Tests de validation
+
+```php
+test('exercise completion requires valid data', function () {
+    $user = UserModel::factory()->create();
+    $exercise = ExerciseModel::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->postJson("/api/user-exercises/{$exercise->id}/complete", [
+            'completion_time' => -1, // Invalid
+            'score' => 150 // Invalid (> 100)
+        ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['completion_time', 'score']);
+});
+
+test('exercise completion time must be positive', function () {
+    $user = UserModel::factory()->create();
+    $exercise = ExerciseModel::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->postJson("/api/user-exercises/{$exercise->id}/complete", [
+            'completion_time' => 0
+        ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['completion_time']);
+});
+```
+
+### Tests d'authentification
+
+```php
+test('protected routes require authentication', function () {
+    $response = $this->getJson('/api/profile');
+
+    $response->assertStatus(401);
+});
+
+test('user can access their own profile', function () {
+    $user = UserModel::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->getJson('/api/profile');
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'user_id' => $user->id
+        ]);
+});
+```
+
+### Tests de base de données
+
+```php
+test('creates user exercise record when completing exercise', function () {
+    $user = UserModel::factory()->create();
+    $exercise = ExerciseModel::factory()->create();
+
+    $this->actingAs($user)
+        ->postJson("/api/user-exercises/{$exercise->id}/complete", [
+            'completion_time' => 120
+        ]);
+
+    $this->assertDatabaseHas('user_exercises', [
+        'user_id' => $user->id,
+        'exercise_id' => $exercise->id,
+        'completed_at' => now()
+    ]);
+});
+
+test('updates user profile when completing exercise', function () {
+    $user = UserModel::factory()->create();
+    $exercise = ExerciseModel::factory()->create(['xp_value' => 100]);
+
+    $this->actingAs($user)
+        ->postJson("/api/user-exercises/{$exercise->id}/complete", [
+            'completion_time' => 120
+        ]);
+
+    $this->assertDatabaseHas('user_profiles', [
+        'user_id' => $user->id,
+        'total_xp' => 100
+    ]);
+});
+```
+
+### Configuration des tests
+
+```php
+<?php
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class)->in('Feature');
+uses(RefreshDatabase::class)->in('Unit');
+
+// Configuration globale pour les tests
+beforeEach(function () {
+    // Setup commun pour tous les tests
+});
+
+// Helpers de test
+function createUser(array $attributes = []): UserModel
+{
+    return UserModel::factory()->create($attributes);
+}
+
+function createExercise(array $attributes = []): ExerciseModel
+{
+    return ExerciseModel::factory()->create($attributes);
+}
+```
+
+### Bonnes pratiques
+
+1. **Nommage descriptif** : Tests avec des noms explicites
+2. **Arrange-Act-Assert** : Structure claire des tests
+3. **Isolation** : Chaque test doit être indépendant
+4. **Factories** : Utilisation des factories pour les données
+5. **Mocks** : Mocking des dépendances externes
+6. **Assertions** : Assertions spécifiques et pertinentes
+
+### Exemples de tests
+
+- [tests/Feature/Auth/AuthenticationTest.php](mdc:tests/Feature/Auth/AuthenticationTest.php)
+- [tests/Feature/ExampleTest.php](mdc:tests/Feature/ExampleTest.php)
+description:
+globs:
+alwaysApply: true
+---

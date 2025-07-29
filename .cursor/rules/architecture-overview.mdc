@@ -1,0 +1,54 @@
+# Architecture Laravel - Clean Architecture
+
+## Vue d'ensemble
+
+Ce projet utilise une architecture Laravel moderne basée sur les principes de **Clean Architecture** avec une séparation claire des responsabilités.
+
+### Structure des couches
+
+```
+app/
+├── Entities/           # Entités métier (Domain Layer)
+├── Http/
+│   ├── Controllers/    # Contrôleurs HTTP (Presentation Layer)
+│   ├── Middleware/     # Middleware personnalisé
+│   └── Requests/       # Form Requests de validation
+├── Models/             # Modèles Eloquent (Infrastructure Layer)
+├── Repositories/       # Repositories avec interfaces (Infrastructure Layer)
+├── Services/           # Services métier (Application Layer)
+└── UseCases/           # Cas d'usage (Application Layer)
+```
+
+### Principes architecturaux
+
+1. **Séparation des dépendances** : Les couches internes ne dépendent jamais des couches externes
+2. **Inversion de dépendance** : Les interfaces définissent les contrats, les implémentations les respectent
+3. **Single Responsibility** : Chaque classe a une seule responsabilité
+4. **Dependency Injection** : Utilisation du container IoC de Laravel
+
+### Flux de données
+
+```
+HTTP Request → Controller → UseCase → Repository → Model → Database
+                ↓           ↓         ↓
+              Response ← UseCase ← Repository
+```
+
+### Technologies utilisées
+
+- **Laravel 11** avec PHP 8.2+
+- **Laravel Sanctum** pour l'authentification API
+- **Pest** pour les tests
+- **AWS S3** pour le stockage de fichiers
+- **UUID** pour les clés primaires
+- **Eloquent ORM** avec relations
+
+### Configuration
+
+- [composer.json](mdc:composer.json) : Dépendances et scripts
+- [app/Providers/AppServiceProvider.php](mdc:app/Providers/AppServiceProvider.php) : Bindings des interfaces
+- [routes/api.php](mdc:routes/api.php) : Routes API RESTful
+description:
+globs:
+alwaysApply: true
+---

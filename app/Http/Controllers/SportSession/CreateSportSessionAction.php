@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Http\Controllers\SportSession;
+
+use App\Http\Controllers\Controller;
+use App\UseCases\SportSession\CreateSportSessionUseCase;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+
+class CreateSportSessionAction extends Controller
+{
+    public function __construct(
+        private CreateSportSessionUseCase $createSportSessionUseCase
+    ) {}
+
+    public function __invoke(Request $request): JsonResponse
+    {
+        try {
+            $data = $request->validate([
+                'sport' => 'required|in:tennis,golf,musculation,football,basketball',
+                'date' => 'required|date_format:Y-m-d|after_or_equal:today',
+                'time' => 'required|date_format:H:i',
+                'location' => 'required|string|max:255',
+                'maxParticipants' => 'nullable|integer|min:1|max:100',
+                'participantIds' => 'nullable|array',
+                'participantIds.*' => 'required|string|uuid'
+            ]);
+
+            // Ajouter l'organisateur (utilisateur connecté)
+            $data['organizer_id'] = $request->user()->id;
+
+            $session = $this->createSportSessionUseCase->execute($data);
+
+            return response()->json([
+                'success' => true,
+                'data' => $session->toArray(),
+                'message' => 'Session créée avec succès',
+            ], 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'VALIDATION_ERROR',
+                    'message' => 'Données invalides',
+                    'details' => $e->errors(),
+                ],
+            ], 400);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'INTERNAL_ERROR',
+                    'message' => $e->getMessage(),
+                ],
+            ], 500);
+        }
+    }
+}

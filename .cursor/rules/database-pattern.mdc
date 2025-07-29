@@ -1,0 +1,241 @@
+# Base de données - Migrations et schéma
+
+## Conventions générales
+
+### Structure des migrations
+
+- **Nommage** : `YYYY_MM_DD_HHMMSS_create_{table}_table.php`
+- **UUID** : Utilisation d'UUIDs pour les clés primaires
+- **Relations** : Définition des clés étrangères avec contraintes
+- **Index** : Index appropriés pour les performances
+
+### Exemple de migration
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('exercises', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->tinyInteger('level');
+            $table->text('banner_url')->nullable();
+            $table->text('video_url')->nullable();
+            $table->string('title');
+            $table->text('description')->nullable();
+            $table->integer('duration');
+            $table->integer('xp_value');
+            $table->timestamps();
+
+            // Index pour les performances
+            $table->index('level');
+            $table->index(['level', 'xp_value']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('exercises');
+    }
+};
+```
+
+### Conventions de nommage
+
+#### Tables
+- **Pluriel** : `exercises`, `users`, `favorites`
+- **Snake case** : `user_exercises`, `support_requests`
+- **Descriptif** : Noms explicites du domaine
+
+#### Colonnes
+- **Snake case** : `banner_url`, `xp_value`, `completed_at`
+- **Types appropriés** : `string`, `text`, `integer`, `boolean`
+- **Nullable** : Utilisation de `nullable()` pour les valeurs optionnelles
+
+### Types de colonnes
+
+#### Identifiants
+```php
+// UUID comme clé primaire
+$table->uuid('id')->primary();
+
+// Clés étrangères UUID
+$table->uuid('user_id');
+$table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+```
+
+#### Texte
+```php
+// Chaîne courte
+$table->string('title', 255);
+
+// Texte long
+$table->text('description')->nullable();
+
+// URL
+$table->text('banner_url')->nullable();
+```
+
+#### Numériques
+```php
+// Entier
+$table->integer('duration');
+$table->tinyInteger('level');
+$table->bigInteger('xp_value');
+
+// Décimal
+$table->decimal('price', 8, 2);
+
+// Booléen
+$table->boolean('is_active')->default(true);
+```
+
+#### Dates
+```php
+// Timestamps automatiques
+$table->timestamps();
+
+// Date spécifique
+$table->timestamp('completed_at')->nullable();
+$table->date('birth_date')->nullable();
+```
+
+### Relations et contraintes
+
+#### Clés étrangères
+```php
+// Relation simple
+$table->uuid('user_id');
+$table->foreign('user_id')->references('id')->on('users');
+
+// Avec cascade
+$table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+
+// Avec restriction
+$table->foreign('level_id')->references('id')->on('levels')->onDelete('restrict');
+```
+
+#### Index
+```php
+// Index simple
+$table->index('user_id');
+
+// Index composite
+$table->index(['user_id', 'exercise_id']);
+
+// Index unique
+$table->unique(['user_id', 'exercise_id']);
+
+// Index pour les recherches textuelles
+$table->fullText(['title', 'description']);
+```
+
+### Migrations de données
+
+#### Insertion de données
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        DB::table('levels')->insert([
+            [
+                'id' => Str::uuid(),
+                'name' => 'Débutant',
+                'category' => 'fitness',
+                'banner_url' => 'levels/beginner.jpg',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id' => Str::uuid(),
+                'name' => 'Intermédiaire',
+                'category' => 'fitness',
+                'banner_url' => 'levels/intermediate.jpg',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+    }
+
+    public function down(): void
+    {
+        DB::table('levels')->whereIn('name', ['Débutant', 'Intermédiaire'])->delete();
+    }
+};
+```
+
+### Triggers et procédures
+
+#### Triggers pour les calculs automatiques
+```php
+// Trigger pour mettre à jour le total XP
+DB::unprepared('
+    CREATE TRIGGER update_total_xp_trigger
+    AFTER INSERT ON user_exercises
+    FOR EACH ROW
+    BEGIN
+        UPDATE user_profiles
+        SET total_xp = total_xp + (
+            SELECT xp_value FROM exercises WHERE id = NEW.exercise_id
+        )
+        WHERE user_id = NEW.user_id;
+    END
+');
+```
+
+### Modifications de tables
+
+#### Ajout de colonnes
+```php
+Schema::table('exercises', function (Blueprint $table) {
+    $table->uuid('level_id')->nullable()->after('level');
+    $table->foreign('level_id')->references('id')->on('levels');
+});
+```
+
+#### Suppression de colonnes
+```php
+Schema::table('exercises', function (Blueprint $table) {
+    $table->dropForeign(['level_id']);
+    $table->dropColumn('level_id');
+});
+```
+
+### Bonnes pratiques
+
+#### Performance
+- **Index appropriés** : Sur les colonnes de recherche fréquente
+- **Types de données** : Utiliser les types les plus appropriés
+- **Contraintes** : Définir les contraintes au niveau base de données
+
+#### Intégrité
+- **Clés étrangères** : Toujours définir les relations
+- **Contraintes** : Utiliser `unique()`, `nullable()`, `default()`
+- **Cascade** : Définir le comportement de suppression
+
+#### Maintenance
+- **Rollback** : Toujours implémenter la méthode `down()`
+- **Données** : Utiliser des migrations séparées pour les données
+- **Tests** : Tester les migrations en environnement de développement
+
+### Exemples de migrations
+
+- [0001_01_01_000005_create_exercises_table.php](mdc:database/migrations/0001_01_01_000005_create_exercises_table.php)
+- [2025_03_03_000001_create_levels_table.php](mdc:database/migrations/2025_03_03_000001_create_levels_table.php)
+- [2025_02_01_000000_insert_exercises_data.php](mdc:database/migrations/2025_02_01_000000_insert_exercises_data.php)
+description:
+globs:
+alwaysApply: true
+---

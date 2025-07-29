@@ -1,0 +1,140 @@
+# Repositories - Pattern Repository avec Interfaces
+
+## Conventions générales
+
+### Structure des repositories
+
+- **Interface + Implémentation** : Séparation du contrat et de l'implémentation
+- **Dependency Inversion** : Les Use Cases dépendent des interfaces
+- **Méthodes métier** : Noms explicites selon le domaine
+- **Retour d'entités** : Utilisation des entités du domaine
+
+### Exemple d'interface
+
+```php
+<?php
+
+namespace App\Repositories\Exercise;
+
+use App\Entities\Exercise;
+
+interface ExerciseRepositoryInterface
+{
+    public function findAll(): array;
+    public function findByIds(array $ids): array;
+    public function findById(string $id): ?Exercise;
+    public function findCompletedExerciseIds(string $userId): array;
+    public function findByLevelId(string $levelId): array;
+}
+```
+
+### Exemple d'implémentation
+
+```php
+<?php
+
+namespace App\Repositories\Exercise;
+
+use App\Entities\Exercise;
+use App\Models\ExerciseModel;
+use App\Models\UserExerciseModel;
+
+class ExerciseRepository implements ExerciseRepositoryInterface
+{
+    public function findAll(): array
+    {
+        return ExerciseModel::with('level')
+            ->select([
+                'id',
+                'title',
+                'description',
+                'duration',
+                'level_id',
+                'xp_value',
+                'banner_url',
+                'video_url'
+            ])
+            ->get()
+            ->map(function ($exercise) {
+                $data = $exercise->toArray();
+                if ($exercise->level) {
+                    $data['level_name'] = $exercise->level->name;
+                    $data['level_category'] = $exercise->level->category;
+                    $data['level_banner_url'] = $exercise->level->banner_url;
+                }
+                return $data;
+            })
+            ->toArray();
+    }
+
+    public function findById(string $id): ?Exercise
+    {
+        $model = ExerciseModel::find($id);
+        return $model ? $model->toEntity() : null;
+    }
+
+    // ... autres méthodes
+}
+```
+
+### Règles de nommage
+
+- **Interface** : `{Domain}RepositoryInterface.php` (ex: `ExerciseRepositoryInterface.php`)
+- **Implémentation** : `{Domain}Repository.php` (ex: `ExerciseRepository.php`)
+- **Namespace** : `App\Repositories\{Domain}\`
+
+### Principes de conception
+
+1. **Interface Segregation** : Interfaces spécifiques par domaine
+2. **Single Responsibility** : Un repository par entité/domaine
+3. **Dependency Inversion** : Dépendance vers les abstractions
+4. **Encapsulation** : Détails d'implémentation cachés
+
+### Méthodes typiques
+
+- **findAll()** : Récupération de toutes les entités
+- **findById(string $id)** : Récupération par ID
+- **findByIds(array $ids)** : Récupération multiple par IDs
+- **findBy{Field}(mixed $value)** : Récupération par critère spécifique
+- **create(array $data)** : Création d'entité
+- **update(string $id, array $data)** : Mise à jour d'entité
+- **delete(string $id)** : Suppression d'entité
+
+### Relations Eloquent
+
+- **Eager Loading** : Utilisation de `with()` pour éviter le N+1
+- **Relations** : Définition des relations dans les modèles
+- **Joins** : Utilisation de `join()` pour les requêtes complexes
+- **Select** : Sélection explicite des colonnes nécessaires
+
+### Transformation des données
+
+- **toEntity()** : Conversion modèle → entité
+- **fromEntity()** : Conversion entité → modèle
+- **toArray()** : Conversion pour l'API
+- **Mapping** : Transformation des noms de colonnes
+
+### Gestion des erreurs
+
+- **Retour null** : Pour les entités non trouvées
+- **Exceptions** : Pour les erreurs de base de données
+- **Validation** : Vérification des données avant persistance
+
+### Binding des interfaces
+
+Dans [AppServiceProvider.php](mdc:app/Providers/AppServiceProvider.php) :
+
+```php
+$this->app->bind(ExerciseRepositoryInterface::class, ExerciseRepository::class);
+```
+
+### Exemples de repositories
+
+- [ExerciseRepositoryInterface.php](mdc:app/Repositories/Exercise/ExerciseRepositoryInterface.php)
+- [ExerciseRepository.php](mdc:app/Repositories/Exercise/ExerciseRepository.php)
+- [UserRepositoryInterface.php](mdc:app/Repositories/User/UserRepositoryInterface.php)
+- [UserRepository.php](mdc:app/Repositories/User/UserRepository.php)
+description:
+globs:
+alwaysApply: true
+---

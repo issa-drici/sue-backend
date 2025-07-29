@@ -18,12 +18,6 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request): JsonResponse
     {
         try {
-            $request->validate([
-                'email' => ['required', 'string', 'email', 'max:255'],
-                'password' => ['required', 'string'],
-                'device_name' => ['required', 'string'],
-            ]);
-
             $user = UserModel::where('email', $request->email)->first();
 
             if (!$user || !Hash::check($request->password, $user->password)) {
@@ -43,13 +37,7 @@ class AuthenticatedSessionController extends Controller
                 'user' => $user->only('id', 'email', 'full_name', 'role'),
             ], 200);
 
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation error',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
-
             return response()->json([
                 'message' => 'An error occurred during login',
                 'error' => config('app.debug') ? $e->getMessage() : null

@@ -1,0 +1,186 @@
+# Routing API - Conventions RESTful
+
+## Conventions générales
+
+### Structure des routes
+
+- **RESTful** : Utilisation des conventions REST
+- **Single Action Controllers** : Routes pointant vers des contrôleurs invokables
+- **Middleware** : Protection des routes sensibles
+- **Nommage** : Noms explicites et cohérents
+
+### Exemple de structure
+
+```php
+<?php
+
+use App\Http\Controllers\Exercise\FindAllExercisesAction;
+use App\Http\Controllers\Exercise\FindExerciseByIdAndUserIdAction;
+use App\Http\Controllers\UserExercise\CompleteUserExerciseAction;
+use App\Http\Controllers\Favorite\CreateFavoriteAction;
+
+// Routes publiques
+Route::get('/exercises', FindAllExercisesAction::class);
+Route::get('/exercises/{exerciseId}/user/{userId}', FindExerciseByIdAndUserIdAction::class);
+
+// Routes protégées
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::post('/user-exercises/{exerciseId}/complete', CompleteUserExerciseAction::class);
+    Route::post('/favorites', CreateFavoriteAction::class);
+    Route::delete('/favorites/exercise/{exerciseId}', DeleteFavoriteAction::class);
+});
+```
+
+### Conventions RESTful
+
+#### GET - Lecture
+```php
+// Récupération de toutes les ressources
+Route::get('/exercises', FindAllExercisesAction::class);
+
+// Récupération d'une ressource spécifique
+Route::get('/exercises/{id}', FindExerciseByIdAction::class);
+
+// Récupération avec filtres
+Route::get('/exercises/user/{userId}', FindAllExercisesByUserIdAction::class);
+Route::get('/exercises/level/{levelId}/user/{userId}', FindAllExercisesByLevelIdAndUserIdAction::class);
+```
+
+#### POST - Création
+```php
+// Création d'une nouvelle ressource
+Route::post('/favorites', CreateFavoriteAction::class)->middleware('auth:sanctum');
+
+// Actions spécifiques
+Route::post('/user-exercises/{exerciseId}/complete', CompleteUserExerciseAction::class)->middleware('auth:sanctum');
+Route::post('/user-exercises/{exerciseId}/progress', UpdateUserExerciseProgressAction::class)->middleware('auth:sanctum');
+```
+
+#### PUT/PATCH - Mise à jour
+```php
+// Mise à jour complète
+Route::put('/user/goals', UpdateUserGoalsAction::class)->middleware('auth:sanctum');
+
+// Mise à jour partielle
+Route::patch('/profile/avatar', UpdateUserAvatarAction::class)->middleware('auth:sanctum');
+```
+
+#### DELETE - Suppression
+```php
+// Suppression d'une ressource
+Route::delete('/favorites/exercise/{exerciseId}', DeleteFavoriteAction::class)->middleware('auth:sanctum');
+Route::delete('/user', DeleteUserDataAction::class)->middleware('auth:sanctum');
+```
+
+### Middleware
+
+#### Authentification
+```php
+// Protection par token Sanctum
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Routes protégées
+});
+
+// Protection par email vérifié
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+    // Routes nécessitant une vérification email
+});
+```
+
+#### Groupement de routes
+```php
+// Routes d'authentification
+Route::post('/register', [RegisteredUserController::class, 'store'])->middleware('guest');
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middleware('guest');
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth:sanctum');
+
+// Routes utilisateur
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+    Route::get('/profile', FindUserProfileAction::class);
+    Route::get('/user/stats', FindUserStatsAction::class);
+});
+```
+
+### Paramètres de route
+
+#### Paramètres simples
+```php
+Route::get('/exercises/{id}', FindExerciseByIdAction::class);
+Route::get('/user/{userId}', FindUserByIdAction::class);
+```
+
+#### Paramètres multiples
+```php
+Route::get('/exercises/{exerciseId}/user/{userId}', FindExerciseByIdAndUserIdAction::class);
+Route::get('/exercises/level/{levelId}/user/{userId}', FindAllExercisesByLevelIdAndUserIdAction::class);
+```
+
+#### Paramètres optionnels
+```php
+Route::get('/exercises/{id?}', FindAllExercisesAction::class);
+```
+
+### Validation des paramètres
+
+#### Dans les contrôleurs
+```php
+public function __invoke(Request $request, string $exerciseId, string $userId): JsonResponse
+{
+    // Validation des paramètres
+    $request->validate([
+        'exerciseId' => 'required|uuid',
+        'userId' => 'required|uuid'
+    ]);
+
+    // Logique du contrôleur
+}
+```
+
+#### Form Requests
+```php
+class CompleteExerciseRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        return [
+            'exerciseId' => 'required|uuid|exists:exercises,id',
+            'completion_time' => 'required|integer|min:1',
+            'score' => 'nullable|integer|min:0|max:100'
+        ];
+    }
+}
+```
+
+### Gestion des erreurs
+
+#### Codes de statut appropriés
+- **200** : Succès
+- **201** : Création réussie
+- **400** : Requête invalide
+- **401** : Non authentifié
+- **403** : Non autorisé
+- **404** : Ressource non trouvée
+- **422** : Erreur de validation
+- **500** : Erreur serveur
+
+### Exemples de routes
+
+- [routes/api.php](mdc:routes/api.php) : Routes API principales
+- [routes/auth.php](mdc:routes/auth.php) : Routes d'authentification
+- [routes/web.php](mdc:routes/web.php) : Routes web (si nécessaire)
+
+### Bonnes pratiques
+
+1. **Nommage cohérent** : Utiliser des noms explicites pour les routes
+2. **Groupement logique** : Grouper les routes par domaine
+3. **Middleware appropriés** : Protéger les routes sensibles
+4. **Validation** : Valider les paramètres et données
+5. **Documentation** : Commenter les routes complexes
+6. **Versioning** : Préparer le versioning API si nécessaire
+description:
+globs:
+alwaysApply: true
+---

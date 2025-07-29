@@ -1,0 +1,210 @@
+# Services - Services métier
+
+## Conventions générales
+
+### Structure des services
+
+- **Services métier** : Logique complexe réutilisable
+- **Services externes** : Intégration avec des APIs tierces
+- **Services d'infrastructure** : Gestion des fichiers, emails, etc.
+- **Dependency Injection** : Injection des dépendances nécessaires
+
+### Exemple de service d'infrastructure
+
+```php
+<?php
+
+namespace App\Services;
+
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+
+class S3Service
+{
+    public function uploadFile(UploadedFile $file, string $path): array
+    {
+        $filename = uniqid() . '_' . $file->getClientOriginalName();
+        $fullPath = $path . '/' . $filename;
+
+        // Upload sur S3
+        Storage::disk('s3')->put($fullPath, file_get_contents($file));
+
+        // Générer l'URL publique
+        $url = Storage::disk('s3')->url($fullPath);
+
+        return [
+            'path' => $fullPath,
+            'url' => $url,
+            'filename' => $filename,
+            'mime_type' => $file->getMimeType(),
+            'size' => $file->getSize()
+        ];
+    }
+
+    public function deleteFile(string $path): void
+    {
+        if (Storage::disk('s3')->exists($path)) {
+            Storage::disk('s3')->delete($path);
+        }
+    }
+
+    public function fileExists(string $path): bool
+    {
+        return Storage::disk('s3')->exists($path);
+    }
+
+    public function getFileUrl(string $path): string
+    {
+        return Storage::disk('s3')->url($path);
+    }
+}
+```
+
+### Exemple de service métier
+
+```php
+<?php
+
+namespace App\Services;
+
+use App\Repositories\User\UserRepositoryInterface;
+use App\Repositories\Exercise\ExerciseRepositoryInterface;
+use App\Entities\User;
+
+class UserProgressService
+{
+    public function __construct(
+        private UserRepositoryInterface $userRepository,
+        private ExerciseRepositoryInterface $exerciseRepository
+    ) {}
+
+    public function calculateUserProgress(string $userId): array
+    {
+        $user = $this->userRepository->findById($userId);
+        $completedExercises = $this->exerciseRepository->findCompletedExerciseIds($userId);
+
+        $totalExercises = $this->exerciseRepository->findAll();
+        $progressPercentage = count($totalExercises) > 0
+            ? (count($completedExercises) / count($totalExercises)) * 100
+            : 0;
+
+        return [
+            'user_id' => $userId,
+            'completed_exercises' => count($completedExercises),
+            'total_exercises' => count($totalExercises),
+            'progress_percentage' => round($progressPercentage, 2),
+            'completed_exercise_ids' => $completedExercises
+        ];
+    }
+
+    public function updateUserLevel(string $userId): void
+    {
+        $progress = $this->calculateUserProgress($userId);
+
+        $newLevel = match(true) {
+            $progress['progress_percentage'] >= 80 => 3, // Advanced
+            $progress['progress_percentage'] >= 50 => 2, // Intermediate
+            default => 1 // Beginner
+        };
+
+        $this->userRepository->updateLevel($userId, $newLevel);
+    }
+}
+```
+
+### Règles de nommage
+
+- **Nom du fichier** : `{Service}.php` (ex: `S3Service.php`)
+- **Nom de la classe** : `{Service}` (ex: `S3Service`)
+- **Namespace** : `App\Services`
+
+### Types de services
+
+#### Services d'infrastructure
+- **S3Service** : Gestion des fichiers sur AWS S3
+- **EmailService** : Envoi d'emails
+- **NotificationService** : Gestion des notifications
+- **CacheService** : Gestion du cache
+
+#### Services métier
+- **UserProgressService** : Calcul des progrès utilisateur
+- **ExerciseRecommendationService** : Recommandations d'exercices
+- **AchievementService** : Gestion des achievements
+- **AnalyticsService** : Statistiques et analytics
+
+#### Services externes
+- **PaymentService** : Intégration paiements
+- **SocialAuthService** : Authentification sociale
+- **ApiIntegrationService** : Intégrations API tierces
+
+### Principes de conception
+
+1. **Single Responsibility** : Un service = une responsabilité spécifique
+2. **Dependency Injection** : Injection des dépendances via constructeur
+3. **Interface Segregation** : Services spécialisés et cohérents
+4. **Error Handling** : Gestion appropriée des erreurs
+
+### Gestion des erreurs
+
+```php
+public function uploadFile(UploadedFile $file, string $path): array
+{
+    try {
+        $filename = uniqid() . '_' . $file->getClientOriginalName();
+        $fullPath = $path . '/' . $filename;
+
+        Storage::disk('s3')->put($fullPath, file_get_contents($file));
+
+        return [
+            'path' => $fullPath,
+            'url' => Storage::disk('s3')->url($fullPath),
+            'filename' => $filename
+        ];
+    } catch (\Exception $e) {
+        throw new \RuntimeException(
+            'Erreur lors de l\'upload du fichier: ' . $e->getMessage()
+        );
+    }
+}
+```
+
+### Configuration et environnement
+
+```php
+class S3Service
+{
+    private string $bucket;
+    private string $region;
+
+    public function __construct()
+    {
+        $this->bucket = config('filesystems.disks.s3.bucket');
+        $this->region = config('filesystems.disks.s3.region');
+    }
+}
+```
+
+### Tests des services
+
+```php
+// Dans les tests
+public function test_upload_file_to_s3()
+{
+    $file = UploadedFile::fake()->image('test.jpg');
+    $service = new S3Service();
+
+    $result = $service->uploadFile($file, 'avatars');
+
+    $this->assertArrayHasKey('url', $result);
+    $this->assertArrayHasKey('path', $result);
+    $this->assertTrue($service->fileExists($result['path']));
+}
+```
+
+### Exemples de services
+
+- [S3Service.php](mdc:app/Services/S3Service.php)
+description:
+globs:
+alwaysApply: true
+---

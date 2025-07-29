@@ -1,0 +1,82 @@
+# Contrôleurs HTTP - Single Action Pattern
+
+## Conventions générales
+
+### Structure des contrôleurs
+
+- **Single Action Controllers** : Un contrôleur = une action = une responsabilité
+- **Invokable Controllers** : Utilisation de la méthode `__invoke()` pour les actions uniques
+- **Dependency Injection** : Injection des UseCases dans le constructeur
+
+### Exemple de structure
+
+```php
+<?php
+
+namespace App\Http\Controllers\Exercise;
+
+use App\Http\Controllers\Controller;
+use App\UseCases\Exercise\FindAllExercisesUseCase;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class FindAllExercisesAction extends Controller
+{
+    public function __construct(
+        private FindAllExercisesUseCase $useCase
+    ) {}
+
+    public function __invoke(Request $request): JsonResponse
+    {
+        try {
+            $result = $this->useCase->execute();
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Une erreur est survenue',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+}
+```
+
+### Règles de nommage
+
+- **Nom du fichier** : `{Action}Action.php` (ex: `FindAllExercisesAction.php`)
+- **Nom de la classe** : `{Action}Action` (ex: `FindAllExercisesAction`)
+- **Namespace** : `App\Http\Controllers\{Domain}\{Action}Action`
+
+### Gestion des erreurs
+
+- **Try-catch** dans chaque action pour capturer les exceptions
+- **Messages d'erreur** génériques en production, détaillés en debug
+- **Codes de statut HTTP** appropriés (200, 400, 401, 403, 404, 500)
+
+### Validation
+
+- **Form Requests** pour la validation complexe
+- **Validation simple** directement dans l'action si nécessaire
+- **Messages d'erreur** en français
+
+### Réponses JSON
+
+- **Structure cohérente** pour toutes les réponses
+- **Métadonnées** incluses (pagination, filtres, etc.)
+- **Codes de statut** explicites
+
+### Middleware
+
+- **Auth Sanctum** pour les routes protégées
+- **Email verification** si nécessaire
+- **CORS** configuré globalement
+
+### Exemples de contrôleurs
+
+- [FindAllExercisesAction.php](mdc:app/Http/Controllers/Exercise/FindAllExercisesAction.php)
+- [FindUserByIdAction.php](mdc:app/Http/Controllers/User/FindUserByIdAction.php)
+- [CreateFavoriteAction.php](mdc:app/Http/Controllers/Favorite/CreateFavoriteAction.php)
+description:
+globs:
+alwaysApply: true
+---

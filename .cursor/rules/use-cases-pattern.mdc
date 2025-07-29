@@ -1,0 +1,107 @@
+# Use Cases - Logique métier
+
+## Conventions générales
+
+### Structure des Use Cases
+
+- **Single Responsibility** : Un Use Case = une action métier spécifique
+- **Dependency Injection** : Injection des repositories via interfaces
+- **Méthode execute()** : Point d'entrée unique pour l'exécution
+- **Logique métier pure** : Pas de dépendances HTTP ou infrastructure
+
+### Exemple de structure
+
+```php
+<?php
+
+namespace App\UseCases\Exercise;
+
+use App\Repositories\Exercise\ExerciseRepositoryInterface;
+
+class FindAllExercisesUseCase
+{
+    private const LEVEL_MAPPING = [
+        1 => 'beginner',
+        2 => 'intermediate',
+        3 => 'advanced'
+    ];
+
+    public function __construct(
+        private ExerciseRepositoryInterface $exerciseRepository
+    ) {}
+
+    public function execute(): array
+    {
+        $exercises = $this->exerciseRepository->findAll();
+        return $this->formatResponse($exercises);
+    }
+
+    private function formatResponse(array $exercises): array
+    {
+        $grouped = ['levels' => []];
+
+        foreach ($exercises as $exercise) {
+            $apiLevel = self::LEVEL_MAPPING[$exercise['level']] ?? null;
+            if ($apiLevel === null) continue;
+
+            if (!isset($grouped['levels'][$apiLevel])) {
+                $grouped['levels'][$apiLevel] = [];
+            }
+
+            $grouped['levels'][$apiLevel][] = [
+                'id' => $exercise['id'],
+                'title' => $exercise['title'],
+                'duration_seconds' => $exercise['duration_seconds'],
+                'xp' => $exercise['xp'],
+                'banner_url' => $exercise['banner_url'],
+                'video_url' => $exercise['video_url']
+            ];
+        }
+
+        return $grouped;
+    }
+}
+```
+
+### Règles de nommage
+
+- **Nom du fichier** : `{Action}UseCase.php` (ex: `FindAllExercisesUseCase.php`)
+- **Nom de la classe** : `{Action}UseCase` (ex: `FindAllExercisesUseCase`)
+- **Namespace** : `App\UseCases\{Domain}\{Action}UseCase`
+
+### Principes de conception
+
+1. **Séparation des responsabilités** : Logique métier isolée de l'infrastructure
+2. **Immutabilité** : Pas de modification d'état externe
+3. **Composition** : Utilisation de méthodes privées pour la logique complexe
+4. **Mapping** : Transformation des données entre couches
+
+### Gestion des données
+
+- **Formatage** : Transformation des données pour l'API
+- **Validation métier** : Règles métier spécifiques
+- **Mapping** : Conversion entre formats internes et externes
+- **Filtrage** : Logique de filtrage métier
+
+### Constantes et configuration
+
+- **Constantes de classe** : Pour les mappings et configurations
+- **Configuration métier** : Valeurs spécifiques au domaine
+- **Énumérations** : Pour les valeurs fixes du domaine
+
+### Méthodes privées
+
+- **Formatage** : `formatResponse()`, `formatData()`
+- **Validation** : `validateData()`, `validateBusinessRules()`
+- **Mapping** : `mapToApiFormat()`, `mapFromRepository()`
+- **Filtrage** : `filterData()`, `filterByCriteria()`
+
+### Exemples de Use Cases
+
+- [FindAllExercisesUseCase.php](mdc:app/UseCases/Exercise/FindAllExercisesUseCase.php)
+- [FindUserProfileUseCase.php](mdc:app/UseCases/Profile/FindUserProfileUseCase.php)
+- [CreateFavoriteUseCase.php](mdc:app/UseCases/Favorite/CreateFavoriteUseCase.php)
+description:
+globs:
+alwaysApply: true
+---

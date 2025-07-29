@@ -1,0 +1,500 @@
+# Clean Code - Principes et bonnes pratiques
+
+## Principes fondamentaux
+
+### DRY (Don't Repeat Yourself)
+
+#### Éviter la duplication de code
+```php
+// ❌ Mauvais - Duplication
+class ExerciseController
+{
+    public function index()
+    {
+        try {
+            $exercises = Exercise::all();
+            return response()->json($exercises);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function show($id)
+    {
+        try {
+            $exercise = Exercise::find($id);
+            return response()->json($exercise);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+}
+
+// ✅ Bon - Extraction de la logique commune
+trait ApiResponseTrait
+{
+    protected function successResponse($data, $status = 200)
+    {
+        return response()->json($data, $status);
+    }
+
+    protected function errorResponse($message, $status = 500)
+    {
+        return response()->json([
+            'message' => $message,
+            'error' => config('app.debug') ? $e->getMessage() : null
+        ], $status);
+    }
+}
+
+class ExerciseController
+{
+    use ApiResponseTrait;
+
+    public function index()
+    {
+        try {
+            $exercises = Exercise::all();
+            return $this->successResponse($exercises);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Erreur lors de la récupération des exercices');
+        }
+    }
+}
+```
+
+### Single Responsibility Principle (SRP)
+
+#### Une classe = une responsabilité
+```php
+// ❌ Mauvais - Trop de responsabilités
+class ExerciseService
+{
+    public function createExercise($data)
+    {
+        // Validation
+        $this->validate($data);
+
+        // Création
+        $exercise = Exercise::create($data);
+
+        // Upload fichier
+        if (isset($data['video'])) {
+            $this->uploadVideo($data['video']);
+        }
+
+        // Envoi email
+        $this->sendNotification($exercise);
+
+        // Cache
+        $this->clearCache();
+
+        return $exercise;
+    }
+}
+
+// ✅ Bon - Responsabilités séparées
+class ExerciseService
+{
+    public function __construct(
+        private ExerciseValidator $validator,
+        private FileUploadService $fileService,
+        private NotificationService $notificationService,
+        private CacheService $cacheService
+    ) {}
+
+    public function createExercise($data)
+    {
+        $this->validator->validate($data);
+        $exercise = Exercise::create($data);
+
+        if (isset($data['video'])) {
+            $this->fileService->uploadVideo($data['video']);
+        }
+
+        $this->notificationService->sendExerciseCreated($exercise);
+        $this->cacheService->clearExerciseCache();
+
+        return $exercise;
+    }
+}
+```
+
+### Open/Closed Principle (OCP)
+
+#### Ouvert à l'extension, fermé à la modification
+```php
+// ❌ Mauvais - Modification nécessaire pour ajouter un niveau
+class ExerciseFormatter
+{
+    public function formatLevel($level)
+    {
+        switch ($level) {
+            case 1: return 'beginner';
+            case 2: return 'intermediate';
+            case 3: return 'advanced';
+            default: return 'unknown';
+        }
+    }
+}
+
+// ✅ Bon - Extensible sans modification
+interface LevelFormatterInterface
+{
+    public function format(int $level): string;
+}
+
+class BeginnerLevelFormatter implements LevelFormatterInterface
+{
+    public function format(int $level): string
+    {
+        return $level === 1 ? 'beginner' : '';
+    }
+}
+
+class IntermediateLevelFormatter implements LevelFormatterInterface
+{
+    public function format(int $level): string
+    {
+        return $level === 2 ? 'intermediate' : '';
+    }
+}
+
+class ExerciseFormatter
+{
+    public function __construct(
+        private array $formatters
+    ) {}
+
+    public function formatLevel(int $level): string
+    {
+        foreach ($this->formatters as $formatter) {
+            $result = $formatter->format($level);
+            if ($result) return $result;
+        }
+        return 'unknown';
+    }
+}
+```
+
+### Dependency Inversion Principle (DIP)
+
+#### Dépendre des abstractions, pas des implémentations
+```php
+// ❌ Mauvais - Dépendance directe
+class ExerciseRepository
+{
+    public function findAll()
+    {
+        return Exercise::all(); // Dépendance directe à Eloquent
+    }
+}
+
+// ✅ Bon - Dépendance vers l'abstraction
+interface ExerciseRepositoryInterface
+{
+    public function findAll(): array;
+}
+
+class EloquentExerciseRepository implements ExerciseRepositoryInterface
+{
+    public function findAll(): array
+    {
+        return Exercise::all()->toArray();
+    }
+}
+
+class ExerciseService
+{
+    public function __construct(
+        private ExerciseRepositoryInterface $repository
+    ) {}
+
+    public function getAllExercises(): array
+    {
+        return $this->repository->findAll();
+    }
+}
+```
+
+## Conventions de nommage
+
+### Variables et propriétés
+```php
+// ✅ Bon - Noms explicites
+$completedExercises = $this->getCompletedExercises();
+$totalXp = $this->calculateTotalXp();
+$isUserAuthenticated = $this->auth->check();
+
+// ❌ Mauvais - Noms vagues
+$data = $this->getData();
+$total = $this->calc();
+$flag = $this->check();
+```
+
+### Méthodes
+```php
+// ✅ Bon - Verbes d'action clairs
+public function calculateUserProgress(): array
+public function validateExerciseData(array $data): bool
+public function sendCompletionNotification(User $user): void
+
+// ❌ Mauvais - Noms imprécis
+public function process(): array
+public function check(array $data): bool
+public function notify(User $user): void
+```
+
+### Classes
+```php
+// ✅ Bon - Noms substantifs descriptifs
+class ExerciseCompletionService
+class UserProgressCalculator
+class ExerciseDataValidator
+
+// ❌ Mauvais - Noms génériques
+class Service
+class Calculator
+class Validator
+```
+
+## Structure et organisation
+
+### Méthodes courtes et focalisées
+```php
+// ❌ Mauvais - Méthode trop longue
+public function processExerciseCompletion($userId, $exerciseId, $data)
+{
+    // 50+ lignes de logique mélangée
+    $user = User::find($userId);
+    $exercise = Exercise::find($exerciseId);
+
+    // Validation
+    if (!$user || !$exercise) {
+        throw new Exception('User or exercise not found');
+    }
+
+    // Vérification des permissions
+    if (!$this->canCompleteExercise($user, $exercise)) {
+        throw new Exception('User cannot complete this exercise');
+    }
+
+    // Création de l'enregistrement
+    $userExercise = UserExercise::create([
+        'user_id' => $userId,
+        'exercise_id' => $exerciseId,
+        'completed_at' => now(),
+        'completion_time' => $data['completion_time'],
+        'score' => $data['score'] ?? null
+    ]);
+
+    // Mise à jour des statistiques
+    $this->updateUserStats($user, $exercise);
+
+    // Envoi de notification
+    $this->sendCompletionNotification($user, $exercise);
+
+    // Mise à jour du cache
+    $this->clearUserCache($user);
+
+    return $userExercise;
+}
+
+// ✅ Bon - Méthodes courtes et focalisées
+public function processExerciseCompletion($userId, $exerciseId, $data)
+{
+    $user = $this->findUser($userId);
+    $exercise = $this->findExercise($exerciseId);
+
+    $this->validateCompletionRequest($user, $exercise);
+    $userExercise = $this->createCompletionRecord($user, $exercise, $data);
+    $this->updateUserProgress($user, $exercise);
+    $this->sendNotifications($user, $exercise);
+
+    return $userExercise;
+}
+
+private function validateCompletionRequest($user, $exercise): void
+{
+    if (!$user || !$exercise) {
+        throw new ExerciseNotFoundException('User or exercise not found');
+    }
+
+    if (!$this->canCompleteExercise($user, $exercise)) {
+        throw new UnauthorizedException('User cannot complete this exercise');
+    }
+}
+
+private function createCompletionRecord($user, $exercise, $data): UserExercise
+{
+    return UserExercise::create([
+        'user_id' => $user->id,
+        'exercise_id' => $exercise->id,
+        'completed_at' => now(),
+        'completion_time' => $data['completion_time'],
+        'score' => $data['score'] ?? null
+    ]);
+}
+```
+
+### Extraction de constantes
+```php
+// ✅ Bon - Constantes explicites
+class ExerciseService
+{
+    private const BEGINNER_LEVEL = 1;
+    private const INTERMEDIATE_LEVEL = 2;
+    private const ADVANCED_LEVEL = 3;
+
+    private const MIN_COMPLETION_TIME = 1;
+    private const MAX_SCORE = 100;
+
+    public function validateExerciseData($data): bool
+    {
+        return $data['completion_time'] >= self::MIN_COMPLETION_TIME
+            && $data['score'] <= self::MAX_SCORE;
+    }
+}
+
+// ❌ Mauvais - Nombres magiques
+public function validateExerciseData($data): bool
+{
+    return $data['completion_time'] >= 1 && $data['score'] <= 100;
+}
+```
+
+## Gestion des erreurs
+
+### Exceptions spécifiques
+```php
+// ✅ Bon - Exceptions métier
+class ExerciseNotFoundException extends Exception
+{
+    public function __construct(string $exerciseId)
+    {
+        parent::__construct("Exercise with ID {$exerciseId} not found");
+    }
+}
+
+class UnauthorizedExerciseAccessException extends Exception
+{
+    public function __construct(string $userId, string $exerciseId)
+    {
+        parent::__construct("User {$userId} cannot access exercise {$exerciseId}");
+    }
+}
+
+// Utilisation
+public function findExercise(string $id): Exercise
+{
+    $exercise = Exercise::find($id);
+
+    if (!$exercise) {
+        throw new ExerciseNotFoundException($id);
+    }
+
+    return $exercise;
+}
+```
+
+### Messages d'erreur explicites
+```php
+// ✅ Bon - Messages informatifs
+throw new ValidationException('Le temps de completion doit être supérieur à 0 secondes');
+throw new BusinessRuleException('L\'utilisateur doit avoir complété les exercices prérequis');
+
+// ❌ Mauvais - Messages vagues
+throw new Exception('Invalid data');
+throw new Exception('Error occurred');
+```
+
+## Documentation et commentaires
+
+### Commentaires utiles
+```php
+// ✅ Bon - Commentaires qui expliquent le "pourquoi"
+/**
+ * Calcule le niveau de l'utilisateur basé sur son pourcentage de completion.
+ *
+ * Niveaux:
+ * - Beginner (1): 0-49%
+ * - Intermediate (2): 50-79%
+ * - Advanced (3): 80-100%
+ *
+ * @param float $completionPercentage Pourcentage de completion (0-100)
+ * @return int Niveau calculé (1-3)
+ */
+public function calculateUserLevel(float $completionPercentage): int
+{
+    return match(true) {
+        $completionPercentage >= 80 => 3,
+        $completionPercentage >= 50 => 2,
+        default => 1
+    };
+}
+
+// ❌ Mauvais - Commentaires qui expliquent le "quoi"
+// Retourne le niveau de l'utilisateur
+public function calculateUserLevel(float $completionPercentage): int
+{
+    return match(true) {
+        $completionPercentage >= 80 => 3,
+        $completionPercentage >= 50 => 2,
+        default => 1
+    };
+}
+```
+
+### Documentation des méthodes
+```php
+/**
+ * Récupère tous les exercices groupés par niveau.
+ *
+ * @return array Structure: [
+ *     'levels' => [
+ *         'beginner' => [Exercise[]],
+ *         'intermediate' => [Exercise[]],
+ *         'advanced' => [Exercise[]]
+ *     ]
+ * ]
+ *
+ * @throws DatabaseException Si la base de données est inaccessible
+ */
+public function getAllExercisesGroupedByLevel(): array
+{
+    // Implémentation...
+}
+```
+
+## Tests et qualité
+
+### Tests unitaires pour la logique métier
+```php
+test('calculates user level correctly', function () {
+    $calculator = new UserLevelCalculator();
+
+    expect($calculator->calculateLevel(25.0))->toBe(1); // Beginner
+    expect($calculator->calculateLevel(60.0))->toBe(2); // Intermediate
+    expect($calculator->calculateLevel(90.0))->toBe(3); // Advanced
+});
+
+test('throws exception for invalid completion percentage', function () {
+    $calculator = new UserLevelCalculator();
+
+    expect(fn() => $calculator->calculateLevel(-10.0))
+        ->toThrow(InvalidArgumentException::class);
+
+    expect(fn() => $calculator->calculateLevel(150.0))
+        ->toThrow(InvalidArgumentException::class);
+});
+```
+
+### Refactoring continu
+- **Code smells** : Identifier et corriger les problèmes
+- **Technical debt** : Réduire la dette technique régulièrement
+- **Reviews** : Code reviews pour maintenir la qualité
+- **Standards** : Respecter les standards de codage
+description:
+globs:
+alwaysApply: true
+---

@@ -1,0 +1,206 @@
+# Modèles Eloquent - Infrastructure Layer
+
+## Conventions générales
+
+### Structure des modèles
+
+- **Héritage Eloquent** : Extension de `Illuminate\Database\Eloquent\Model`
+- **Traits** : Utilisation des traits Laravel (HasUuids, HasFactory, etc.)
+- **Relations** : Définition des relations Eloquent
+- **Transformation** : Méthodes `toEntity()` et `fromEntity()`
+
+### Exemple de structure
+
+```php
+<?php
+
+namespace App\Models;
+
+use App\Entities\Exercise;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class ExerciseModel extends Model
+{
+    use HasFactory, HasUuids;
+
+    protected $table = 'exercises';
+
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = [
+        'level',
+        'level_id',
+        'banner_url',
+        'video_url',
+        'title',
+        'description',
+        'duration',
+        'xp_value',
+    ];
+
+    protected $casts = [
+        'level' => 'integer',
+        'duration' => 'integer',
+        'xp_value' => 'integer',
+    ];
+
+    // Relations
+    public function level(): BelongsTo
+    {
+        return $this->belongsTo(LevelModel::class, 'level_id');
+    }
+
+    public function userExercises(): HasMany
+    {
+        return $this->hasMany(UserExerciseModel::class, 'exercise_id');
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(FavoriteModel::class, 'exercise_id');
+    }
+
+    // Transformation vers entité
+    public function toEntity(): Exercise
+    {
+        return new Exercise(
+            id: $this->id,
+            level: $this->level,
+            levelId: $this->level_id,
+            bannerUrl: $this->banner_url,
+            videoUrl: $this->video_url,
+            title: $this->title,
+            description: $this->description,
+            duration: $this->duration,
+            xpValue: $this->xp_value,
+        );
+    }
+
+    // Création depuis entité
+    public static function fromEntity(Exercise $exercise): self
+    {
+        return new self([
+            'level' => $exercise->getLevel(),
+            'level_id' => $exercise->getLevelId(),
+            'banner_url' => $exercise->getBannerUrl(),
+            'video_url' => $exercise->getVideoUrl(),
+            'title' => $exercise->getTitle(),
+            'description' => $exercise->getDescription(),
+            'duration' => $exercise->getDuration(),
+            'xp_value' => $exercise->getXpValue(),
+        ]);
+    }
+}
+```
+
+### Règles de nommage
+
+- **Nom du fichier** : `{Entity}Model.php` (ex: `ExerciseModel.php`)
+- **Nom de la classe** : `{Entity}Model` (ex: `ExerciseModel`)
+- **Namespace** : `App\Models`
+
+### Configuration de base
+
+- **Table** : `protected $table = 'table_name';`
+- **UUID** : `use HasUuids;` pour les clés primaires UUID
+- **Incrementing** : `public $incrementing = false;` pour UUID
+- **Key Type** : `protected $keyType = 'string';` pour UUID
+
+### Propriétés protégées
+
+- **$fillable** : Champs autorisés pour l'assignation en masse
+- **$casts** : Conversion automatique des types
+- **$hidden** : Champs cachés dans les sérialisations
+- **$appends** : Attributs calculés à ajouter
+
+### Relations Eloquent
+
+- **BelongsTo** : Relation vers une entité parente
+- **HasMany** : Relation vers plusieurs entités enfants
+- **HasOne** : Relation vers une entité enfant unique
+- **BelongsToMany** : Relation many-to-many
+- **MorphTo/MorphMany** : Relations polymorphiques
+
+### Exemple de relations
+
+```php
+// Relation simple
+public function level(): BelongsTo
+{
+    return $this->belongsTo(LevelModel::class, 'level_id');
+}
+
+// Relation avec conditions
+public function completedUserExercises(): HasMany
+{
+    return $this->hasMany(UserExerciseModel::class, 'exercise_id')
+        ->whereNotNull('completed_at');
+}
+
+// Relation avec eager loading par défaut
+public function level(): BelongsTo
+{
+    return $this->belongsTo(LevelModel::class, 'level_id')
+        ->withDefault(['name' => 'Niveau inconnu']);
+}
+```
+
+### Transformation des données
+
+- **toEntity()** : Conversion modèle → entité du domaine
+- **fromEntity()** : Création modèle depuis entité (static)
+- **Mapping** : Conversion des noms de propriétés (snake_case ↔ camelCase)
+
+### Scopes et méthodes de requête
+
+```php
+// Scope pour filtrer par niveau
+public function scopeByLevel($query, int $level)
+{
+    return $query->where('level', $level);
+}
+
+// Scope pour les exercices actifs
+public function scopeActive($query)
+{
+    return $query->where('is_active', true);
+}
+
+// Méthode pour récupérer avec relations
+public static function withRelations()
+{
+    return static::with(['level', 'userExercises']);
+}
+```
+
+### Accesseurs et mutateurs
+
+```php
+// Accesseur pour l'URL complète
+public function getFullBannerUrlAttribute(): string
+{
+    return $this->banner_url ? asset($this->banner_url) : '';
+}
+
+// Mutateur pour nettoyer l'URL
+public function setBannerUrlAttribute($value): void
+{
+    $this->attributes['banner_url'] = $value ? trim($value) : null;
+}
+```
+
+### Exemples de modèles
+
+- [ExerciseModel.php](mdc:app/Models/ExerciseModel.php)
+- [UserModel.php](mdc:app/Models/UserModel.php)
+- [UserProfileModel.php](mdc:app/Models/UserProfileModel.php)
+- [LevelModel.php](mdc:app/Models/LevelModel.php)
+description:
+globs:
+alwaysApply: true
+---

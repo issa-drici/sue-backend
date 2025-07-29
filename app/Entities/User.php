@@ -5,20 +5,23 @@ namespace App\Entities;
 class User
 {
     private ?string $id;
-    private string $fullName;
+    private string $firstname;
+    private string $lastname;
     private string $email;
     private ?string $phone;
     private string $role;
 
     public function __construct(
         ?string $id,
-        string $fullName,
+        string $firstname,
+        string $lastname,
         string $email,
         ?string $phone,
         string $role = 'player',
     ) {
         $this->id = $id;
-        $this->fullName = $fullName;
+        $this->firstname = $firstname;
+        $this->lastname = $lastname;
         $this->email = $email;
         $this->phone = $phone;
         $this->role = $role;
@@ -34,14 +37,24 @@ class User
         $this->id = $id;
     }
 
-    public function getFullName(): string
+    public function getFirstname(): string
     {
-        return $this->fullName;
+        return $this->firstname;
     }
 
-    public function setFullName(string $fullName): void
+    public function setFirstname(string $firstname): void
     {
-        $this->fullName = $fullName;
+        $this->firstname = $firstname;
+    }
+
+    public function getLastname(): string
+    {
+        return $this->lastname;
+    }
+
+    public function setLastname(string $lastname): void
+    {
+        $this->lastname = $lastname;
     }
 
     public function getEmail(): string
@@ -78,7 +91,8 @@ class User
     {
         return [
             'id' => $this->id,
-            'full_name' => $this->fullName,
+            'firstname' => $this->firstname,
+            'lastname' => $this->lastname,
             'email' => $this->email,
             'phone' => $this->phone,
             'role' => $this->role,
@@ -89,10 +103,11 @@ class User
     {
         return new self(
             id: $data['id'] ?? null,
-            fullName: $data['full_name'],
+            firstname: $data['firstname'],
+            lastname: $data['lastname'],
             email: $data['email'],
             phone: $data['phone'] ?? null,
             role: $data['role'] ?? 'player',
         );
     }
-} 
+}

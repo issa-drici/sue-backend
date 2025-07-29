@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test WebSocket - Alarrache</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .status.connected { background: #d4edda; color: #155724; }
+        .status.disconnected { background: #f8d7da; color: #721c24; }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .events {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 16px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .event {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .event.received { background: #e7f3ff; }
+        .event.sent { background: #fff3cd; }
+        .event.error { background: #f8d7da; color: #721c24; }
+        .online-users {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .user {
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .typing {
+            background: #ffc107;
+            color: #212529;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test WebSocket - Alarrache</h1>
+
+        <!-- Statut de connexion -->
+        <div id="status" class="status disconnected">
+            🔴 Déconnecté
+        </div>
+
+        <!-- Configuration -->
+        <div class="form-group">
+            <label for="socketUrl">URL WebSocket:</label>
+            <input type="text" id="socketUrl" value="http://localhost:6001" placeholder="http://localhost:6001">
+        </div>
+
+        <div class="form-group">
+            <label for="sessionId">Session ID:</label>
+            <input type="text" id="sessionId" value="test-session-123" placeholder="UUID de la session">
+        </div>
+
+        <div class="form-group">
+            <label for="userId">User ID:</label>
+            <input type="text" id="userId" value="test-user-456" placeholder="UUID de l'utilisateur">
+        </div>
+
+        <div class="form-group">
+            <label for="userName">Nom d'utilisateur:</label>
+            <input type="text" id="userName" value="Test User" placeholder="Nom d'utilisateur">
+        </div>
+
+        <!-- Boutons d'action -->
+        <button onclick="connect()" id="connectBtn">🔌 Se connecter</button>
+        <button onclick="disconnect()" id="disconnectBtn" disabled>🔌 Se déconnecter</button>
+
+        <hr style="margin: 24px 0;">
+
+        <!-- Rejoindre une session -->
+        <h3>📡 Actions</h3>
+        <button onclick="joinSession()" id="joinBtn" disabled>👥 Rejoindre la session</button>
+        <button onclick="startTyping()" id="typingBtn" disabled>⌨️ Commencer à taper</button>
+        <button onclick="stopTyping()" id="stopTypingBtn" disabled>⏹️ Arrêter de taper</button>
+
+        <!-- Utilisateurs en ligne -->
+        <div style="margin-top: 20px;">
+            <h4>👥 Utilisateurs en ligne:</h4>
+            <div id="onlineUsers" class="online-users"></div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <h4>⌨️ En train de taper:</h4>
+            <div id="typingUsers" class="online-users"></div>
+        </div>
+
+        <!-- Événements -->
+        <div style="margin-top: 20px;">
+            <h4>📡 Événements:</h4>
+            <div id="events" class="events"></div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let isConnected = false;
+        let onlineUsers = [];
+        let typingUsers = [];
+
+        // Éléments DOM
+        const statusEl = document.getElementById('status');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const joinBtn = document.getElementById('joinBtn');
+        const typingBtn = document.getElementById('typingBtn');
+        const stopTypingBtn = document.getElementById('stopTypingBtn');
+        const eventsEl = document.getElementById('events');
+        const onlineUsersEl = document.getElementById('onlineUsers');
+        const typingUsersEl = document.getElementById('typingUsers');
+
+        function logEvent(type, message, data = null) {
+            const eventEl = document.createElement('div');
+            eventEl.className = `event ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            eventEl.innerHTML = `<strong>[${timestamp}] ${type.toUpperCase()}:</strong> ${message}`;
+            if (data) {
+                eventEl.innerHTML += `<br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            eventsEl.appendChild(eventEl);
+            eventsEl.scrollTop = eventsEl.scrollHeight;
+        }
+
+        function updateStatus() {
+            if (isConnected) {
+                statusEl.className = 'status connected';
+                statusEl.innerHTML = '🟢 Connecté';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                joinBtn.disabled = false;
+            } else {
+                statusEl.className = 'status disconnected';
+                statusEl.innerHTML = '🔴 Déconnecté';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                joinBtn.disabled = true;
+                typingBtn.disabled = true;
+                stopTypingBtn.disabled = true;
+            }
+        }
+
+        function updateOnlineUsers() {
+            onlineUsersEl.innerHTML = onlineUsers.map(user =>
+                `<span class="user">${user.user?.firstname || user.userId}</span>`
+            ).join('');
+        }
+
+        function updateTypingUsers() {
+            typingUsersEl.innerHTML = typingUsers.map(user =>
+                `<span class="user typing">${user.user?.firstname || user.userId}</span>`
+            ).join('');
+        }
+
+        function connect() {
+            const socketUrl = document.getElementById('socketUrl').value;
+
+            try {
+                socket = io(socketUrl, {
+                    transports: ['websocket', 'polling']
+                });
+
+                socket.on('connect', () => {
+                    isConnected = true;
+                    updateStatus();
+                    logEvent('received', 'Connecté au serveur WebSocket');
+                });
+
+                socket.on('disconnect', () => {
+                    isConnected = false;
+                    updateStatus();
+                    logEvent('received', 'Déconnecté du serveur WebSocket');
+                });
+
+                socket.on('error', (error) => {
+                    logEvent('error', 'Erreur WebSocket', error);
+                });
+
+                socket.on('online-users', (users) => {
+                    onlineUsers = users;
+                    updateOnlineUsers();
+                    logEvent('received', 'Liste des utilisateurs en ligne', users);
+                });
+
+                socket.on('user.online', (data) => {
+                    logEvent('received', 'Utilisateur connecté', data);
+                });
+
+                socket.on('user.offline', (data) => {
+                    logEvent('received', 'Utilisateur déconnecté', data);
+                });
+
+                socket.on('user.typing', (data) => {
+                    if (data.isTyping) {
+                        if (!typingUsers.find(u => u.userId === data.userId)) {
+                            typingUsers.push(data);
+                        }
+                    } else {
+                        typingUsers = typingUsers.filter(u => u.userId !== data.userId);
+                    }
+                    updateTypingUsers();
+                    logEvent('received', 'Indicateur de frappe', data);
+                });
+
+                socket.on('comment.created', (data) => {
+                    logEvent('received', 'Nouveau commentaire', data);
+                });
+
+                socket.on('comment.updated', (data) => {
+                    logEvent('received', 'Commentaire modifié', data);
+                });
+
+                socket.on('comment.deleted', (data) => {
+                    logEvent('received', 'Commentaire supprimé', data);
+                });
+
+            } catch (error) {
+                logEvent('error', 'Erreur de connexion', error);
+            }
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                isConnected = false;
+                updateStatus();
+                onlineUsers = [];
+                typingUsers = [];
+                updateOnlineUsers();
+                updateTypingUsers();
+            }
+        }
+
+        function joinSession() {
+            if (!socket || !isConnected) return;
+
+            const sessionId = document.getElementById('sessionId').value;
+            const userId = document.getElementById('userId').value;
+            const userName = document.getElementById('userName').value;
+
+            const userData = {
+                id: userId,
+                firstname: userName,
+                lastname: '',
+                avatar: ''
+            };
+
+            socket.emit('join-session', {
+                sessionId: sessionId,
+                userId: userId,
+                user: userData
+            });
+
+            logEvent('sent', 'Rejoindre session', { sessionId, userId, user: userData });
+
+            typingBtn.disabled = false;
+            stopTypingBtn.disabled = false;
+        }
+
+        function startTyping() {
+            if (!socket || !isConnected) return;
+
+            const sessionId = document.getElementById('sessionId').value;
+            const userId = document.getElementById('userId').value;
+            const userName = document.getElementById('userName').value;
+
+            socket.emit('typing', {
+                sessionId: sessionId,
+                userId: userId,
+                isTyping: true,
+                user: {
+                    id: userId,
+                    firstname: userName,
+                    lastname: '',
+                    avatar: ''
+                }
+            });
+
+            logEvent('sent', 'Commencer à taper', { sessionId, userId, isTyping: true });
+        }
+
+        function stopTyping() {
+            if (!socket || !isConnected) return;
+
+            const sessionId = document.getElementById('sessionId').value;
+            const userId = document.getElementById('userId').value;
+            const userName = document.getElementById('userName').value;
+
+            socket.emit('typing', {
+                sessionId: sessionId,
+                userId: userId,
+                isTyping: false,
+                user: {
+                    id: userId,
+                    firstname: userName,
+                    lastname: '',
+                    avatar: ''
+                }
+            });
+
+            logEvent('sent', 'Arrêter de taper', { sessionId, userId, isTyping: false });
+        }
+
+        // Initialisation
+        updateStatus();
+        logEvent('info', 'Page de test WebSocket chargée');
+    </script>
+</body>
+</html>

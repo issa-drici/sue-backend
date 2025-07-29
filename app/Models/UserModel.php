@@ -19,7 +19,8 @@ class UserModel extends Authenticatable
     protected $keyType = 'string';
 
     protected $fillable = [
-        'full_name',
+        'firstname',
+        'lastname',
         'email',
         'phone',
         'password',
@@ -40,7 +41,8 @@ class UserModel extends Authenticatable
     {
         return new User(
             id: $this->id,
-            fullName: $this->full_name,
+            firstname: $this->firstname,
+            lastname: $this->lastname,
             email: $this->email,
             phone: $this->phone,
             role: $this->role,
@@ -50,10 +52,11 @@ class UserModel extends Authenticatable
     public static function fromEntity(User $user): self
     {
         return new self([
-            'full_name' => $user->getFullName(),
+            'firstname' => $user->getFirstname(),
+            'lastname' => $user->getLastname(),
             'email' => $user->getEmail(),
             'phone' => $user->getPhone(),
             'role' => $user->getRole(),
         ]);
     }
-} 
+}

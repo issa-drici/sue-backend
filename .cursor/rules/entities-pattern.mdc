@@ -1,0 +1,161 @@
+# Entités - Domain Entities
+
+## Conventions générales
+
+### Structure des entités
+
+- **Encapsulation** : Propriétés privées avec getters/setters
+- **Immutabilité** : Pas de modification directe des propriétés
+- **Validation métier** : Règles métier dans les setters
+- **Méthodes de transformation** : `toArray()`, `fromArray()`
+
+### Exemple de structure
+
+```php
+<?php
+
+namespace App\Entities;
+
+class Exercise
+{
+    private ?string $id;
+    private int $level;
+    private ?string $levelId;
+    private ?string $bannerUrl;
+    private ?string $videoUrl;
+    private string $title;
+    private ?string $description;
+    private int $duration;
+    private int $xpValue;
+
+    public function __construct(
+        ?string $id,
+        int $level,
+        ?string $levelId,
+        ?string $bannerUrl,
+        ?string $videoUrl,
+        string $title,
+        ?string $description,
+        int $duration,
+        int $xpValue,
+    ) {
+        $this->id = $id;
+        $this->level = $level;
+        $this->levelId = $levelId;
+        $this->bannerUrl = $bannerUrl;
+        $this->videoUrl = $videoUrl;
+        $this->title = $title;
+        $this->description = $description;
+        $this->duration = $duration;
+        $this->xpValue = $xpValue;
+    }
+
+    // Getters
+    public function getId(): ?string
+    {
+        return $this->id;
+    }
+
+    public function getTitle(): string
+    {
+        return $this->title;
+    }
+
+    // Setters avec validation
+    public function setTitle(string $title): void
+    {
+        if (empty(trim($title))) {
+            throw new \InvalidArgumentException('Le titre ne peut pas être vide');
+        }
+        $this->title = $title;
+    }
+
+    // Méthodes de transformation
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'level' => $this->level,
+            'level_id' => $this->levelId,
+            'banner_url' => $this->bannerUrl,
+            'video_url' => $this->videoUrl,
+            'title' => $this->title,
+            'description' => $this->description,
+            'duration' => $this->duration,
+            'xp_value' => $this->xpValue,
+        ];
+    }
+
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            id: $data['id'] ?? null,
+            level: $data['level'],
+            levelId: $data['level_id'] ?? null,
+            bannerUrl: $data['banner_url'] ?? null,
+            videoUrl: $data['video_url'] ?? null,
+            title: $data['title'],
+            description: $data['description'] ?? null,
+            duration: $data['duration'],
+            xpValue: $data['xp_value'],
+        );
+    }
+}
+```
+
+### Règles de nommage
+
+- **Nom du fichier** : `{Entity}.php` (ex: `Exercise.php`)
+- **Nom de la classe** : `{Entity}` (ex: `Exercise`)
+- **Namespace** : `App\Entities`
+
+### Principes de conception
+
+1. **Encapsulation** : Propriétés privées, accès via getters/setters
+2. **Immutabilité** : Pas de modification directe après création
+3. **Validation métier** : Règles métier dans les setters
+4. **Transformation** : Méthodes pour convertir vers/depuis d'autres formats
+
+### Propriétés
+
+- **Visibilité** : Toujours `private`
+- **Types** : Types PHP stricts (string, int, bool, etc.)
+- **Nullable** : Utilisation de `?` pour les valeurs optionnelles
+- **Noms** : camelCase pour les propriétés
+
+### Getters et Setters
+
+- **Getters** : `get{Property}()` - retournent la valeur
+- **Setters** : `set{Property}()` - avec validation si nécessaire
+- **Validation** : Dans les setters pour maintenir l'intégrité
+- **Exceptions** : `InvalidArgumentException` pour les données invalides
+
+### Méthodes de transformation
+
+- **toArray()** : Conversion vers tableau pour l'API
+- **fromArray(array $data)** : Création depuis un tableau (static)
+- **Mapping** : Conversion des noms de propriétés (snake_case ↔ camelCase)
+
+### Validation métier
+
+- **Règles métier** : Dans les setters ou méthodes dédiées
+- **Messages d'erreur** : En français
+- **Exceptions** : `InvalidArgumentException` ou exceptions métier personnalisées
+- **Vérifications** : Longueur, format, valeurs autorisées
+
+### Relations entre entités
+
+- **Composition** : Une entité peut contenir d'autres entités
+- **Agrégation** : Références vers d'autres entités
+- **Collections** : Utilisation d'arrays pour les collections
+
+### Exemples d'entités
+
+- [Exercise.php](mdc:app/Entities/Exercise.php)
+- [User.php](mdc:app/Entities/User.php)
+- [UserProfile.php](mdc:app/Entities/UserProfile.php)
+- [Level.php](mdc:app/Entities/Level.php)
+description:
+globs:
+alwaysApply: true
+---

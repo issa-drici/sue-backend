@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test WebSocket Events - Alarrache</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .events { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .event { margin: 5px 0; padding: 5px; background-color: #e9ecef; border-radius: 3px; }
+        .test-buttons { margin: 20px 0; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .join-btn { background-color: #007bff; color: white; }
+        .test-btn { background-color: #28a745; color: white; }
+        .clear-btn { background-color: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test WebSocket Events - Alarrache</h1>
+
+        <div id="status" class="status disconnected">
+            🔴 Déconnecté
+        </div>
+
+        <div class="test-buttons">
+            <button class="join-btn" onclick="joinSession()">📋 Rejoindre Session</button>
+            <button class="test-btn" onclick="testCommentCreated()">💬 Test comment.created</button>
+            <button class="test-btn" onclick="testCommentUpdated()">✏️ Test comment.updated</button>
+            <button class="test-btn" onclick="testCommentDeleted()">🗑️ Test comment.deleted</button>
+            <button class="clear-btn" onclick="clearEvents()">🧹 Effacer Events</button>
+        </div>
+
+        <div class="events">
+            <h3>📡 Événements Reçus</h3>
+            <div id="events"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:6001');
+        const sessionId = '4e86b99c-b306-4e1b-aefe-27644661c006';
+        let events = [];
+
+        // Connexion
+        socket.on('connect', () => {
+            updateStatus('🟢 Connecté', 'connected');
+            addEvent('🔌 Connexion établie');
+        });
+
+        socket.on('disconnect', () => {
+            updateStatus('🔴 Déconnecté', 'disconnected');
+            addEvent('🔌 Déconnexion');
+        });
+
+        // Événements de commentaires
+        socket.on('comment.created', (data) => {
+            addEvent(`📨 comment.created: ${JSON.stringify(data, null, 2)}`);
+        });
+
+        socket.on('comment.updated', (data) => {
+            addEvent(`✏️ comment.updated: ${JSON.stringify(data, null, 2)}`);
+        });
+
+        socket.on('comment.deleted', (data) => {
+            addEvent(`🗑️ comment.deleted: ${JSON.stringify(data, null, 2)}`);
+        });
+
+        // Événements de frappe
+        socket.on('user.typing', (data) => {
+            addEvent(`⌨️ user.typing: ${JSON.stringify(data, null, 2)}`);
+        });
+
+        // Événements de présence
+        socket.on('user.online', (data) => {
+            addEvent(`🟢 user.online: ${JSON.stringify(data, null, 2)}`);
+        });
+
+        socket.on('user.offline', (data) => {
+            addEvent(`🔴 user.offline: ${JSON.stringify(data, null, 2)}`);
+        });
+
+        function updateStatus(message, className) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${className}`;
+        }
+
+        function addEvent(message) {
+            const eventsDiv = document.getElementById('events');
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event';
+            eventDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            eventsDiv.appendChild(eventDiv);
+            eventsDiv.scrollTop = eventsDiv.scrollHeight;
+        }
+
+        function joinSession() {
+            socket.emit('join-session', { sessionId });
+            addEvent(`📋 Rejoindre session: ${sessionId}`);
+        }
+
+        function testCommentCreated() {
+            const testData = {
+                comment: {
+                    id: 'test-123',
+                    content: 'Test comment created',
+                    user: {
+                        id: 'user-123',
+                        firstname: 'Test',
+                        lastname: 'User'
+                    },
+                    createdAt: new Date().toISOString()
+                }
+            };
+            socket.emit('comment-created', { sessionId, comment: testData.comment });
+            addEvent(`🧪 Test comment.created émis`);
+        }
+
+        function testCommentUpdated() {
+            const testData = {
+                comment: {
+                    id: 'test-123',
+                    content: 'Test comment updated',
+                    user: {
+                        id: 'user-123',
+                        firstname: 'Test',
+                        lastname: 'User'
+                    },
+                    updatedAt: new Date().toISOString()
+                }
+            };
+            socket.emit('comment-updated', { sessionId, comment: testData.comment });
+            addEvent(`🧪 Test comment.updated émis`);
+        }
+
+        function testCommentDeleted() {
+            socket.emit('comment-deleted', { sessionId, commentId: 'test-123' });
+            addEvent(`🧪 Test comment.deleted émis`);
+        }
+
+        function clearEvents() {
+            document.getElementById('events').innerHTML = '';
+            addEvent('🧹 Events effacés');
+        }
+
+        // Auto-join au chargement
+        window.onload = () => {
+            setTimeout(() => {
+                joinSession();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

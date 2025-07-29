@@ -4,140 +4,85 @@ namespace App\Entities;
 
 class UserProfile
 {
-    private ?string $id;
-    private string $userId;
-    private ?string $avatarFileId;
-    private int $totalXp;
-    private int $totalTrainingTime;
-    private int $completedVideos;
-    private int $completedDays;
-    private ?string $currentGoals;
+    private string $id;
+    private string $firstname;
+    private string $lastname;
+    private string $email;
+    private ?string $avatar;
+    private array $stats;
 
     public function __construct(
-        ?string $id,
-        string $userId,
-        ?string $avatarFileId,
-        int $totalXp,
-        int $totalTrainingTime,
-        int $completedVideos,
-        int $completedDays,
-        ?string $currentGoals,
+        string $id,
+        string $firstname,
+        string $lastname,
+        string $email,
+        ?string $avatar = null,
+        array $stats = []
     ) {
         $this->id = $id;
-        $this->userId = $userId;
-        $this->avatarFileId = $avatarFileId;
-        $this->totalXp = $totalXp;
-        $this->totalTrainingTime = $totalTrainingTime;
-        $this->completedVideos = $completedVideos;
-        $this->completedDays = $completedDays;
-        $this->currentGoals = $currentGoals;
+        $this->firstname = $firstname;
+        $this->lastname = $lastname;
+        $this->email = $email;
+        $this->avatar = $avatar;
+        $this->stats = $stats;
     }
 
-    public function getId(): ?string
+    public function getId(): string
     {
         return $this->id;
     }
 
-    public function setId(?string $id): void
+    public function getFirstname(): string
     {
-        $this->id = $id;
+        return $this->firstname;
     }
 
-    public function getUserId(): string
+    public function getLastname(): string
     {
-        return $this->userId;
+        return $this->lastname;
     }
 
-    public function setUserId(string $userId): void
+    public function getEmail(): string
     {
-        $this->userId = $userId;
+        return $this->email;
     }
 
-    public function getAvatarFileId(): ?string
+    public function getAvatar(): ?string
     {
-        return $this->avatarFileId;
+        return $this->avatar;
     }
 
-    public function setAvatarFileId(?string $avatarFileId): void
+    public function getStats(): array
     {
-        $this->avatarFileId = $avatarFileId;
+        return $this->stats;
     }
 
-    public function getTotalXp(): int
+    public function getFullName(): string
     {
-        return $this->totalXp;
-    }
-
-    public function setTotalXp(int $totalXp): void
-    {
-        $this->totalXp = $totalXp;
-    }
-
-    public function getTotalTrainingTime(): int
-    {
-        return $this->totalTrainingTime;
-    }
-
-    public function setTotalTrainingTime(int $totalTrainingTime): void
-    {
-        $this->totalTrainingTime = $totalTrainingTime;
-    }
-
-    public function getCompletedVideos(): int
-    {
-        return $this->completedVideos;
-    }
-
-    public function setCompletedVideos(int $completedVideos): void
-    {
-        $this->completedVideos = $completedVideos;
-    }
-
-    public function getCompletedDays(): int
-    {
-        return $this->completedDays;
-    }
-
-    public function setCompletedDays(int $completedDays): void
-    {
-        $this->completedDays = $completedDays;
-    }
-
-    public function getCurrentGoals(): ?string
-    {
-        return $this->currentGoals;
-    }
-
-    public function setCurrentGoals(?string $currentGoals): void
-    {
-        $this->currentGoals = $currentGoals;
+        return $this->firstname . ' ' . $this->lastname;
     }
 
     public function toArray(): array
     {
         return [
             'id' => $this->id,
-            'user_id' => $this->userId,
-            'avatar_file_id' => $this->avatarFileId,
-            'total_xp' => $this->totalXp,
-            'total_training_time' => $this->totalTrainingTime,
-            'completed_videos' => $this->completedVideos,
-            'completed_days' => $this->completedDays,
-            'current_goals' => $this->currentGoals,
+            'firstname' => $this->firstname,
+            'lastname' => $this->lastname,
+            'email' => $this->email,
+            'avatar' => $this->avatar,
+            'stats' => $this->stats,
         ];
     }
 
     public static function fromArray(array $data): self
     {
         return new self(
-            id: $data['id'] ?? null,
-            userId: $data['user_id'],
-            avatarFileId: $data['avatar_file_id'] ?? null,
-            totalXp: $data['total_xp'],
-            totalTrainingTime: $data['total_training_time'],
-            completedVideos: $data['completed_videos'],
-            completedDays: $data['completed_days'],
-            currentGoals: $data['current_goals'] ?? null,
+            id: $data['id'],
+            firstname: $data['firstname'],
+            lastname: $data['lastname'],
+            email: $data['email'],
+            avatar: $data['avatar'] ?? null,
+            stats: $data['stats'] ?? []
         );
     }
-} 
+}

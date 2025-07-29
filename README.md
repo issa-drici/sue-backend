@@ -1,66 +1,168 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Laravel Clean Architecture Boilerplate
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Un boilerplate Laravel moderne basé sur les principes de **Clean Architecture** avec une séparation claire des responsabilités.
 
-## About Laravel
+## 🏗️ Architecture
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Ce projet utilise une architecture en couches avec :
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Entities** : Entités du domaine métier
+- **Use Cases** : Logique métier et cas d'usage
+- **Repositories** : Accès aux données avec interfaces
+- **Controllers** : Contrôleurs HTTP Single Action
+- **Models** : Modèles Eloquent pour l'infrastructure
+- **Services** : Services métier réutilisables
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 🚀 Installation
 
-## Learning Laravel
+```bash
+# Cloner le projet
+git clone [repository-url]
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+# Installer les dépendances
+composer install
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+# Copier le fichier d'environnement
+cp .env.example .env
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# Générer la clé d'application
+php artisan key:generate
 
-## Laravel Sponsors
+# Configurer la base de données dans .env
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Exécuter les migrations
+php artisan migrate
 
-### Premium Partners
+# Installer les dépendances frontend
+npm install
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+# Compiler les assets
+npm run build
+```
 
-## Contributing
+## 🛠️ Développement
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+# Démarrer le serveur de développement
+composer run dev
 
-## Code of Conduct
+# Ou séparément
+php artisan serve
+npm run dev
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 🧪 Tests
 
-## Security Vulnerabilities
+```bash
+# Exécuter tous les tests
+php artisan test
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# Exécuter les tests avec couverture
+php artisan test --coverage
+```
 
-## License
+## 📁 Structure du projet
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```
+app/
+├── Entities/           # Entités du domaine
+├── Http/
+│   ├── Controllers/    # Contrôleurs HTTP (Single Action)
+│   ├── Middleware/     # Middleware personnalisé
+│   └── Requests/       # Form Requests de validation
+├── Models/             # Modèles Eloquent
+├── Repositories/       # Repositories avec interfaces
+├── Services/           # Services métier
+└── UseCases/           # Cas d'usage
+
+database/
+├── factories/          # Factories pour les tests
+├── migrations/         # Migrations de base de données
+└── seeders/           # Seeders de données
+
+tests/
+├── Feature/           # Tests d'intégration
+└── Unit/              # Tests unitaires
+```
+
+## 🎯 Exemples inclus
+
+Le boilerplate inclut des exemples complets pour vous guider :
+
+- **ExampleEntity** : Entité d'exemple avec validation métier
+- **ExampleModel** : Modèle Eloquent avec relations et scopes
+- **ExampleRepository** : Repository avec interface
+- **FindAllExamplesUseCase** : Use Case avec logique métier
+- **FindAllExamplesAction** : Contrôleur Single Action
+- **Tests complets** : Tests Feature et Unit
+- **Migration** : Structure de base de données
+- **Factory** : Données de test
+
+## 🔧 Configuration
+
+### Variables d'environnement importantes
+
+- `APP_ENV` - Environnement (local, staging, production)
+- `DB_*` - Configuration de la base de données
+- `AWS_*` - Configuration AWS S3
+- `MAIL_*` - Configuration email
+
+## 📚 Règles Cursor
+
+Ce projet inclut des règles Cursor complètes dans `.cursor/rules/` pour :
+
+- **Architecture** : Patterns et conventions
+- **Contrôleurs** : Single Action Controllers
+- **Use Cases** : Logique métier
+- **Repositories** : Pattern Repository
+- **Entités** : Domain Entities
+- **Modèles** : Eloquent Models
+- **Services** : Services métier
+- **Routing** : Conventions RESTful
+- **Base de données** : Migrations et schéma
+- **Tests** : Patterns avec Pest
+- **Clean Code** : Principes SOLID et DRY
+- **Setup** : Configuration boilerplate
+
+## 🚀 Création d'un nouveau module
+
+1. **Créer l'entité** : `app/Entities/YourEntity.php`
+2. **Créer le modèle** : `app/Models/YourModel.php`
+3. **Créer le repository** : `app/Repositories/Your/YourRepositoryInterface.php` et `YourRepository.php`
+4. **Créer le Use Case** : `app/UseCases/Your/YourUseCase.php`
+5. **Créer le contrôleur** : `app/Http/Controllers/Your/YourAction.php`
+6. **Créer la migration** : `database/migrations/xxx_create_your_table.php`
+7. **Créer les tests** : `tests/Feature/Your/YourTest.php`
+8. **Ajouter la route** : `routes/api.php`
+9. **Enregistrer le binding** : `app/Providers/AppServiceProvider.php`
+
+## 📚 API Documentation
+
+L'API est documentée avec Postman. Importez le fichier `api-postman.json` dans Postman.
+
+### Endpoints d'exemple
+
+- `GET /api/health` - Vérification de santé
+- `GET /api/version` - Version de l'API
+- `GET /api/examples` - Liste des exemples (avec filtres)
+- `GET /api/profile` - Profil utilisateur (protégé)
+
+## 🤝 Contribution
+
+1. Fork le projet
+2. Créer une branche feature (`git checkout -b feature/AmazingFeature`)
+3. Commit les changements (`git commit -m 'Add some AmazingFeature'`)
+4. Push vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrir une Pull Request
+
+## 📄 Licence
+
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+
+## 🎯 Prochaines étapes
+
+1. **Personnaliser** : Adapter les exemples à votre domaine métier
+2. **Authentification** : Configurer Laravel Sanctum
+3. **Validation** : Créer des Form Requests personnalisés
+4. **Documentation** : Documenter votre API
+5. **Déploiement** : Configurer le déploiement

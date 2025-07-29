@@ -27,22 +27,17 @@ class RegisteredUserController extends Controller
             $request->validate([
                 'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
                 'password' => ['required', 'string', Rules\Password::defaults()],
-                'full_name' => ['required', 'string', 'max:255'],
+                'firstname' => ['required', 'string', 'max:100'],
+                'lastname' => ['required', 'string', 'max:100'],
                 'device_name' => ['required', 'string'],
-                'verification_code' => ['required', 'string'],
             ]);
-
-            if ($request->verification_code !== self::VERIFICATION_CODE) {
-                throw ValidationException::withMessages([
-                    'verification_code' => ['The verification code is incorrect']
-                ]);
-            }
 
             $user = UserModel::create([
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'full_name' => $request->full_name,
-                'role' => 'player', // valeur par défaut
+                'firstname' => $request->firstname,
+                'lastname' => $request->lastname,
+                'role' => 'player',
             ]);
 
             event(new Registered($user));
