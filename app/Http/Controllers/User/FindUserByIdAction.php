@@ -9,9 +9,9 @@ class FindUserByIdAction extends Controller
 {
     /**
      * Récupère les informations d'un utilisateur par son ID
-     * 
+     *
      * @param string $userId L'ID de l'utilisateur à récupérer
-     * 
+     *
      * TODO:
      * - Vérifier si l'utilisateur existe
      * - Récupérer les données de la table users
@@ -25,7 +25,8 @@ class FindUserByIdAction extends Controller
         // Données temporaires de test
         return response()->json([
             'id' => $userId,
-            'full_name' => 'John Doe',
+            'firstname' => 'John',
+            'lastname' => 'Doe',
             'email' => 'john@example.com',
             'profile' => [
                 'total_xp' => 1000,
@@ -34,4 +35,4 @@ class FindUserByIdAction extends Controller
             ]
         ]);
     }
-} 
+}

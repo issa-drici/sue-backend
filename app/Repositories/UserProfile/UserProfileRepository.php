@@ -22,7 +22,7 @@ class UserProfileRepository implements UserProfileRepositoryInterface
     public function findAllUsers(): array
     {
         return UserProfileModel::join('users', 'user_profiles.user_id', '=', 'users.id')
-            ->select('users.id as user_id', 'users.full_name')
+            ->select('users.id as user_id', 'users.firstname', 'users.lastname')
             ->get()
             ->toArray();
     }

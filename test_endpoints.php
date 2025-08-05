@@ -34,7 +34,8 @@ class ApiTester
         // Test 1: Register
         echo "1. Test POST /register... ";
         $response = $this->makeRequest('POST', '/register', [
-            'full_name' => 'Test User',
+            'firstname' => 'Test',
+            'lastname' => 'User',
             'email' => $this->testEmail,
             'password' => $this->testPassword,
             'device_name' => 'Test Device',
