@@ -4,15 +4,14 @@ namespace App\UseCases\SportSession;
 
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
 use App\Repositories\Notification\NotificationRepositoryInterface;
-use App\Services\SocketIOService;
+use App\Events\CommentCreated;
 use Exception;
 
 class AddSessionCommentUseCase
 {
     public function __construct(
         private SportSessionRepositoryInterface $sportSessionRepository,
-        private NotificationRepositoryInterface $notificationRepository,
-        private SocketIOService $socketIOService
+        private NotificationRepositoryInterface $notificationRepository
     ) {}
 
     public function execute(string $sessionId, string $userId, string $content): array
@@ -100,23 +99,21 @@ class AddSessionCommentUseCase
     private function emitWebSocketEvent(string $sessionId, array $comment): void
     {
         try {
-            \Illuminate\Support\Facades\Log::info("Emitting WebSocket event for comment", [
+            \Illuminate\Support\Facades\Log::info("Broadcasting event for comment", [
                 'sessionId' => $sessionId,
                 'commentId' => $comment['id'] ?? 'unknown'
             ]);
 
-            $this->socketIOService->emitLaravelEvent(
-                'comment.created',
-                'sport-session.' . $sessionId,
-                ['comment' => $comment]
-            );
+            // Pour compatibilité, créer un objet comment temporaire
+            $commentEntity = (object) $comment;
+            broadcast(new CommentCreated($commentEntity, $sessionId));
 
-            \Illuminate\Support\Facades\Log::info("WebSocket event emitted successfully", [
+            \Illuminate\Support\Facades\Log::info("Event broadcasted successfully", [
                 'sessionId' => $sessionId,
                 'event' => 'comment.created'
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Failed to emit WebSocket event", [
+            \Illuminate\Support\Facades\Log::error("Failed to broadcast event", [
                 'sessionId' => $sessionId,
                 'error' => $e->getMessage()
             ]);

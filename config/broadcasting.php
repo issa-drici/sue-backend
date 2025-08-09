@@ -74,6 +74,15 @@ return [
             'scheme' => env('WEBSOCKET_SCHEME', 'http'),
         ],
 
+        // Configuration pour Socket.IO
+        'socketio' => [
+            'driver' => 'socketio',
+            'host' => env('SOCKET_IO_HOST', 'localhost'),
+            'port' => env('SOCKET_IO_PORT', 6001),
+            'scheme' => env('SOCKET_IO_SCHEME', 'http'),
+            'url' => env('SOCKET_IO_URL', 'http://localhost:6001'),
+        ],
+
     ],
 
 ];

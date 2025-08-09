@@ -7,7 +7,7 @@ use App\Repositories\SportSession\SportSessionRepositoryInterface;
 use App\Repositories\Notification\NotificationRepositoryInterface;
 use App\Repositories\SportSessionComment\SportSessionCommentRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
-use App\Services\SocketIOService;
+use App\Events\CommentCreated;
 use Exception;
 
 class RespondToSessionInvitationUseCase
@@ -16,8 +16,7 @@ class RespondToSessionInvitationUseCase
         private SportSessionRepositoryInterface $sportSessionRepository,
         private NotificationRepositoryInterface $notificationRepository,
         private SportSessionCommentRepositoryInterface $commentRepository,
-        private UserRepositoryInterface $userRepository,
-        private SocketIOService $socketService
+        private UserRepositoryInterface $userRepository
     ) {}
 
     public function execute(string $sessionId, string $userId, string $response): SportSession
@@ -135,15 +134,11 @@ class RespondToSessionInvitationUseCase
             content: $message
         );
 
-        // Émettre l'événement WebSocket pour le temps réel
+        // Émettre l'événement Laravel Broadcasting pour le temps réel
         try {
-            $this->socketService->emitLaravelEvent(
-                'comment.created',
-                'sport-session.' . $session->getId(),
-                ['comment' => $comment->toArray()]
-            );
+            broadcast(new CommentCreated($comment, $session->getId()));
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Failed to emit WebSocket event for system comment", [
+            \Illuminate\Support\Facades\Log::error("Failed to broadcast event for system comment", [
                 'sessionId' => $session->getId(),
                 'userId' => $userId,
                 'response' => $response,

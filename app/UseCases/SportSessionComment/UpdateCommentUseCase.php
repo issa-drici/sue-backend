@@ -75,16 +75,11 @@ class UpdateCommentUseCase
             ];
         }
 
-        // Émettre l'événement WebSocket directement via SocketIOService
+        // Émettre l'événement Laravel Broadcasting (Soketi)
         try {
-            $socketService = app(\App\Services\SocketIOService::class);
-            $socketService->emitLaravelEvent(
-                'comment.updated',
-                'sport-session.' . $existingComment->sessionId,
-                ['comment' => $comment->toArray()]
-            );
+            broadcast(new CommentUpdated($comment, $existingComment->sessionId));
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Failed to emit WebSocket event", [
+            \Illuminate\Support\Facades\Log::error("Failed to broadcast event", [
                 'sessionId' => $existingComment->sessionId,
                 'error' => $e->getMessage()
             ]);

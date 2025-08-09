@@ -71,16 +71,11 @@ class CreateCommentUseCase
         // Créer le commentaire
         $comment = $this->commentRepository->createComment($sessionId, $userId, $content, $mentions);
 
-        // Émettre l'événement WebSocket directement via SocketIOService
+        // Émettre l'événement Laravel Broadcasting (Soketi)
         try {
-            $socketService = app(\App\Services\SocketIOService::class);
-            $socketService->emitLaravelEvent(
-                'comment.created',
-                'sport-session.' . $sessionId,
-                ['comment' => $comment->toArray()]
-            );
+            broadcast(new CommentCreated($comment, $sessionId));
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Failed to emit WebSocket event", [
+            \Illuminate\Support\Facades\Log::error("Failed to broadcast event", [
                 'sessionId' => $sessionId,
                 'error' => $e->getMessage()
             ]);
