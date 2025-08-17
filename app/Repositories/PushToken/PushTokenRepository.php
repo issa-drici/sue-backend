@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 
 class PushTokenRepository implements PushTokenRepositoryInterface
 {
-    public function saveToken(string $userId, string $token, string $platform = 'expo'): bool
+    public function saveToken(string $userId, string $token, string $platform = 'expo', ?string $deviceId = null): bool
     {
         try {
             $pushToken = PushTokenModel::updateOrCreate(
@@ -19,6 +19,8 @@ class PushTokenRepository implements PushTokenRepositoryInterface
                     'id' => Str::uuid(),
                     'user_id' => $userId,
                     'platform' => $platform,
+                    'device_id' => $deviceId,
+                    'last_seen_at' => now(),
                     'is_active' => true
                 ]
             );

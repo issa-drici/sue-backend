@@ -20,11 +20,14 @@ class PushTokenModel extends Model
         'user_id',
         'token',
         'platform',
+        'device_id',
+        'last_seen_at',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'last_seen_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

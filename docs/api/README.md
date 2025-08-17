@@ -1,3 +1,43 @@
+# Notifications Push (Expo) — Guide Frontend
+
+## Endpoints disponibles
+
+- POST `/api/push-tokens` (auth)
+  - Body: `{ "token": "ExponentPushToken[...]", "platform": "ios|android|expo", "device_id"?: "string" }`
+  - Réponse: `{ "success": true }`
+
+- DELETE `/api/push-tokens` (auth)
+  - Body: `{ "token": "ExponentPushToken[...]" }`
+  - Réponse: `{ "success": true }`
+
+- POST `/api/notifications/send` (auth)
+  - Body: `{ "recipientId": "uuid", "title": "string", "body": "string", "data"?: { ... } }`
+  - Remarque: réservé au test/débogage.
+
+## Payload de notification (data)
+
+```json
+{
+  "type": "comment|session_invitation|session_update|friend_request|general",
+  "notification_id": "uuid",
+  "session_id": "uuid?",
+  "user_id": "uuid?",
+  "extra": {}
+}
+```
+
+## Déclencheurs pris en charge (MVP)
+
+- Commentaire créé (`type: comment`) → destinataires: participants de la session (hors auteur)
+- Invitation à une session (`type: session_invitation`) → destinataire: invité
+- Invitation acceptée (`type: session_update`) → destinataire: créateur
+- Demande d’ami (`type: friend_request`) → destinataire: utilisateur ciblé
+
+## Notes d’intégration Expo
+
+- Les envois sont chunkés par 100, avec logs et invalidation automatique des tokens invalides.
+- iOS: tester sur device réel avec capabilities actives; sinon utiliser Android.
+
 # API Alarrache - Documentation Générale
 
 ## Vue d'ensemble

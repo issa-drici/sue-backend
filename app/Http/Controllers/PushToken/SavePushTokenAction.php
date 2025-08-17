@@ -18,11 +18,12 @@ class SavePushTokenAction extends Controller
         try {
             $data = $request->validate([
                 'token' => 'required|string|max:255',
-                'platform' => 'nullable|string|in:expo,ios,android'
+                'platform' => 'nullable|string|in:expo,ios,android',
+                'device_id' => 'nullable|string|max:255',
             ]);
 
             $userId = $request->user()->id;
-            $result = $this->savePushTokenUseCase->execute($userId, $data['token'], $data['platform'] ?? 'expo');
+            $result = $this->savePushTokenUseCase->execute($userId, $data['token'], $data['platform'] ?? 'expo', $data['device_id'] ?? null);
 
             if ($result['success']) {
                 return response()->json([

@@ -9,7 +9,7 @@ interface PushTokenRepositoryInterface
     /**
      * Sauvegarder ou mettre à jour un token push
      */
-    public function saveToken(string $userId, string $token, string $platform = 'expo'): bool;
+    public function saveToken(string $userId, string $token, string $platform = 'expo', ?string $deviceId = null): bool;
 
     /**
      * Récupérer tous les tokens actifs d'un utilisateur

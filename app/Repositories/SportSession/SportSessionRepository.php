@@ -71,7 +71,8 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             // Pour l'historique : tri par date décroissante puis heure décroissante (plus récent en premier)
             $paginator = $query->orderBy('date', 'desc')->orderBy('time', 'desc')->paginate($limit, ['*'], 'page', $page);
         } else {
-            // Pour les sessions futures/actuelles : tri par date croissante puis heure croissante (plus proche en premier)
+            // Pour les sessions futures/actuelles : exclure les sessions passées et trier par date croissante
+            $query->where('date', '>=', now()->format('Y-m-d'));
             $paginator = $query->orderBy('date', 'asc')->orderBy('time', 'asc')->paginate($limit, ['*'], 'page', $page);
         }
 

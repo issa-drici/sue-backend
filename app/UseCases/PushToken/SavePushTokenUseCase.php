@@ -12,7 +12,7 @@ class SavePushTokenUseCase
         private ExpoPushNotificationService $expoService
     ) {}
 
-    public function execute(string $userId, string $token, string $platform = 'expo'): array
+    public function execute(string $userId, string $token, string $platform = 'expo', ?string $deviceId = null): array
     {
         try {
             // Valider le token
@@ -24,7 +24,7 @@ class SavePushTokenUseCase
             }
 
             // Sauvegarder le token
-            $saved = $this->pushTokenRepository->saveToken($userId, $token, $platform);
+            $saved = $this->pushTokenRepository->saveToken($userId, $token, $platform, $deviceId);
 
             if (!$saved) {
                 return [

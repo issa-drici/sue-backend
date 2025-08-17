@@ -42,6 +42,13 @@ class ExpoPushNotificationService
 
             $result = $this->sendToExpo($messages);
             $results[] = $result;
+
+            // Log des réponses de tickets Expo
+            if (!empty($result['response'])) {
+                Log::info('Expo response', [
+                    'response' => $result['response']
+                ]);
+            }
         }
 
         return $this->aggregateResults($results);
@@ -126,6 +133,7 @@ class ExpoPushNotificationService
             $successCount = 0;
             $errorCount = 0;
             $errors = [];
+            $invalidTokens = [];
 
             // L'API Expo peut retourner soit directement un tableau, soit dans un champ 'data'
             $results = $responseData;
@@ -134,7 +142,7 @@ class ExpoPushNotificationService
             }
 
             if (is_array($results)) {
-                foreach ($results as $result) {
+                foreach ($results as $index => $result) {
                     if (isset($result['status'])) {
                         if ($result['status'] === 'ok') {
                             $successCount++;
@@ -142,6 +150,12 @@ class ExpoPushNotificationService
                             $errorCount++;
                             if (isset($result['message'])) {
                                 $errors[] = $result['message'];
+                            }
+                            // Détection de tokens invalides selon Expo
+                            $detailsError = $result['details']['error'] ?? null;
+                            $shouldInvalidate = in_array($detailsError, ['DeviceNotRegistered', 'InvalidCredentials', 'MessageTooBig', 'MessageRateExceeded', 'InvalidPushToken']);
+                            if ($shouldInvalidate && isset($messages[$index]['to'])) {
+                                $invalidTokens[] = $messages[$index]['to'];
                             }
                         }
                     } else {
@@ -162,7 +176,8 @@ class ExpoPushNotificationService
                 'success_count' => $successCount,
                 'error_count' => $errorCount,
                 'total_sent' => count($messages),
-                'response' => $responseData
+                'response' => $responseData,
+                'invalid_tokens' => $invalidTokens
             ];
 
             if (!empty($errors)) {

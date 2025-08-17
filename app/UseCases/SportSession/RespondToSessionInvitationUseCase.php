@@ -5,6 +5,8 @@ namespace App\UseCases\SportSession;
 use App\Entities\SportSession;
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
 use App\Repositories\Notification\NotificationRepositoryInterface;
+use App\Repositories\PushToken\PushTokenRepositoryInterface;
+use App\Services\ExpoPushNotificationService;
 use App\Repositories\SportSessionComment\SportSessionCommentRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
 use App\Events\CommentCreated;
@@ -16,7 +18,9 @@ class RespondToSessionInvitationUseCase
         private SportSessionRepositoryInterface $sportSessionRepository,
         private NotificationRepositoryInterface $notificationRepository,
         private SportSessionCommentRepositoryInterface $commentRepository,
-        private UserRepositoryInterface $userRepository
+        private UserRepositoryInterface $userRepository,
+        private PushTokenRepositoryInterface $pushTokenRepository,
+        private ExpoPushNotificationService $expoService
     ) {}
 
     public function execute(string $sessionId, string $userId, string $response): SportSession
@@ -79,13 +83,37 @@ class RespondToSessionInvitationUseCase
 
         $title = $response === 'accept' ? 'Invitation acceptée' : 'Invitation déclinée';
 
-        $this->notificationRepository->create([
+        $notification = $this->notificationRepository->create([
             'user_id' => $organizerId,
             'type' => 'update',
             'title' => $title,
             'message' => $message,
             'session_id' => $session->getId(),
         ]);
+
+        // Push à l'organisateur
+        try {
+            $tokens = $this->pushTokenRepository->getTokensForUser($organizerId);
+            if (!empty($tokens)) {
+                $data = [
+                    'type' => 'session_update',
+                    'session_id' => $session->getId(),
+                    'notification_id' => $notification->getId(),
+                ];
+                $this->expoService->sendNotification(
+                    $tokens,
+                    $title,
+                    $message,
+                    $data
+                );
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Error sending push for invitation response', [
+                'sessionId' => $session->getId(),
+                'organizerId' => $organizerId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function validateParticipantLimit(SportSession $session): void

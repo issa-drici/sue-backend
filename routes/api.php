@@ -68,6 +68,7 @@ use App\Http\Controllers\User\RemoveFriendAction;
 
 // Push Token Controllers
 use App\Http\Controllers\PushToken\SavePushTokenAction;
+use App\Http\Controllers\PushToken\DeletePushTokenAction;
 
 /*
 |--------------------------------------------------------------------------
@@ -165,4 +166,5 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Push Tokens
     Route::post('/push-tokens', SavePushTokenAction::class);
+    Route::delete('/push-tokens', DeletePushTokenAction::class);
 });

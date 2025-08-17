@@ -5,6 +5,9 @@ namespace App\UseCases\SportSessionComment;
 use App\Entities\SportSessionComment;
 use App\Events\CommentCreated;
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
+use App\Repositories\Notification\NotificationRepositoryInterface;
+use App\Repositories\PushToken\PushTokenRepositoryInterface;
+use App\Services\ExpoPushNotificationService;
 use App\Repositories\SportSessionComment\SportSessionCommentRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
 use Illuminate\Support\Facades\Validator;
@@ -14,7 +17,10 @@ class CreateCommentUseCase
     public function __construct(
         private SportSessionCommentRepositoryInterface $commentRepository,
         private SportSessionRepositoryInterface $sessionRepository,
-        private UserRepositoryInterface $userRepository
+        private UserRepositoryInterface $userRepository,
+        private NotificationRepositoryInterface $notificationRepository,
+        private PushTokenRepositoryInterface $pushTokenRepository,
+        private ExpoPushNotificationService $expoService
     ) {}
 
     public function execute(string $sessionId, string $userId, string $content, ?array $mentions = null): array
@@ -81,10 +87,67 @@ class CreateCommentUseCase
             ]);
         }
 
+        // Envoyer des notifications push aux autres participants (hors auteur)
+        $this->sendPushToParticipants($sessionId, $userId, $comment);
+
         return [
             'success' => true,
             'data' => $comment->toArray(),
             'message' => 'Commentaire créé avec succès',
         ];
+    }
+
+    private function sendPushToParticipants(string $sessionId, string $authorId, SportSessionComment $comment): void
+    {
+        try {
+            $session = $this->sessionRepository->findById($sessionId);
+            if (!$session) {
+                return;
+            }
+
+            $participants = $session->getParticipants();
+            foreach ($participants as $participant) {
+                if (($participant['id'] ?? null) === $authorId) {
+                    continue;
+                }
+                if (($participant['status'] ?? null) !== 'accepted') {
+                    continue;
+                }
+
+                $notification = $this->notificationRepository->create([
+                    'user_id' => $participant['id'],
+                    'type' => 'comment',
+                    'title' => 'Nouveau commentaire',
+                    'message' => mb_strimwidth($comment->content, 0, 60, '…'),
+                    'session_id' => $sessionId,
+                ]);
+
+                $tokens = $this->pushTokenRepository->getTokensForUser($participant['id']);
+                if (empty($tokens)) {
+                    continue;
+                }
+
+                $data = [
+                    'type' => 'comment',
+                    'session_id' => $sessionId,
+                    'notification_id' => $notification->getId(),
+                ];
+
+                $author = $this->userRepository->findById($authorId);
+                $authorName = $author ? ($author->getFirstname() . ' ' . $author->getLastname()) : 'Un participant';
+
+                $this->expoService->sendNotification(
+                    $tokens,
+                    $authorName . ' a commenté',
+                    mb_strimwidth($comment->content, 0, 60, '…'),
+                    $data
+                );
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Error sending push for comment', [
+                'sessionId' => $sessionId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

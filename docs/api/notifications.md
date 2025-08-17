@@ -11,6 +11,48 @@ https://api.alarrache.com/api
 
 ## Endpoints
 
+### 0. Push Tokens
+
+#### POST /push-tokens
+
+Enregistrer ou mettre à jour un token Expo pour l'utilisateur authentifié.
+
+Headers:
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+Body:
+```json
+{ "token": "ExponentPushToken[xxxx]", "platform": "expo|ios|android", "device_id": "optional" }
+```
+
+Réponse 200:
+```json
+{ "success": true }
+```
+
+Erreurs: `VALIDATION_ERROR`, `TOKEN_SAVE_ERROR`
+
+#### DELETE /push-tokens
+
+Supprimer un token Expo.
+
+Body:
+```json
+{ "token": "ExponentPushToken[xxxx]" }
+```
+
+Réponse 200:
+```json
+{ "success": true }
+```
+
+Erreurs: `VALIDATION_ERROR`, `TOKEN_NOT_FOUND_OR_ALREADY_DELETED`
+
+---
+
 ### 1. GET /notifications
 
 **Description :** Récupérer toutes les notifications de l'utilisateur

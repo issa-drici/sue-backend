@@ -51,6 +51,13 @@ class SendPushNotificationAction extends Controller
                 $data
             );
 
+            // Nettoyer les tokens invalides si retournés
+            if (!empty($result['invalid_tokens'] ?? [])) {
+                foreach ($result['invalid_tokens'] as $invalidToken) {
+                    $this->pushTokenRepository->deactivateToken($invalidToken);
+                }
+            }
+
             if ($result['success']) {
                 return response()->json([
                     'success' => true,

@@ -147,6 +147,24 @@ L'API est documentée avec Postman. Importez le fichier `api-postman.json` dans 
 - `GET /api/examples` - Liste des exemples (avec filtres)
 - `GET /api/profile` - Profil utilisateur (protégé)
 
+## 🔔 Notifications Push (Expo)
+
+Backend inclut un service `App\Services\ExpoPushNotificationService` pour envoyer des notifications via l'API Expo (`https://exp.host/--/api/v2/push/send`).
+
+Endpoints:
+- `POST /api/push-tokens` (auth): enregistre ou met à jour un token Expo pour l'utilisateur courant. Body: `{ "token": string, "platform": "expo|ios|android", "device_id"?: string }`
+- `DELETE /api/push-tokens` (auth): supprime un token. Body: `{ "token": string }`
+- `POST /api/notifications/send` (auth): envoi manuel de push à un utilisateur (test).
+
+Déclencheurs intégrés:
+- Commentaire créé sur une session: push aux participants (hors auteur) avec `data.type = "comment"`
+- Invitation envoyée à une session: `data.type = "session_invitation"`
+- Invitation acceptée: push à l'organisateur avec `data.type = "session_update"`
+- Demande d'ami créée: push au destinataire avec `data.type = "friend_request"`
+
+Résilience:
+- Envois par lots de 100, logs, invalidation des tokens renvoyés par Expo.
+
 ## 🤝 Contribution
 
 1. Fork le projet

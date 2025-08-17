@@ -5,6 +5,9 @@ namespace App\UseCases\User;
 use App\Repositories\FriendRequest\FriendRequestRepositoryInterface;
 use App\Repositories\Friend\FriendRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
+use App\Repositories\Notification\NotificationRepositoryInterface;
+use App\Repositories\PushToken\PushTokenRepositoryInterface;
+use App\Services\ExpoPushNotificationService;
 use App\Entities\FriendRequest;
 
 class SendFriendRequestUseCase
@@ -12,7 +15,10 @@ class SendFriendRequestUseCase
     public function __construct(
         private FriendRequestRepositoryInterface $friendRequestRepository,
         private FriendRepositoryInterface $friendRepository,
-        private UserRepositoryInterface $userRepository
+        private UserRepositoryInterface $userRepository,
+        private NotificationRepositoryInterface $notificationRepository,
+        private PushTokenRepositoryInterface $pushTokenRepository,
+        private ExpoPushNotificationService $expoService
     ) {}
 
     public function execute(string $senderId, string $receiverId): array
@@ -59,6 +65,35 @@ class SendFriendRequestUseCase
 
         if (!$result['success']) {
             return $result; // Retourner l'erreur du repository
+        }
+
+        // Notifier le destinataire + push
+        $notification = $this->notificationRepository->create([
+            'user_id' => $receiverId,
+            'type' => 'friend_request',
+            'title' => 'Nouvelle demande d\'ami',
+            'message' => 'Vous avez reçu une demande d\'ami',
+        ]);
+
+        try {
+            $tokens = $this->pushTokenRepository->getTokensForUser($receiverId);
+            if (!empty($tokens)) {
+                $data = [
+                    'type' => 'friend_request',
+                    'notification_id' => $notification->getId(),
+                    'user_id' => $senderId,
+                ];
+                $title = 'Demande d\'ami';
+                $sender = $this->userRepository->findById($senderId);
+                $senderName = $sender ? ($sender->getFirstname() . ' ' . $sender->getLastname()) : 'Un utilisateur';
+                $body = $senderName . " vous a envoyé une demande d'ami";
+                $this->expoService->sendNotification($tokens, $title, $body, $data);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Error sending push for friend request', [
+                'receiverId' => $receiverId,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         // Récupérer les amis en commun
