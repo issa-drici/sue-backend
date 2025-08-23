@@ -19,7 +19,7 @@ class UpdateSportSessionAction extends Controller
             $data = $request->validate([
                 'date' => 'sometimes|date_format:Y-m-d|after_or_equal:today',
                 'time' => 'sometimes|date_format:H:i',
-                'location' => 'sometimes|string|max:255',
+                'location' => 'sometimes|string|max:200',
             ]);
 
             $userId = $request->user()->id;

@@ -1073,9 +1073,10 @@ Accept: application/json
 1. Vérifier les permissions et conditions
 2. Mettre à jour le statut du participant de `accepted` à `declined`
 3. Libérer une place dans la session (si limite de participants configurée)
-4. Créer une notification pour l'organisateur
-5. Envoyer une notification push si configurée
-6. Retourner la session mise à jour
+4. Créer des notifications pour tous les participants actifs
+5. Envoyer des notifications push si configurées
+6. Ajouter un commentaire système dans la session
+7. Retourner la session mise à jour
 
 #### Notifications créées
 - **Type** : `session_update`
@@ -1092,4 +1093,9 @@ Accept: application/json
     "previous_status": "accepted",
     "new_status": "declined"
   }
-  ``` 
+  ```
+
+#### Commentaire système créé
+- **Contenu** : "[Nom Prénom] a annulé sa participation à cette session."
+- **Auteur** : L'utilisateur qui annule sa participation
+- **Type** : Commentaire système informatif 

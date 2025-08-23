@@ -24,6 +24,7 @@ class SportSessionModel extends Model
         'location',
         'max_participants',
         'organizer_id',
+        'status',
     ];
 
     protected $casts = [

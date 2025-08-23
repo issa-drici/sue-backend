@@ -26,7 +26,8 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findAll(array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator
     {
-        $query = SportSessionModel::with(['organizer', 'participants.user', 'comments.user']);
+        $query = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])
+            ->where('status', 'active'); // Exclure les sessions annulées
 
         if (isset($filters['sport'])) {
             $query->bySport($filters['sport']);
@@ -67,12 +68,17 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
         // Filtre pour les sessions passées (historique)
         if (isset($filters['past_sessions']) && $filters['past_sessions']) {
-            $query->where('date', '<', now()->format('Y-m-d'));
+            // Pour l'historique : inclure les sessions passées ET les sessions annulées (même futures)
+            $query->where(function ($q) {
+                $q->where('date', '<', now()->format('Y-m-d'))
+                  ->orWhere('status', 'cancelled');
+            });
             // Pour l'historique : tri par date décroissante puis heure décroissante (plus récent en premier)
             $paginator = $query->orderBy('date', 'desc')->orderBy('time', 'desc')->paginate($limit, ['*'], 'page', $page);
         } else {
-            // Pour les sessions futures/actuelles : exclure les sessions passées et trier par date croissante
-            $query->where('date', '>=', now()->format('Y-m-d'));
+            // Pour les sessions futures/actuelles : exclure les sessions passées et les sessions annulées
+            $query->where('status', 'active')
+                  ->where('date', '>=', now()->format('Y-m-d'));
             $paginator = $query->orderBy('date', 'asc')->orderBy('time', 'asc')->paginate($limit, ['*'], 'page', $page);
         }
 
@@ -93,6 +99,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             'location' => $data['location'],
             'max_participants' => $data['maxParticipants'] ?? null,
             'organizer_id' => $data['organizer_id'],
+            'status' => 'active',
         ]);
 
         // Ajouter automatiquement l'organisateur comme participant
@@ -128,6 +135,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
     public function findByOrganizer(string $organizerId, array $filters = []): array
     {
         $query = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])
+            ->where('status', 'active') // Exclure les sessions annulées
             ->byOrganizer($organizerId);
 
         if (isset($filters['sport'])) {
@@ -142,6 +150,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
     public function findByParticipant(string $userId, array $filters = []): array
     {
         $query = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])
+            ->where('status', 'active') // Exclure les sessions annulées
             ->whereHas('participants', function ($q) use ($userId) {
                 $q->where('user_id', $userId);
             });
@@ -158,6 +167,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
     public function findByParticipantPaginated(string $userId, array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator
     {
         $query = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])
+            ->where('status', 'active') // Exclure les sessions annulées
             ->whereHas('participants', function ($q) use ($userId) {
                 $q->where('user_id', $userId)
                   ->whereNotIn('status', ['declined']); // Exclure complètement les sessions refusées
@@ -338,6 +348,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $model->time,
             $model->location,
             $model->max_participants,
+            $model->status ?? 'active',
             $organizer,
             $participants,
             $comments

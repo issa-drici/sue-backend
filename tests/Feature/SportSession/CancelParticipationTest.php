@@ -189,7 +189,7 @@ class CancelParticipationTest extends TestCase
             'firstname' => 'Pierre',
             'lastname' => 'Durand',
         ]);
-        
+
         SportSessionParticipantModel::create([
             'id' => $this->faker->uuid(),
             'session_id' => $this->session->id,
@@ -224,6 +224,21 @@ class CancelParticipationTest extends TestCase
             'type' => 'update',
             'title' => 'Participation annulée',
             'session_id' => $this->session->id,
+        ]);
+    }
+
+    public function test_system_comment_is_created_for_cancellation(): void
+    {
+        $response = $this->actingAs($this->participant)
+            ->patchJson("/api/sessions/{$this->session->id}/cancel-participation");
+
+        $response->assertStatus(200);
+
+        // Vérifier qu'un commentaire système a été créé
+        $this->assertDatabaseHas('sport_session_comments', [
+            'session_id' => $this->session->id,
+            'user_id' => $this->participant->id,
+            'content' => 'Marie Martin a annulé sa participation à cette session.',
         ]);
     }
 }

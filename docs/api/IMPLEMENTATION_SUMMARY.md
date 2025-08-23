@@ -1,95 +1,130 @@
-# Résumé de l'implémentation - Annulation de participation
+# Résumé de l'implémentation - Annulation et modification de session
 
-## 📋 Fonctionnalité implémentée
+## 📋 Fonctionnalités implémentées
 
-**FR-20250122-002** - Annulation de participation à une session
+**FR-20250122-003** - Modification d'une session existante
+**FR-20250122-004** - Annulation complète d'une session
 
 ## 🎯 Description
 
-Permettre à un utilisateur qui a accepté une invitation à une session d'annuler sa participation.
+### Modification d'une session existante
+Permettre à l'organisateur d'une session de modifier les détails de sa session (date, heure, lieu, nombre maximum de participants).
+
+### Annulation complète d'une session
+Permettre à l'organisateur d'une session d'annuler complètement sa session.
 
 ## 🔧 Composants implémentés
 
-### 1. UseCase
-- **Fichier** : `app/UseCases/SportSession/CancelParticipationUseCase.php`
-- **Responsabilité** : Logique métier pour l'annulation de participation
+### 1. Base de données
+- **Migration** : `2025_08_23_181903_add_status_to_sport_sessions_table.php`
+  - Ajout du champ `status` (enum: 'active', 'cancelled') à la table `sport_sessions`
+- **Migration** : `2025_08_23_182827_add_new_notification_types.php`
+  - Ajout des nouveaux types de notifications : `session_update`, `session_cancelled`
+
+### 2. Entité SportSession
+- **Fichier** : `app/Entities/SportSession.php`
+- **Modifications** :
+  - Ajout du champ `status` dans l'entité
+  - Ajout de la méthode `getStatus()`
+  - Mise à jour de la méthode `toArray()` pour inclure le statut
+
+### 3. Modèle SportSessionModel
+- **Fichier** : `app/Models/SportSessionModel.php`
+- **Modifications** :
+  - Ajout de `status` dans le tableau `$fillable`
+
+### 4. Repository SportSessionRepository
+- **Fichier** : `app/Repositories/SportSession/SportSessionRepository.php`
+- **Modifications** :
+  - Mise à jour de la méthode `mapToEntity()` pour inclure le statut
+  - Mise à jour de la méthode `create()` pour définir le statut par défaut à 'active'
+
+### 5. UseCase - Modification de session
+- **Fichier** : `app/UseCases/SportSession/UpdateSportSessionUseCase.php`
+- **Modifications** :
+  - Ajout de la validation du champ `maxParticipants` (1-50)
+  - Amélioration des notifications avec le nom de l'organisateur
+  - Ajout du type de notification `session_update`
+
+### 6. UseCase - Annulation de session
+- **Fichier** : `app/UseCases/SportSession/CancelSportSessionUseCase.php`
+- **Responsabilité** : Logique métier pour l'annulation complète d'une session
 - **Fonctionnalités** :
-  - Validation des données d'entrée
-  - Vérification des permissions (participant accepté, non organisateur)
+  - Validation des permissions (organisateur uniquement)
+  - Vérification que la session n'est pas déjà annulée
   - Vérification que la session n'est pas terminée
-  - Mise à jour du statut du participant
-  - Création de notification pour l'organisateur
-  - Envoi de notification push
+  - Mise à jour du statut de la session à 'cancelled'
+  - Création de notifications pour tous les participants acceptés
+  - Envoi de notifications push
 
-### 2. Contrôleur
-- **Fichier** : `app/Http/Controllers/SportSession/CancelParticipationAction.php`
-- **Responsabilité** : Gestion des requêtes HTTP
-- **Endpoint** : `PATCH /api/sessions/{sessionId}/cancel-participation`
-- **Codes de réponse** :
-  - `200` - Participation annulée avec succès
-  - `400` - Utilisateur n'a pas accepté l'invitation
-  - `403` - Non autorisé
-  - `404` - Session non trouvée
-  - `409` - Session terminée
+### 7. Contrôleurs
+- **Fichier** : `app/Http/Controllers/SportSession/UpdateSportSessionAction.php`
+  - Ajout de la validation du champ `maxParticipants`
+  - Mapping du champ camelCase vers snake_case
+- **Fichier** : `app/Http/Controllers/SportSession/CancelSportSessionAction.php`
+  - **Responsabilité** : Gestion des requêtes HTTP pour l'annulation
+  - **Endpoint** : `PATCH /api/sessions/{sessionId}/cancel`
+  - **Codes de réponse** :
+    - `200` - Session annulée avec succès
+    - `400` - Session déjà annulée ou terminée
+    - `403` - Non autorisé
+    - `404` - Session non trouvée
 
-### 3. Route
+### 8. Routes
 - **Fichier** : `routes/api.php`
-- **Route** : `Route::patch('/sessions/{id}/cancel-participation', CancelParticipationAction::class);`
-- **Middleware** : `auth:sanctum`
+- **Route ajoutée** : `Route::patch('/sessions/{id}/cancel', CancelSportSessionAction::class);`
 
-### 4. Tests
-- **Fichier** : `tests/Feature/SportSession/CancelParticipationTest.php`
+### 9. Tests
+- **Fichier** : `tests/Feature/SportSession/CancelSportSessionTest.php`
 - **Tests couverts** :
-  - ✅ Annulation réussie
-  - ✅ Organisateur ne peut pas s'annuler
-  - ✅ Utilisateur non accepté ne peut pas s'annuler
-  - ✅ Utilisateur non participant ne peut pas s'annuler
+  - ✅ Annulation réussie par l'organisateur
+  - ✅ Non-organisateur ne peut pas annuler
+  - ✅ Session déjà annulée ne peut pas être annulée
   - ✅ Session terminée ne peut pas être annulée
   - ✅ Session inexistante retourne 404
-  - ✅ Notification créée pour l'organisateur
+  - ✅ Notifications créées pour les participants acceptés
+  - ✅ Participants en attente ne reçoivent pas de notifications
 
-### 5. Factory
+- **Fichier** : `tests/Feature/SportSession/UpdateSportSessionTest.php`
+- **Tests couverts** :
+  - ✅ Modification réussie par l'organisateur
+  - ✅ Non-organisateur ne peut pas modifier
+  - ✅ Validation des données invalides
+  - ✅ Session terminée ne peut pas être modifiée
+  - ✅ Notifications créées pour les participants acceptés
+  - ✅ Participants en attente ne reçoivent pas de notifications
+
+### 10. Factory
 - **Fichier** : `database/factories/SportSessionModelFactory.php`
-- **Responsabilité** : Création de données de test pour les sessions
-
-### 6. Documentation
-- **Fichier** : `docs/api/sessions.md`
-- **Contenu** : Documentation complète de l'endpoint avec exemples
+- **Modifications** :
+  - Ajout du statut par défaut 'active'
+  - Ajout de la méthode `cancelled()` pour créer des sessions annulées
 
 ## 🔄 Logique métier
 
-### Conditions préalables
-1. ✅ L'utilisateur doit être un participant de la session avec le statut `accepted`
-2. ✅ La session ne doit pas être terminée
-3. ✅ L'utilisateur ne doit pas être l'organisateur de la session
+### Conditions préalables pour la modification
+1. L'utilisateur doit être l'organisateur de la session
+2. La session ne doit pas être terminée
+3. Les nouvelles données doivent être valides
 
-### Actions effectuées
-1. ✅ Vérifier les permissions et conditions
-2. ✅ Mettre à jour le statut du participant de `accepted` à `declined`
-3. ✅ Libérer une place dans la session (si limite de participants configurée)
-4. ✅ Créer une notification pour l'organisateur
-5. ✅ Envoyer une notification push si configurée
-6. ✅ Retourner la session mise à jour
+### Conditions préalables pour l'annulation
+1. L'utilisateur doit être l'organisateur de la session
+2. La session ne doit pas être déjà annulée
+3. La session ne doit pas être terminée
 
-## 📱 Impact sur le mobile
+### Validation des données
+- **date** : Doit être dans le futur
+- **time** : Format HH:MM
+- **location** : Max 200 caractères
+- **maxParticipants** : Optionnel, entre 1 et 50
 
-### Endpoint disponible
-```
-PATCH /api/sessions/{sessionId}/cancel-participation
-```
+## 📡 Format de réponse
 
-### Headers requis
-```
-Authorization: Bearer {token}
-Content-Type: application/json
-Accept: application/json
-```
-
-### Réponse de succès
+### Annulation - Succès (200)
 ```json
 {
   "success": true,
-  "message": "Participation annulée avec succès",
+  "message": "Session annulée avec succès",
   "data": {
     "session": {
       "id": "session-uuid",
@@ -97,65 +132,52 @@ Accept: application/json
       "date": "2025-02-15",
       "time": "14:00",
       "location": "Tennis Club",
-      "participants": [
-        {
-          "id": "user-uuid",
-          "firstname": "Jean",
-          "lastname": "Dupont",
-          "status": "declined"
-        }
-      ]
+      "status": "cancelled",
+      "organizer": {
+        "id": "organizer-uuid",
+        "fullName": "Jean Dupont"
+      },
+      "participants": [...]
     }
   }
 }
 ```
 
+### Erreurs communes
+- `400` - Session déjà annulée ou terminée
+- `403` - Non autorisé (pas l'organisateur)
+- `404` - Session non trouvée
+
 ## 🔔 Notifications
 
-### Notification créée pour l'organisateur
-- **Type** : `session_update`
-- **Titre** : "Participation annulée"
-- **Message** : "[Nom Prénom] a annulé sa participation à la session de [sport]"
-- **Destinataires** : Tous les participants avec le statut `accepted` (sauf celui qui annule)
-- **Données** : 
-  ```json
-  {
-    "type": "session_update",
-    "session_id": "session-uuid",
-    "user_id": "user-uuid",
-    "action": "participation_cancelled",
-    "previous_status": "accepted",
-    "new_status": "declined"
-  }
-  ```
+### Types de notifications ajoutés
+- `session_update` : Session modifiée par l'organisateur
+- `session_cancelled` : Session annulée par l'organisateur
 
-### Notification push
-- **Titre** : "❌ Participation annulée"
-- **Message** : "[Nom Prénom] a annulé sa participation à la session de [sport]"
-- **Destinataires** : Tous les participants avec le statut `accepted` (sauf celui qui annule)
-- **Données** : Mêmes données que la notification in-app
+### Données des notifications
+- **session_update** : Contient les changements (date, heure, lieu)
+- **session_cancelled** : Contient les détails de la session annulée
 
-## ✅ Validation
+## 📊 Impact
 
-### Tests passés
-- ✅ 7 tests unitaires passent
-- ✅ 25 assertions validées
-- ✅ Tous les cas d'erreur couverts
-- ✅ Logique métier validée
+### Positif
+- ✅ Amélioration de l'expérience utilisateur
+- ✅ Plus de flexibilité pour les organisateurs
+- ✅ Correction d'erreurs possibles
+- ✅ Gestion propre des annulations
 
-### Intégration
-- ✅ Route enregistrée correctement
-- ✅ Contrôleur fonctionnel
-- ✅ UseCase implémenté
-- ✅ Notifications créées
-- ✅ Push notifications configurées
+### Risques
+- ⚠️ Notifications multiples pour les participants
+- ⚠️ Annulations de dernière minute
+- ⚠️ Impact sur la planification des participants
 
-## 🚀 Prêt pour la production
+## 🔗 Liens
 
-La fonctionnalité est complètement implémentée et testée. Elle est prête à être utilisée par l'équipe mobile.
-
-### Prochaines étapes recommandées
-1. Tests d'intégration avec l'app mobile
-2. Tests de charge si nécessaire
-3. Monitoring des notifications push
-4. Documentation pour l'équipe mobile 
+- **FR-20250122-003** : Modification d'une session existante
+- **FR-20250122-004** : Annulation complète d'une session
+- **Endpoints** : 
+  - `PUT /api/sessions/{id}` - Modification
+  - `PATCH /api/sessions/{id}/cancel` - Annulation
+- **Tests** : 
+  - `tests/Feature/SportSession/UpdateSportSessionTest.php`
+  - `tests/Feature/SportSession/CancelSportSessionTest.php` 

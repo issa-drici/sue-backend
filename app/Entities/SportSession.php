@@ -12,6 +12,7 @@ class SportSession
     private string $time;
     private string $location;
     private ?int $maxParticipants;
+    private string $status;
     private User $organizer;
     private array $participants;
     private array $comments;
@@ -23,6 +24,7 @@ class SportSession
         string $time,
         string $location,
         ?int $maxParticipants,
+        string $status,
         User $organizer,
         array $participants = [],
         array $comments = []
@@ -33,6 +35,7 @@ class SportSession
         $this->time = $time;
         $this->location = $location;
         $this->maxParticipants = $maxParticipants;
+        $this->status = $status;
         $this->organizer = $organizer;
         $this->participants = $participants;
         $this->comments = $comments;
@@ -66,6 +69,11 @@ class SportSession
     public function getMaxParticipants(): ?int
     {
         return $this->maxParticipants;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
     }
 
     public function getOrganizer(): User
@@ -132,6 +140,7 @@ class SportSession
             'time' => $this->time,
             'location' => $this->location,
             'maxParticipants' => $this->maxParticipants,
+            'status' => $this->status,
             'organizer' => [
                 'id' => $this->organizer->getId(),
                 'fullName' => $this->organizer->getFirstname() . ' ' . $this->organizer->getLastname()

@@ -34,6 +34,7 @@ class SportSessionModelFactory extends Factory
             'location' => $this->faker->city() . ' ' . $this->faker->randomElement(['Club', 'Centre Sportif', 'Gymnase', 'Stade']),
             'organizer_id' => UserModel::factory(),
             'max_participants' => $this->faker->optional()->numberBetween(2, 20),
+            'status' => 'active',
         ];
     }
 
@@ -64,6 +65,16 @@ class SportSessionModelFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'date' => now()->addDay()->format('Y-m-d'),
+        ]);
+    }
+
+    /**
+     * Indicate that the session is cancelled.
+     */
+    public function cancelled(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'cancelled',
         ]);
     }
 }

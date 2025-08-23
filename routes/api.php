@@ -45,6 +45,7 @@ use App\Http\Controllers\SportSession\GetOnlineUsersAction;
 
 // Participation Controllers
 use App\Http\Controllers\SportSession\CancelParticipationAction;
+use App\Http\Controllers\SportSession\CancelSportSessionAction;
 
 // Notification Controllers
 use App\Http\Controllers\Notification\FindUserNotificationsAction;
@@ -131,6 +132,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/sessions/{id}/invite', InviteUsersToSessionAction::class);
     Route::patch('/sessions/{id}/respond', RespondToSessionInvitationAction::class);
     Route::patch('/sessions/{id}/cancel-participation', CancelParticipationAction::class);
+    Route::patch('/sessions/{id}/cancel', CancelSportSessionAction::class);
 
     // Commentaires en temps réel
     Route::get('/sessions/{sessionId}/comments', GetCommentsAction::class);
