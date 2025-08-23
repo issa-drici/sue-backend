@@ -597,6 +597,8 @@ Content-Type: application/json
   "date": "string (YYYY-MM-DD)",
   "time": "string (HH:MM)",
   "location": "string",
+  "status": "active | cancelled | completed",
+  "maxParticipants": "integer | null",
   "organizer": {
     "id": "string",
     "firstname": "string",
@@ -646,6 +648,11 @@ Content-Type: application/json
 ```
 
 ## Logique métier
+
+### Statuts de sessions
+- **active** : Session normale, en cours
+- **cancelled** : Session annulée par l'organisateur
+- **completed** : Session terminée
 
 ### Statuts de participants
 - **pending** : Invitation en attente
