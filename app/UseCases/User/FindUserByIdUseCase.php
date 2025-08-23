@@ -43,8 +43,10 @@ class FindUserByIdUseCase
 
     private function calculateUserStats(string $userId): array
     {
-        // Sessions créées par l'utilisateur
-        $sessionsCreated = SportSessionModel::where('organizer_id', $userId)->count();
+        // Sessions créées par l'utilisateur (excluant les sessions annulées)
+        $sessionsCreated = SportSessionModel::where('organizer_id', $userId)
+            ->where('status', '!=', 'cancelled')
+            ->count();
 
         // Sessions auxquelles l'utilisateur a participé
         $sessionsParticipated = SportSessionParticipantModel::where('user_id', $userId)

@@ -36,8 +36,7 @@ Authorization: Bearer <token>
     "avatar": "https://i.pravatar.cc/150?img=1",
     "stats": {
       "sessionsCreated": 12,
-      "sessionsParticipated": 45,
-      "favoriteSport": "Football"
+      "sessionsParticipated": 45
     }
   }
 }
@@ -78,8 +77,7 @@ Content-Type: application/json
     "avatar": "https://i.pravatar.cc/150?img=1",
     "stats": {
       "sessionsCreated": 12,
-      "sessionsParticipated": 45,
-      "favoriteSport": "Football"
+      "sessionsParticipated": 45
     }
   },
   "message": "Profil mis à jour avec succès"
@@ -564,7 +562,8 @@ Récupère le profil d'un utilisateur spécifique par son ID.
     "stats": {
       "sessionsCreated": 5,
       "sessionsParticipated": 12
-    }
+    },
+    "isAlreadyFriend": false
   }
 }
 ```
@@ -593,6 +592,7 @@ Récupère le profil d'un utilisateur spécifique par son ID.
 - `lastname` : Nom de famille de l'utilisateur
 - `email` : Adresse email de l'utilisateur
 - `avatar` : URL de l'avatar de l'utilisateur (peut être null)
+- `isAlreadyFriend` : Indique si l'utilisateur connecté a déjà cet utilisateur en ami
 
 #### Statistiques
 - `stats.sessionsCreated` : Nombre de sessions sportives créées par l'utilisateur
@@ -624,4 +624,6 @@ const data = await response.json();
 - Cet endpoint est utilisé dans la modal de profil utilisateur
 - Les statistiques sont calculées en temps réel
 - L'avatar peut être null si l'utilisateur n'en a pas défini
-- Tous les utilisateurs authentifiés peuvent accéder aux profils des autres utilisateurs 
+- Tous les utilisateurs authentifiés peuvent accéder aux profils des autres utilisateurs
+- Le champ `isAlreadyFriend` retourne `false` si l'utilisateur consulte son propre profil
+- Le champ `isAlreadyFriend` est utilisé pour afficher le bon bouton dans l'interface ("Ajouter en ami" ou "Déjà dans vos amis") 

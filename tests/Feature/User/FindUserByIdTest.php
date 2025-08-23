@@ -137,7 +137,8 @@ class FindUserByIdTest extends TestCase
                     'stats' => [
                         'sessionsCreated',
                         'sessionsParticipated'
-                    ]
+                    ],
+                    'isAlreadyFriend'
                 ]
             ])
             ->assertJson([
@@ -150,7 +151,8 @@ class FindUserByIdTest extends TestCase
                     'stats' => [
                         'sessionsCreated' => 2,
                         'sessionsParticipated' => 3
-                    ]
+                    ],
+                    'isAlreadyFriend' => false
                 ]
             ]);
     }
@@ -175,7 +177,8 @@ class FindUserByIdTest extends TestCase
                     'stats' => [
                         'sessionsCreated',
                         'sessionsParticipated'
-                    ]
+                    ],
+                    'isAlreadyFriend'
                 ]
             ])
             ->assertJson([
@@ -188,7 +191,8 @@ class FindUserByIdTest extends TestCase
                     'stats' => [
                         'sessionsCreated' => 1,
                         'sessionsParticipated' => 0
-                    ]
+                    ],
+                    'isAlreadyFriend' => true
                 ]
             ]);
     }
@@ -245,7 +249,8 @@ class FindUserByIdTest extends TestCase
                     'stats' => [
                         'sessionsCreated' => 0,
                         'sessionsParticipated' => 0
-                    ]
+                    ],
+                    'isAlreadyFriend' => false
                 ]
             ]);
     }
@@ -267,7 +272,8 @@ class FindUserByIdTest extends TestCase
                     'lastname',
                     'email',
                     'avatar',
-                    'stats'
+                    'stats',
+                    'isAlreadyFriend'
                 ]
             ]);
 
@@ -275,5 +281,126 @@ class FindUserByIdTest extends TestCase
         $data = $response->json('data');
         $this->assertArrayHasKey('avatar', $data);
         $this->assertTrue($data['avatar'] === null || is_string($data['avatar']));
+    }
+
+    /**
+     * Test que isAlreadyFriend retourne true pour un ami
+     */
+    public function test_isAlreadyFriend_returns_true_for_friend(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/users/{$this->otherUser->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $this->otherUser->id,
+                    'isAlreadyFriend' => true
+                ]
+            ]);
+    }
+
+    /**
+     * Test que isAlreadyFriend retourne false pour un non-ami
+     */
+    public function test_isAlreadyFriend_returns_false_for_non_friend(): void
+    {
+        $newUser = UserModel::factory()->create([
+            'firstname' => 'Pierre',
+            'lastname' => 'Durand',
+            'email' => 'pierre.durand@example.com',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/users/{$newUser->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $newUser->id,
+                    'isAlreadyFriend' => false
+                ]
+            ]);
+    }
+
+    /**
+     * Test que isAlreadyFriend retourne false pour son propre profil
+     */
+    public function test_isAlreadyFriend_returns_false_for_own_profile(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/users/{$this->user->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $this->user->id,
+                    'isAlreadyFriend' => false
+                ]
+            ]);
+    }
+
+    /**
+     * Test que les sessions declined ne sont pas comptées dans sessionsParticipated
+     */
+    public function test_declined_sessions_are_not_counted_in_participations(): void
+    {
+        // Créer un nouvel utilisateur
+        $newUser = UserModel::factory()->create([
+            'firstname' => 'Test',
+            'lastname' => 'User',
+            'email' => 'test.user@example.com',
+        ]);
+
+        // Créer une session
+        $session = SportSessionModel::factory()->create([
+            'organizer_id' => $this->user->id,
+            'sport' => 'tennis',
+            'date' => now()->addDays(7)->format('Y-m-d'),
+            'time' => '14:00',
+            'location' => 'Tennis Club',
+        ]);
+
+        // Ajouter une participation accepted
+        SportSessionParticipantModel::create([
+            'id' => $this->faker->uuid(),
+            'session_id' => $session->id,
+            'user_id' => $newUser->id,
+            'status' => 'accepted',
+        ]);
+
+        // Ajouter une participation declined
+        SportSessionParticipantModel::create([
+            'id' => $this->faker->uuid(),
+            'session_id' => $session->id,
+            'user_id' => $newUser->id,
+            'status' => 'declined',
+        ]);
+
+        // Ajouter une participation pending
+        SportSessionParticipantModel::create([
+            'id' => $this->faker->uuid(),
+            'session_id' => $session->id,
+            'user_id' => $newUser->id,
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/users/{$newUser->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $newUser->id,
+                    'stats' => [
+                        'sessionsCreated' => 0,
+                        'sessionsParticipated' => 1 // Seule la participation 'accepted' doit être comptée
+                    ]
+                ]
+            ]);
     }
 }

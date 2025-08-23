@@ -3,6 +3,8 @@
 namespace App\UseCases\Profile;
 
 use App\Repositories\User\UserRepositoryInterface;
+use App\Models\SportSessionModel;
+use App\Models\SportSessionParticipantModel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
@@ -30,6 +32,9 @@ class FindUserProfileUseCase
             ]);
         }
 
+        // Calculer les statistiques
+        $stats = $this->calculateUserStats($user->id);
+
         return [
             'user' => [
                 'id' => $profile->getId(),
@@ -38,7 +43,25 @@ class FindUserProfileUseCase
                 'email' => $profile->getEmail(),
                 'avatar_url' => $profile->getAvatar()
             ],
-            'stats' => $profile->getStats()
+            'stats' => $stats
+        ];
+    }
+
+    private function calculateUserStats(string $userId): array
+    {
+        // Sessions créées par l'utilisateur (excluant les sessions annulées)
+        $sessionsCreated = SportSessionModel::where('organizer_id', $userId)
+            ->where('status', '!=', 'cancelled')
+            ->count();
+
+        // Sessions auxquelles l'utilisateur a participé
+        $sessionsParticipated = SportSessionParticipantModel::where('user_id', $userId)
+            ->where('status', 'accepted')
+            ->count();
+
+        return [
+            'sessionsCreated' => $sessionsCreated,
+            'sessionsParticipated' => $sessionsParticipated
         ];
     }
 }
