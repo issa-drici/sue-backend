@@ -43,6 +43,9 @@ use App\Http\Controllers\SportSession\LeaveSessionAction;
 use App\Http\Controllers\SportSession\UpdateTypingStatusAction;
 use App\Http\Controllers\SportSession\GetOnlineUsersAction;
 
+// Participation Controllers
+use App\Http\Controllers\SportSession\CancelParticipationAction;
+
 // Notification Controllers
 use App\Http\Controllers\Notification\FindUserNotificationsAction;
 use App\Http\Controllers\Notification\MarkNotificationAsReadAction;
@@ -127,6 +130,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/sessions/{id}', DeleteSportSessionAction::class);
     Route::post('/sessions/{id}/invite', InviteUsersToSessionAction::class);
     Route::patch('/sessions/{id}/respond', RespondToSessionInvitationAction::class);
+    Route::patch('/sessions/{id}/cancel-participation', CancelParticipationAction::class);
 
     // Commentaires en temps réel
     Route::get('/sessions/{sessionId}/comments', GetCommentsAction::class);

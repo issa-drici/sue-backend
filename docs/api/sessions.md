@@ -918,18 +918,7 @@ Si la session a une limite de participants (`maxParticipants`), l'acceptation d'
 3. **Statuts** : 
    - `accepted` : Participant a accepté l'invitation
    - `declined` : Participant a décliné l'invitation
-   - `pending` : Participant n'a pas encore répondu
-
-### Notifications de réponse
-
-Quand un utilisateur répond à une invitation (accepte ou décline), des notifications sont envoyées à **tous les autres participants actifs** de la session :
-
-- **Destinataires** : Tous les participants avec le statut `accepted` ou `pending`
-- **Exclus** : 
-  - L'utilisateur qui vient de répondre
-  - Les participants avec le statut `declined`
-- **Message** : Inclut le nom de l'utilisateur qui a répondu et sa réponse
-- **Type** : Notification push + notification en base de données 
+   - `pending` : Participant n'a pas encore répondu 
 
 ## Comportement des sessions refusées
 
@@ -986,3 +975,121 @@ Les endpoints suivants appliquent ce filtrage :
     ]
 }
 ``` 
+
+# API Sessions Sportives
+
+## Endpoints
+
+### Annuler sa participation à une session
+
+**PATCH** `/api/sessions/{sessionId}/cancel-participation`
+
+Permet à un utilisateur qui a accepté une invitation à une session d'annuler sa participation.
+
+#### Headers requis
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
+
+#### Body de la requête
+```json
+{
+  "status": "declined"
+}
+```
+*Note : Le body est optionnel car le statut est toujours "declined" pour cette action.*
+
+#### Codes de réponse
+
+**200 - Participation annulée avec succès**
+```json
+{
+  "success": true,
+  "message": "Participation annulée avec succès",
+  "data": {
+    "session": {
+      "id": "session-uuid",
+      "sport": "tennis",
+      "date": "2025-02-15",
+      "time": "14:00",
+      "location": "Tennis Club",
+      "participants": [
+        {
+          "id": "user-uuid",
+          "firstname": "Jean",
+          "lastname": "Dupont",
+          "status": "declined"
+        }
+      ]
+    }
+  }
+}
+```
+
+**400 - Utilisateur n'a pas accepté l'invitation**
+```json
+{
+  "success": false,
+  "message": "Vous n'avez pas accepté l'invitation à cette session",
+  "error": "USER_NOT_ACCEPTED"
+}
+```
+
+**403 - Non autorisé**
+```json
+{
+  "success": false,
+  "message": "Vous n'êtes pas autorisé à annuler votre participation à cette session",
+  "error": "UNAUTHORIZED"
+}
+```
+
+**404 - Session non trouvée**
+```json
+{
+  "success": false,
+  "message": "Session non trouvée",
+  "error": "SESSION_NOT_FOUND"
+}
+```
+
+**409 - Session terminée**
+```json
+{
+  "success": false,
+  "message": "Impossible d'annuler la participation à une session terminée",
+  "error": "SESSION_ENDED"
+}
+```
+
+#### Conditions préalables
+1. L'utilisateur doit être un participant de la session avec le statut `accepted`
+2. La session ne doit pas être terminée
+3. L'utilisateur ne doit pas être l'organisateur de la session
+
+#### Actions effectuées
+1. Vérifier les permissions et conditions
+2. Mettre à jour le statut du participant de `accepted` à `declined`
+3. Libérer une place dans la session (si limite de participants configurée)
+4. Créer une notification pour l'organisateur
+5. Envoyer une notification push si configurée
+6. Retourner la session mise à jour
+
+#### Notifications créées
+- **Type** : `session_update`
+- **Titre** : "Participation annulée"
+- **Message** : "[Nom Prénom] a annulé sa participation à la session de [sport]"
+- **Destinataires** : Tous les participants avec le statut `accepted` (sauf celui qui annule)
+- **Données** : 
+  ```json
+  {
+    "type": "session_update",
+    "session_id": "session-uuid",
+    "user_id": "user-uuid",
+    "action": "participation_cancelled",
+    "previous_status": "accepted",
+    "new_status": "declined"
+  }
+  ``` 
