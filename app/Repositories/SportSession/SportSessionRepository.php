@@ -260,6 +260,31 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             ->exists();
     }
 
+    public function findParticipant(string $sessionId, string $userId): ?array
+    {
+        $participant = SportSessionParticipantModel::with('user')
+            ->where('session_id', $sessionId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$participant) {
+            return null;
+        }
+
+        return [
+            'id' => $participant->id,
+            'session_id' => $participant->session_id,
+            'user_id' => $participant->user_id,
+            'status' => $participant->status,
+            'user' => [
+                'id' => $participant->user->id,
+                'firstname' => $participant->user->firstname,
+                'lastname' => $participant->user->lastname,
+                'email' => $participant->user->email
+            ]
+        ];
+    }
+
     public function inviteUser(string $sessionId, string $userId): bool
     {
         return $this->addParticipant($sessionId, $userId, 'pending');

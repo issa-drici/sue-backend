@@ -39,5 +39,7 @@ interface SportSessionRepositoryInterface
 
     public function isUserParticipant(string $sessionId, string $userId): bool;
 
+    public function findParticipant(string $sessionId, string $userId): ?array;
+
     public function inviteUser(string $sessionId, string $userId): bool;
 }

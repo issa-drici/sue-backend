@@ -57,8 +57,8 @@ class RespondToSessionInvitationUseCase
             throw new Exception('Erreur lors de la mise à jour du statut');
         }
 
-        // Créer une notification pour l'organisateur
-        $this->createResponseNotification($session, $userId, $response);
+        // Créer des notifications pour tous les autres participants de la session
+        $this->createResponseNotifications($session, $userId, $response);
 
         // Ajouter un commentaire système
         $this->createSystemComment($session, $userId, $response);
@@ -73,46 +73,71 @@ class RespondToSessionInvitationUseCase
         return $updatedSession;
     }
 
-    private function createResponseNotification(SportSession $session, string $userId, string $response): void
+    private function createResponseNotifications(SportSession $session, string $userId, string $response): void
     {
-        $organizerId = $session->getOrganizer()->getId();
+        // Récupérer les informations de l'utilisateur qui répond
+        $respondingUser = $this->userRepository->findById($userId);
+        if (!$respondingUser) {
+            return;
+        }
 
+        $respondingUserName = $respondingUser->getFirstname() . ' ' . $respondingUser->getLastname();
+
+        // Préparer les messages
         $message = $response === 'accept'
-            ? "Un participant a accepté votre invitation à la session de {$session->getSport()}"
-            : "Un participant a décliné votre invitation à la session de {$session->getSport()}";
+            ? "{$respondingUserName} a accepté l'invitation à la session de {$session->getSport()}"
+            : "{$respondingUserName} a décliné l'invitation à la session de {$session->getSport()}";
 
         $title = $response === 'accept' ? 'Invitation acceptée' : 'Invitation déclinée';
 
-        $notification = $this->notificationRepository->create([
-            'user_id' => $organizerId,
-            'type' => 'update',
-            'title' => $title,
-            'message' => $message,
-            'session_id' => $session->getId(),
-        ]);
+        // Récupérer tous les participants de la session
+        $participants = $session->getParticipants();
+        $organizerId = $session->getOrganizer()->getId();
 
-        // Push à l'organisateur
-        try {
-            $tokens = $this->pushTokenRepository->getTokensForUser($organizerId);
-            if (!empty($tokens)) {
-                $data = [
-                    'type' => 'session_update',
-                    'session_id' => $session->getId(),
-                    'notification_id' => $notification->getId(),
-                ];
-                $this->expoService->sendNotification(
-                    $tokens,
-                    $title,
-                    $message,
-                    $data
-                );
+        foreach ($participants as $participant) {
+            $participantId = $participant['id'];
+
+            // Ne pas envoyer de notification à :
+            // 1. L'utilisateur qui vient de répondre
+            // 2. Les utilisateurs qui ont décliné
+            if ($participantId === $userId || $participant['status'] === 'declined') {
+                continue;
             }
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Error sending push for invitation response', [
-                'sessionId' => $session->getId(),
-                'organizerId' => $organizerId,
-                'error' => $e->getMessage(),
+
+            // Créer la notification pour ce participant
+            $notification = $this->notificationRepository->create([
+                'user_id' => $participantId,
+                'type' => 'update',
+                'title' => $title,
+                'message' => $message,
+                'session_id' => $session->getId(),
             ]);
+
+            // Envoyer la notification push
+            try {
+                $tokens = $this->pushTokenRepository->getTokensForUser($participantId);
+                if (!empty($tokens)) {
+                    $data = [
+                        'type' => 'session_update',
+                        'session_id' => $session->getId(),
+                        'notification_id' => $notification->getId(),
+                        'responding_user_id' => $userId,
+                        'response' => $response
+                    ];
+                    $this->expoService->sendNotification(
+                        $tokens,
+                        $title,
+                        $message,
+                        $data
+                    );
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Error sending push for invitation response', [
+                    'sessionId' => $session->getId(),
+                    'participantId' => $participantId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 

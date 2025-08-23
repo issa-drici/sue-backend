@@ -45,6 +45,8 @@ class InviteUsersToSessionUseCase
 
         $invitedUsers = [];
         $errors = [];
+        $newInvitations = 0;
+        $reinvitations = 0;
 
         foreach ($userIds as $userId) {
             // Vérifier que l'utilisateur existe
@@ -54,18 +56,39 @@ class InviteUsersToSessionUseCase
                 continue;
             }
 
-            // Vérifier que l'utilisateur n'est pas déjà invité ou participant
-            if (
-                $this->sportSessionRepository->isUserInvited($sessionId, $userId) ||
-                $this->sportSessionRepository->isUserParticipant($sessionId, $userId)
-            ) {
-                $errors[] = "L'utilisateur {$user->getFirstname()} {$user->getLastname()} est déjà invité ou participe déjà";
+            // Vérifier que l'utilisateur n'est pas déjà participant (accepté)
+            if ($this->sportSessionRepository->isUserParticipant($sessionId, $userId)) {
+                $errors[] = "L'utilisateur {$user->getFirstname()} {$user->getLastname()} participe déjà à cette session";
                 continue;
             }
 
-            // Ajouter l'invitation
+            // Vérifier si l'utilisateur est déjà invité (pending)
+            $isAlreadyInvited = $this->sportSessionRepository->isUserInvited($sessionId, $userId);
+
+            // Vérifier si l'utilisateur a déjà été invité mais a décliné
+            $existingParticipant = $this->sportSessionRepository->findParticipant($sessionId, $userId);
+            $wasDeclined = $existingParticipant && $existingParticipant['status'] === 'declined';
+            $isReinvitation = $wasDeclined;
+
+
+
+            // Ajouter ou mettre à jour l'invitation
             try {
-                $invited = $this->sportSessionRepository->inviteUser($sessionId, $userId);
+                $invited = false;
+
+                if ($isAlreadyInvited) {
+                    // L'utilisateur est déjà invité (pending), pas besoin de faire quoi que ce soit
+                    $invited = true;
+                } else {
+                    if ($isReinvitation) {
+                        // Mettre à jour le statut de 'declined' à 'pending'
+                        $invited = $this->sportSessionRepository->updateParticipantStatus($sessionId, $userId, 'pending');
+                    } else {
+                        // Créer une nouvelle invitation
+                        $invited = $this->sportSessionRepository->inviteUser($sessionId, $userId);
+                    }
+                }
+
                 if ($invited) {
                     $invitedUsers[] = [
                         'id' => $user->getId(),
@@ -74,17 +97,37 @@ class InviteUsersToSessionUseCase
                         'email' => $user->getEmail()
                     ];
 
-                    // Créer une notification pour l'utilisateur invité
-                    $notification = $this->notificationRepository->create([
-                        'user_id' => $userId,
-                        'type' => 'invitation',
-                        'title' => 'Invitation à une session sportive',
-                        'message' => "Vous avez été invité à participer à une session de {$session->getSport()} le {$session->getDate()} à {$session->getTime()}",
-                        'session_id' => $sessionId
-                    ]);
+                    // Déterminer si on doit créer une notification
+                    $shouldCreateNotification = $wasDeclined || !$isAlreadyInvited;
 
-                    // Envoyer une notification push
-                    $this->sendPushNotification($userId, $session, $notification);
+
+
+                    if ($shouldCreateNotification) {
+                        // Déterminer le type de message selon le cas
+                        $notificationTitle = $wasDeclined ? 'Nouvelle invitation à une session sportive' : 'Invitation à une session sportive';
+                        $notificationMessage = $wasDeclined
+                            ? "Vous avez été réinvité à participer à une session de {$session->getSport()} le {$session->getDate()} à {$session->getTime()}"
+                            : "Vous avez été invité à participer à une session de {$session->getSport()} le {$session->getDate()} à {$session->getTime()}";
+
+                        // Créer une notification pour l'utilisateur invité
+                        $notification = $this->notificationRepository->create([
+                            'user_id' => $userId,
+                            'type' => 'invitation',
+                            'title' => $notificationTitle,
+                            'message' => $notificationMessage,
+                            'session_id' => $sessionId
+                        ]);
+
+                        // Envoyer une notification push
+                        $this->sendPushNotification($userId, $session, $notification, $wasDeclined);
+                    }
+
+                    // Mettre à jour les compteurs
+                    if ($wasDeclined) {
+                        $reinvitations++;
+                    } else {
+                        $newInvitations++;
+                    }
                 }
             } catch (\Exception $e) {
                 $errors[] = "Erreur lors de l'invitation de {$user->getFirstname()} {$user->getLastname()}: " . $e->getMessage();
@@ -102,21 +145,35 @@ class InviteUsersToSessionUseCase
             ];
         }
 
+        // Construire le message de retour
+        $message = '';
+        if ($newInvitations > 0 && $reinvitations > 0) {
+            $message = "{$newInvitations} nouvelle(s) invitation(s) et {$reinvitations} réinvitation(s) envoyées avec succès";
+        } elseif ($newInvitations > 0) {
+            $message = "{$newInvitations} utilisateur(s) invité(s) avec succès";
+        } elseif ($reinvitations > 0) {
+            $message = "{$reinvitations} utilisateur(s) réinvité(s) avec succès";
+        } else {
+            $message = "Aucune invitation envoyée";
+        }
+
         return [
             'success' => true,
             'data' => [
                 'sessionId' => $sessionId,
                 'invitedUsers' => $invitedUsers,
-                'errors' => $errors
+                'errors' => $errors,
+                'newInvitations' => $newInvitations,
+                'reinvitations' => $reinvitations
             ],
-            'message' => count($invitedUsers) . ' utilisateur(s) invité(s) avec succès'
+            'message' => $message
         ];
     }
 
     /**
      * Envoie une notification push à l'utilisateur invité
      */
-    private function sendPushNotification(string $userId, $session, $notification): void
+    private function sendPushNotification(string $userId, $session, $notification, bool $isReinvitation = false): void
     {
         try {
             // Récupérer les tokens push de l'utilisateur
@@ -130,8 +187,10 @@ class InviteUsersToSessionUseCase
             }
 
             // Préparer le message de notification
-            $title = '🏃‍♂️ Invitation à une session sportive';
-            $body = "Vous avez été invité à participer à une session de {$session->getSport()} le {$session->getDate()} à {$session->getTime()}";
+            $title = $isReinvitation ? '🏃‍♂️ Nouvelle invitation à une session sportive' : '🏃‍♂️ Invitation à une session sportive';
+            $body = $isReinvitation
+                ? "Vous avez été réinvité à participer à une session de {$session->getSport()} le {$session->getDate()} à {$session->getTime()}"
+                : "Vous avez été invité à participer à une session de {$session->getSport()} le {$session->getDate()} à {$session->getTime()}";
 
             // Données supplémentaires pour l'app mobile
             $data = [
@@ -141,7 +200,8 @@ class InviteUsersToSessionUseCase
                 'sport' => $session->getSport(),
                 'date' => $session->getDate(),
                 'time' => $session->getTime(),
-                'location' => $session->getLocation()
+                'location' => $session->getLocation(),
+                'is_reinvitation' => $isReinvitation
             ];
 
             // Envoyer la notification push
@@ -159,7 +219,8 @@ class InviteUsersToSessionUseCase
                 'userId' => $userId,
                 'sessionId' => $session->getId(),
                 'tokensCount' => count($pushTokens),
-                'result' => $result
+                'result' => $result,
+                'isReinvitation' => $isReinvitation
             ]);
 
         } catch (\Exception $e) {

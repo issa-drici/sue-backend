@@ -660,7 +660,7 @@ Content-Type: application/json
 5. L'organisateur est automatiquement ajouté comme participant accepté
 6. Les commentaires sont publics pour tous les participants
 7. Un utilisateur ne peut pas être invité s'il est déjà participant
-8. Un utilisateur ne peut pas être invité s'il a déjà reçu une invitation
+8. Un utilisateur peut être réinvité s'il a décliné une invitation précédente
 9. Seuls les utilisateurs invités peuvent répondre aux invitations
 
 ## Sports supportés
@@ -786,10 +786,43 @@ Content-Type: application/json
 {
     "success": true,
     "data": {
-        "invitedCount": 3,
-        "alreadyInvited": 0
+        "sessionId": "789e0123-e89b-12d3-a456-426614174002",
+        "invitedUsers": [
+            {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "firstname": "John",
+                "lastname": "Doe",
+                "email": "john@example.com"
+            }
+        ],
+        "errors": [],
+        "newInvitations": 1,
+        "reinvitations": 0
     },
-    "message": "Invitations envoyées avec succès"
+    "message": "1 utilisateur(s) invité(s) avec succès"
+}
+```
+
+### Exemple de réponse avec réinvitation (201 Created)
+
+```json
+{
+    "success": true,
+    "data": {
+        "sessionId": "789e0123-e89b-12d3-a456-426614174002",
+        "invitedUsers": [
+            {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "firstname": "John",
+                "lastname": "Doe",
+                "email": "john@example.com"
+            }
+        ],
+        "errors": [],
+        "newInvitations": 0,
+        "reinvitations": 1
+    },
+    "message": "1 utilisateur(s) réinvité(s) avec succès"
 }
 ```
 
@@ -799,7 +832,18 @@ Content-Type: application/json
 - `400` : Erreur de validation
 - `403` : Accès interdit (l'utilisateur n'est pas le créateur de la session)
 - `404` : Session ou utilisateur non trouvé
-- `500` : Erreur interne du serveur 
+- `500` : Erreur interne du serveur
+
+### Comportement de réinvitation
+
+L'API supporte la réinvitation d'utilisateurs qui ont précédemment décliné une invitation :
+
+- **Nouvelle invitation** : Si l'utilisateur n'a jamais été invité, une nouvelle invitation est créée
+- **Réinvitation** : Si l'utilisateur a décliné une invitation précédente, son statut est remis à "pending"
+- **Invitation en cours** : Si l'utilisateur a déjà une invitation en attente, aucune action n'est effectuée
+- **Participant actif** : Si l'utilisateur participe déjà à la session, l'invitation est rejetée
+
+Les notifications push et les messages sont adaptés selon le type d'invitation (nouvelle vs réinvitation). 
 
 ## Répondre à une invitation de session
 
@@ -874,7 +918,18 @@ Si la session a une limite de participants (`maxParticipants`), l'acceptation d'
 3. **Statuts** : 
    - `accepted` : Participant a accepté l'invitation
    - `declined` : Participant a décliné l'invitation
-   - `pending` : Participant n'a pas encore répondu 
+   - `pending` : Participant n'a pas encore répondu
+
+### Notifications de réponse
+
+Quand un utilisateur répond à une invitation (accepte ou décline), des notifications sont envoyées à **tous les autres participants actifs** de la session :
+
+- **Destinataires** : Tous les participants avec le statut `accepted` ou `pending`
+- **Exclus** : 
+  - L'utilisateur qui vient de répondre
+  - Les participants avec le statut `declined`
+- **Message** : Inclut le nom de l'utilisateur qui a répondu et sa réponse
+- **Type** : Notification push + notification en base de données 
 
 ## Comportement des sessions refusées
 
