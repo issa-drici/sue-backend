@@ -1,0 +1,279 @@
+<?php
+
+namespace Tests\Feature\User;
+
+use App\Models\UserModel;
+use App\Models\SportSessionModel;
+use App\Models\SportSessionParticipantModel;
+use App\Models\FriendModel;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\WithFaker;
+use Tests\TestCase;
+
+class FindUserByIdTest extends TestCase
+{
+    use RefreshDatabase, WithFaker;
+
+    private UserModel $user;
+    private UserModel $otherUser;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Créer un utilisateur principal
+        $this->user = UserModel::factory()->create([
+            'firstname' => 'Jean',
+            'lastname' => 'Dupont',
+            'email' => 'jean.dupont@example.com',
+        ]);
+
+        // Créer un autre utilisateur
+        $this->otherUser = UserModel::factory()->create([
+            'firstname' => 'Marie',
+            'lastname' => 'Martin',
+            'email' => 'marie.martin@example.com',
+        ]);
+
+        // Créer des sessions sportives pour les statistiques
+        $this->createTestSessions();
+        
+        // Créer des relations d'amitié pour les tests
+        $this->createTestFriendships();
+    }
+
+    private function createTestSessions(): void
+    {
+        // Sessions créées par l'utilisateur principal
+        $session1 = SportSessionModel::factory()->create([
+            'organizer_id' => $this->user->id,
+            'sport' => 'tennis',
+            'date' => now()->addDays(7)->format('Y-m-d'),
+            'time' => '14:00',
+            'location' => 'Tennis Club',
+        ]);
+
+        $session2 = SportSessionModel::factory()->create([
+            'organizer_id' => $this->user->id,
+            'sport' => 'football',
+            'date' => now()->addDays(10)->format('Y-m-d'),
+            'time' => '16:00',
+            'location' => 'Stade Municipal',
+        ]);
+
+        // Sessions créées par l'autre utilisateur
+        $session3 = SportSessionModel::factory()->create([
+            'organizer_id' => $this->otherUser->id,
+            'sport' => 'basketball',
+            'date' => now()->addDays(5)->format('Y-m-d'),
+            'time' => '18:00',
+            'location' => 'Gymnase',
+        ]);
+
+        // Participations de l'utilisateur principal
+        SportSessionParticipantModel::create([
+            'id' => $this->faker->uuid(),
+            'session_id' => $session1->id,
+            'user_id' => $this->user->id,
+            'status' => 'accepted',
+        ]);
+
+        SportSessionParticipantModel::create([
+            'id' => $this->faker->uuid(),
+            'session_id' => $session2->id,
+            'user_id' => $this->user->id,
+            'status' => 'accepted',
+        ]);
+
+        SportSessionParticipantModel::create([
+            'id' => $this->faker->uuid(),
+            'session_id' => $session3->id,
+            'user_id' => $this->user->id,
+            'status' => 'accepted',
+        ]);
+
+        // Participation refusée (ne doit pas compter)
+        SportSessionParticipantModel::create([
+            'id' => $this->faker->uuid(),
+            'session_id' => $session3->id,
+            'user_id' => $this->otherUser->id,
+            'status' => 'declined',
+        ]);
+    }
+
+    private function createTestFriendships(): void
+    {
+        // Créer une amitié entre l'utilisateur principal et l'autre utilisateur
+        FriendModel::create([
+            'id' => $this->faker->uuid(),
+            'user_id' => $this->user->id,
+            'friend_id' => $this->otherUser->id,
+        ]);
+
+        FriendModel::create([
+            'id' => $this->faker->uuid(),
+            'user_id' => $this->otherUser->id,
+            'friend_id' => $this->user->id,
+        ]);
+    }
+
+    /**
+     * Test récupération d'un utilisateur existant avec authentification
+     */
+    public function test_can_get_user_by_id_with_authentication(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/users/{$this->user->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'firstname',
+                    'lastname',
+                    'email',
+                    'avatar',
+                    'stats' => [
+                        'sessionsCreated',
+                        'sessionsParticipated'
+                    ]
+                ]
+            ])
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $this->user->id,
+                    'firstname' => 'Jean',
+                    'lastname' => 'Dupont',
+                    'email' => 'jean.dupont@example.com',
+                    'stats' => [
+                        'sessionsCreated' => 2,
+                        'sessionsParticipated' => 3
+                    ]
+                ]
+            ]);
+    }
+
+    /**
+     * Test récupération d'un autre utilisateur (permissions)
+     */
+    public function test_can_get_other_user_by_id(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/users/{$this->otherUser->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'firstname',
+                    'lastname',
+                    'email',
+                    'avatar',
+                    'stats' => [
+                        'sessionsCreated',
+                        'sessionsParticipated'
+                    ]
+                ]
+            ])
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $this->otherUser->id,
+                    'firstname' => 'Marie',
+                    'lastname' => 'Martin',
+                    'email' => 'marie.martin@example.com',
+                    'stats' => [
+                        'sessionsCreated' => 1,
+                        'sessionsParticipated' => 0
+                    ]
+                ]
+            ]);
+    }
+
+    /**
+     * Test utilisateur inexistant
+     */
+    public function test_returns_404_for_nonexistent_user(): void
+    {
+        $nonexistentId = $this->faker->uuid();
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/users/{$nonexistentId}");
+
+        $response->assertStatus(404)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Utilisateur non trouvé'
+            ]);
+    }
+
+    /**
+     * Test sans authentification
+     */
+    public function test_returns_401_without_authentication(): void
+    {
+        $response = $this->getJson("/api/users/{$this->user->id}");
+
+        $response->assertStatus(401);
+    }
+
+    /**
+     * Test avec un utilisateur sans sessions
+     */
+    public function test_user_without_sessions_returns_zero_stats(): void
+    {
+        $newUser = UserModel::factory()->create([
+            'firstname' => 'Pierre',
+            'lastname' => 'Durand',
+            'email' => 'pierre.durand@example.com',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/users/{$newUser->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $newUser->id,
+                    'firstname' => 'Pierre',
+                    'lastname' => 'Durand',
+                    'email' => 'pierre.durand@example.com',
+                    'stats' => [
+                        'sessionsCreated' => 0,
+                        'sessionsParticipated' => 0
+                    ]
+                ]
+            ]);
+    }
+
+    /**
+     * Test que l'avatar peut être null
+     */
+    public function test_avatar_can_be_null(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/users/{$this->user->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'firstname',
+                    'lastname',
+                    'email',
+                    'avatar',
+                    'stats'
+                ]
+            ]);
+
+        // L'avatar peut être null ou une URL
+        $data = $response->json('data');
+        $this->assertArrayHasKey('avatar', $data);
+        $this->assertTrue($data['avatar'] === null || is_string($data['avatar']));
+    }
+}

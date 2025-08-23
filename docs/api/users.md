@@ -536,3 +536,92 @@ Authorization: Bearer <token>
 - Les emails ne sont visibles que pour les amis
 - Les profils publics ne montrent que les informations de base
 - Les demandes d'ami sont privées 
+
+# API Users
+
+## GET /api/users/{userId}
+
+Récupère le profil d'un utilisateur spécifique par son ID.
+
+### Authentification
+- **Requis** : Token Bearer (Sanctum)
+
+### Paramètres
+- `userId` (path parameter) : ID de l'utilisateur dont on veut récupérer le profil
+
+### Réponse
+
+#### Succès (200)
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123",
+    "firstname": "Jean",
+    "lastname": "Dupont",
+    "email": "jean.dupont@example.com",
+    "avatar": "https://example.com/avatar.jpg",
+    "stats": {
+      "sessionsCreated": 5,
+      "sessionsParticipated": 12
+    }
+  }
+}
+```
+
+#### Erreur (404)
+```json
+{
+  "success": false,
+  "message": "Utilisateur non trouvé"
+}
+```
+
+#### Erreur (401)
+```json
+{
+  "success": false,
+  "message": "Non autorisé"
+}
+```
+
+### Description des champs
+
+#### Données utilisateur
+- `id` : Identifiant unique de l'utilisateur
+- `firstname` : Prénom de l'utilisateur
+- `lastname` : Nom de famille de l'utilisateur
+- `email` : Adresse email de l'utilisateur
+- `avatar` : URL de l'avatar de l'utilisateur (peut être null)
+
+#### Statistiques
+- `stats.sessionsCreated` : Nombre de sessions sportives créées par l'utilisateur
+- `stats.sessionsParticipated` : Nombre de sessions sportives auxquelles l'utilisateur a participé (statut "accepted")
+
+### Exemples d'utilisation
+
+#### cURL
+```bash
+curl -X GET "https://api.example.com/api/users/123" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
+```
+
+#### JavaScript (Fetch)
+```javascript
+const response = await fetch('/api/users/123', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Accept': 'application/json'
+  }
+});
+
+const data = await response.json();
+```
+
+### Notes
+- Cet endpoint est utilisé dans la modal de profil utilisateur
+- Les statistiques sont calculées en temps réel
+- L'avatar peut être null si l'utilisateur n'en a pas défini
+- Tous les utilisateurs authentifiés peuvent accéder aux profils des autres utilisateurs 
