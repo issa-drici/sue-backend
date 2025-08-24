@@ -4,6 +4,8 @@ namespace App\UseCases\SportSession;
 
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
 use App\Repositories\Notification\NotificationRepositoryInterface;
+use App\Repositories\User\UserRepositoryInterface;
+use App\Services\DateFormatterService;
 use App\Events\CommentCreated;
 use Exception;
 
@@ -11,7 +13,8 @@ class AddSessionCommentUseCase
 {
     public function __construct(
         private SportSessionRepositoryInterface $sportSessionRepository,
-        private NotificationRepositoryInterface $notificationRepository
+        private NotificationRepositoryInterface $notificationRepository,
+        private UserRepositoryInterface $userRepository
     ) {}
 
     public function execute(string $sessionId, string $userId, string $content): array
@@ -71,14 +74,18 @@ class AddSessionCommentUseCase
         $participants = $session->getParticipants();
         $organizerId = $session->getOrganizer()->getId();
 
+        // Récupérer le nom de l'auteur du commentaire
+        $author = $this->userRepository->findById($userId);
+        $authorName = $author ? ($author->getFirstname() . ' ' . $author->getLastname()) : 'Un participant';
+
         // Notifier tous les participants sauf l'auteur du commentaire
         foreach ($participants as $participant) {
             if ($participant['id'] !== $userId && $participant['status'] === 'accepted') {
                 $this->notificationRepository->create([
                     'user_id' => $participant['id'],
-                    'type' => 'update',
-                    'title' => 'Nouveau commentaire',
-                    'message' => "Nouveau commentaire sur la session de {$session->getSport()}",
+                    'type' => 'comment',
+                    'title' => DateFormatterService::generateCommentTitle($session->getSport()),
+                    'message' => DateFormatterService::generateCommentMessageShort($authorName, $session->getSport()),
                     'session_id' => $session->getId(),
                 ]);
             }
@@ -88,9 +95,9 @@ class AddSessionCommentUseCase
         if ($organizerId !== $userId) {
             $this->notificationRepository->create([
                 'user_id' => $organizerId,
-                'type' => 'update',
-                'title' => 'Nouveau commentaire',
-                'message' => "Nouveau commentaire sur votre session de {$session->getSport()}",
+                'type' => 'comment',
+                'title' => DateFormatterService::generateCommentTitle($session->getSport()),
+                'message' => DateFormatterService::generateCommentMessageShort($authorName, $session->getSport()),
                 'session_id' => $session->getId(),
             ]);
         }

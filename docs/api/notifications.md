@@ -1,75 +1,45 @@
-# API Notifications - Documentation Backend
+# API Notifications - Documentation Complète
 
-## Vue d'ensemble
+## 📋 Vue d'ensemble
 
-Ce document détaille tous les endpoints de gestion des notifications pour l'application Alarrache.
+Ce document détaille tous les endpoints de gestion des notifications pour l'application Alarrache, basé sur l'analyse complète du code backend.
 
-## Base URL
+## 🌐 Base URL
 ```
 https://api.alarrache.com/api
 ```
 
-## Endpoints
+## 🔐 Authentification
 
-### 0. Push Tokens
-
-#### POST /push-tokens
-
-Enregistrer ou mettre à jour un token Expo pour l'utilisateur authentifié.
-
-Headers:
+Tous les endpoints de notifications nécessitent une authentification via Bearer Token :
 ```
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
-Body:
-```json
-{ "token": "ExponentPushToken[xxxx]", "platform": "expo|ios|android", "device_id": "optional" }
-```
+## 📊 Types de notifications supportés
 
-Réponse 200:
-```json
-{ "success": true }
-```
+### Types disponibles (basé sur les migrations)
+- **invitation** : Invitation à une session sportive
+- **reminder** : Rappel de session
+- **update** : Mise à jour générale
+- **comment** : Nouveau commentaire sur une session
+- **session_update** : Modification d'une session
+- **session_cancelled** : Session annulée
 
-Erreurs: `VALIDATION_ERROR`, `TOKEN_SAVE_ERROR`
-
-#### DELETE /push-tokens
-
-Supprimer un token Expo.
-
-Body:
-```json
-{ "token": "ExponentPushToken[xxxx]" }
-```
-
-Réponse 200:
-```json
-{ "success": true }
-```
-
-Erreurs: `VALIDATION_ERROR`, `TOKEN_NOT_FOUND_OR_ALREADY_DELETED`
-
----
+## 🚀 Endpoints disponibles
 
 ### 1. GET /notifications
 
-**Description :** Récupérer toutes les notifications de l'utilisateur
+**Description :** Récupérer la liste paginée des notifications de l'utilisateur connecté
 
-**URL :** `/notifications`
+**URL :** `GET /notifications`
 
-**Méthode :** `GET`
-
-**Headers :**
-```
-Authorization: Bearer <token>
-```
+**Authentification :** ✅ Requise (Bearer Token)
 
 **Query Parameters :**
-```
-?page=1&limit=20&unreadOnly=true
-```
+- `page` (int, optionnel) : Numéro de page (défaut: 1)
+- `limit` (int, optionnel) : Nombre d'éléments par page (défaut: 20, max: 50)
 
 **Réponse Succès (200) :**
 ```json
@@ -77,40 +47,20 @@ Authorization: Bearer <token>
   "success": true,
   "data": [
     {
-      "id": "1",
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "user_id": "550e8400-e29b-41d4-a716-446655440001",
       "type": "invitation",
       "title": "Nouvelle invitation",
       "message": "Jean Dupont vous invite à une session de tennis",
-      "sessionId": "1",
-      "createdAt": "2024-03-20T10:00:00Z",
-      "read": false
-    },
-    {
-      "id": "2",
-      "type": "invitation",
-      "title": "Nouvelle invitation",
-      "message": "Marie Martin vous invite à une session de football",
-      "sessionId": "2",
-      "createdAt": "2024-03-20T09:00:00Z",
-      "read": false
-    },
-    {
-      "id": "3",
-      "type": "reminder",
-      "title": "Rappel de session",
-      "message": "Votre session de tennis commence dans 1 heure",
-      "sessionId": "3",
-      "createdAt": "2024-03-20T08:00:00Z",
-      "read": true
-    },
-    {
-      "id": "4",
-      "type": "update",
-      "title": "Session modifiée",
-      "message": "La session de golf a été reportée à 16h00",
-      "sessionId": "2",
-      "createdAt": "2024-03-20T07:00:00Z",
-      "read": false
+      "session_id": "550e8400-e29b-41d4-a716-446655440002",
+      "created_at": "2024-03-20T10:00:00+00:00",
+      "read": false,
+      "push_sent": true,
+      "push_sent_at": "2024-03-20T10:00:00+00:00",
+      "push_data": {
+        "sessionTitle": "Match de tennis",
+        "organizerName": "Jean Dupont"
+      }
     }
   ],
   "pagination": {
@@ -118,80 +68,107 @@ Authorization: Bearer <token>
     "limit": 20,
     "total": 45,
     "totalPages": 3
-  },
-  "unreadCount": 15
+  }
 }
 ```
 
-### 2. PATCH /notifications/{id}/read
+**Réponses d'erreur :**
+- `401` : Token invalide ou expiré
+- `500` : Erreur serveur interne
 
-**Description :** Marquer une notification comme lue
-
-**URL :** `/notifications/{id}/read`
-
-**Méthode :** `PATCH`
-
-**Headers :**
-```
-Authorization: Bearer <token>
-Content-Type: application/json
+**Exemple d'utilisation :**
+```bash
+curl -X GET "https://api.alarrache.com/api/notifications?page=1&limit=20" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json"
 ```
 
-**Body :**
-```json
-{
-  "read": true
-}
-```
+---
+
+### 2. GET /notifications/unread-count
+
+**Description :** Récupérer le nombre de notifications non lues
+
+**URL :** `GET /notifications/unread-count`
+
+**Authentification :** ✅ Requise (Bearer Token)
 
 **Réponse Succès (200) :**
 ```json
 {
   "success": true,
   "data": {
-    "id": "1",
+    "unreadCount": 15
+  }
+}
+```
+
+**Réponses d'erreur :**
+- `401` : Token invalide ou expiré
+- `500` : Erreur serveur interne
+
+**Exemple d'utilisation :**
+```bash
+curl -X GET "https://api.alarrache.com/api/notifications/unread-count" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+### 3. PATCH /notifications/{id}/read
+
+**Description :** Marquer une notification spécifique comme lue
+
+**URL :** `PATCH /notifications/{id}/read`
+
+**Authentification :** ✅ Requise (Bearer Token)
+
+**Path Parameters :**
+- `id` (string, requis) : UUID de la notification
+
+**Réponse Succès (200) :**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "user_id": "550e8400-e29b-41d4-a716-446655440001",
     "type": "invitation",
     "title": "Nouvelle invitation",
     "message": "Jean Dupont vous invite à une session de tennis",
-    "sessionId": "1",
-    "createdAt": "2024-03-20T10:00:00Z",
-    "read": true
+    "session_id": "550e8400-e29b-41d4-a716-446655440002",
+    "created_at": "2024-03-20T10:00:00+00:00",
+    "read": true,
+    "push_sent": true,
+    "push_sent_at": "2024-03-20T10:00:00+00:00",
+    "push_data": null
   },
   "message": "Notification marquée comme lue"
 }
 ```
 
-**Réponse Erreur (404) :**
-```json
-{
-  "success": false,
-  "error": {
-    "code": "NOTIFICATION_NOT_FOUND",
-    "message": "Notification non trouvée"
-  }
-}
+**Réponses d'erreur :**
+- `401` : Token invalide ou expiré
+- `403` : Accès non autorisé (notification n'appartient pas à l'utilisateur)
+- `404` : Notification non trouvée
+- `500` : Erreur serveur interne
+
+**Exemple d'utilisation :**
+```bash
+curl -X PATCH "https://api.alarrache.com/api/notifications/550e8400-e29b-41d4-a716-446655440000/read" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json"
 ```
 
-### 3. PATCH /notifications/read-all
+---
 
-**Description :** Marquer toutes les notifications comme lues
+### 4. PATCH /notifications/read-all
 
-**URL :** `/notifications/read-all`
+**Description :** Marquer toutes les notifications de l'utilisateur comme lues
 
-**Méthode :** `PATCH`
+**URL :** `PATCH /notifications/read-all`
 
-**Headers :**
-```
-Authorization: Bearer <token>
-Content-Type: application/json
-```
-
-**Body :**
-```json
-{
-  "read": true
-}
-```
+**Authentification :** ✅ Requise (Bearer Token)
 
 **Réponse Succès (200) :**
 ```json
@@ -204,18 +181,29 @@ Content-Type: application/json
 }
 ```
 
-### 4. DELETE /notifications/{id}
+**Réponses d'erreur :**
+- `401` : Token invalide ou expiré
+- `500` : Erreur serveur interne
 
-**Description :** Supprimer une notification
-
-**URL :** `/notifications/{id}`
-
-**Méthode :** `DELETE`
-
-**Headers :**
+**Exemple d'utilisation :**
+```bash
+curl -X PATCH "https://api.alarrache.com/api/notifications/read-all" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json"
 ```
-Authorization: Bearer <token>
-```
+
+---
+
+### 5. DELETE /notifications/{id}
+
+**Description :** Supprimer une notification spécifique
+
+**URL :** `DELETE /notifications/{id}`
+
+**Authentification :** ✅ Requise (Bearer Token)
+
+**Path Parameters :**
+- `id` (string, requis) : UUID de la notification
 
 **Réponse Succès (200) :**
 ```json
@@ -225,138 +213,36 @@ Authorization: Bearer <token>
 }
 ```
 
-### 5. GET /notifications/unread-count
+**Réponses d'erreur :**
+- `401` : Token invalide ou expiré
+- `403` : Accès non autorisé (notification n'appartient pas à l'utilisateur)
+- `404` : Notification non trouvée
+- `500` : Erreur serveur interne
 
-**Description :** Récupérer le nombre de notifications non lues
-
-**URL :** `/notifications/unread-count`
-
-**Méthode :** `GET`
-
-**Headers :**
+**Exemple d'utilisation :**
+```bash
+curl -X DELETE "https://api.alarrache.com/api/notifications/550e8400-e29b-41d4-a716-446655440000" \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
-Authorization: Bearer <token>
-```
 
-**Réponse Succès (200) :**
+---
+
+### 6. POST /notifications/push
+
+**Description :** Envoyer une notification push (endpoint de test/développement)
+
+**URL :** `POST /notifications/push`
+
+**Authentification :** ✅ Requise (Bearer Token)
+
+**Body Parameters :**
+- `userId` (string, requis) : ID de l'utilisateur destinataire
+- `notification` (object, requis) : Données de la notification
+
+**Exemple de body :**
 ```json
 {
-  "success": true,
-  "data": {
-    "count": 15
-  }
-}
-```
-
-## Types de notifications
-
-### 1. invitation
-**Déclencheur :** Invitation à une session
-**Données :**
-```json
-{
-  "sessionId": "1",
-  "sessionTitle": "Match de tennis",
-  "organizerId": "1",
-  "organizerName": "Jean Dupont"
-}
-```
-
-### 2. reminder
-**Déclencheur :** Rappel de session (24h avant)
-**Données :**
-```json
-{
-  "sessionId": "1",
-  "sessionTitle": "Match de tennis",
-  "sessionDate": "2024-03-25",
-  "sessionTime": "18:00"
-}
-```
-
-### 3. update
-**Déclencheur :** Session modifiée
-**Données :**
-```json
-{
-  "sessionId": "1",
-  "sessionTitle": "Match de tennis",
-  "changes": ["time", "location"],
-  "organizerId": "1",
-  "organizerName": "Jean Dupont"
-}
-```
-
-## Codes d'erreur
-
-| Code | Description |
-|------|-------------|
-| `NOTIFICATION_NOT_FOUND` | Notification non trouvée |
-| `UNAUTHORIZED` | Token invalide ou manquant |
-| `FORBIDDEN` | Accès non autorisé |
-| `VALIDATION_ERROR` | Erreur de validation des données |
-
-## Validation
-
-### Marquer comme lue
-- **read** : Requis, boolean
-
-## Entités
-
-### Notification
-```json
-{
-  "id": "string",
-  "type": "invitation | reminder | update",
-  "title": "string",
-  "message": "string",
-  "sessionId": "string",
-  "createdAt": "string (ISO 8601)",
-  "read": "boolean"
-}
-```
-
-### NotificationType
-```json
-"invitation" | "reminder" | "update"
-```
-
-## Logique métier
-
-### Règles de génération automatique
-
-#### Sessions
-1. **invitation** : Quand un utilisateur est invité à une session
-2. **reminder** : 24h avant le début d'une session (notifier tous les participants acceptés)
-3. **update** : Quand une session est modifiée (notifier tous les participants)
-
-### Règles de suppression
-- Les notifications sont automatiquement supprimées après 30 jours
-- Les notifications liées à une session supprimée sont supprimées
-- Les notifications liées à un utilisateur supprimé sont supprimées
-
-### Règles d'affichage
-- Seul l'utilisateur peut voir ses propres notifications
-- Les notifications sont triées par date de création (plus récentes en premier)
-- Le badge de notifications non lues est mis à jour en temps réel
-
-## Webhooks (optionnel)
-
-### Endpoint pour les notifications push
-```
-POST /notifications/push
-```
-
-**Headers :**
-```
-Authorization: Bearer <token>
-Content-Type: application/json
-```
-
-**Body :**
-```json
-{
-  "userId": "1",
+  "userId": "550e8400-e29b-41d4-a716-446655440001",
   "notification": {
     "type": "invitation",
     "title": "Nouvelle invitation",
@@ -365,18 +251,337 @@ Content-Type: application/json
 }
 ```
 
-## Tests recommandés
+**Réponse Succès (201) :**
+```json
+{
+  "success": true,
+  "data": {
+    "userId": "550e8400-e29b-41d4-a716-446655440001",
+    "notification": {
+      "type": "invitation",
+      "title": "Nouvelle invitation",
+      "message": "Jean Dupont vous invite à une session de tennis"
+    },
+    "sent": true
+  },
+  "message": "Notification push envoyée"
+}
+```
+
+**Réponses d'erreur :**
+- `400` : Données invalides (userId et notification requis)
+- `401` : Token invalide ou expiré
+- `500` : Erreur serveur interne
+
+---
+
+### 7. POST /notifications/send
+
+**Description :** Envoyer une notification push via Expo (production)
+
+**URL :** `POST /notifications/send`
+
+**Authentification :** ✅ Requise (Bearer Token)
+
+**Body Parameters :**
+- `recipientId` (string, requis) : UUID de l'utilisateur destinataire
+- `title` (string, requis, max: 255) : Titre de la notification
+- `body` (string, requis, max: 1000) : Corps de la notification
+- `data` (object, optionnel) : Données supplémentaires
+
+**Exemple de body :**
+```json
+{
+  "recipientId": "550e8400-e29b-41d4-a716-446655440001",
+  "title": "Nouvelle invitation",
+  "body": "Jean Dupont vous invite à une session de tennis",
+  "data": {
+    "sessionId": "550e8400-e29b-41d4-a716-446655440002",
+    "type": "invitation"
+  }
+}
+```
+
+**Réponse Succès (200) :**
+```json
+{
+  "success": true,
+  "data": {
+    "recipientId": "550e8400-e29b-41d4-a716-446655440001",
+    "tokensCount": 2,
+    "title": "Nouvelle invitation",
+    "body": "Jean Dupont vous invite à une session de tennis",
+    "data": {
+      "sessionId": "550e8400-e29b-41d4-a716-446655440002",
+      "type": "invitation"
+    },
+    "result": {
+      "success": true,
+      "invalid_tokens": []
+    }
+  },
+  "message": "Notification push envoyée avec succès"
+}
+```
+
+**Réponses d'erreur :**
+- `400` : Données invalides
+- `401` : Token invalide ou expiré
+- `404` : Aucun token push trouvé pour cet utilisateur
+- `500` : Erreur lors de l'envoi de la notification push
+
+---
+
+## 🔧 Endpoints Push Tokens (liés aux notifications)
+
+### 8. POST /push-tokens
+
+**Description :** Enregistrer ou mettre à jour un token Expo pour l'utilisateur
+
+**URL :** `POST /push-tokens`
+
+**Authentification :** ✅ Requise (Bearer Token)
+
+**Body Parameters :**
+- `token` (string, requis) : Token Expo (format: ExponentPushToken[...])
+- `platform` (string, optionnel) : Plateforme (expo|ios|android)
+- `device_id` (string, optionnel) : ID unique de l'appareil
+
+**Exemple de body :**
+```json
+{
+  "token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+  "platform": "expo",
+  "device_id": "device-123"
+}
+```
+
+**Réponse Succès (200) :**
+```json
+{
+  "success": true,
+  "message": "Token push enregistré"
+}
+```
+
+**Réponses d'erreur :**
+- `400` : Données invalides
+- `401` : Token invalide ou expiré
+- `500` : Erreur serveur interne
+
+---
+
+### 9. DELETE /push-tokens
+
+**Description :** Supprimer un token Expo
+
+**URL :** `DELETE /push-tokens`
+
+**Authentification :** ✅ Requise (Bearer Token)
+
+**Body Parameters :**
+- `token` (string, requis) : Token Expo à supprimer
+
+**Exemple de body :**
+```json
+{
+  "token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
+}
+```
+
+**Réponse Succès (200) :**
+```json
+{
+  "success": true,
+  "message": "Token push supprimé"
+}
+```
+
+**Réponses d'erreur :**
+- `400` : Données invalides
+- `401` : Token invalide ou expiré
+- `500` : Erreur serveur interne
+
+---
+
+## 📊 Structure des données
+
+### Notification Entity
+```json
+{
+  "id": "string (UUID)",
+  "user_id": "string (UUID)",
+  "type": "invitation | reminder | update | comment | session_update | session_cancelled",
+  "title": "string",
+  "message": "string",
+  "session_id": "string (UUID) | null",
+  "created_at": "string (ISO 8601)",
+  "read": "boolean",
+  "push_sent": "boolean",
+  "push_sent_at": "string (ISO 8601) | null",
+  "push_data": "object | null"
+}
+```
+
+### Types de notifications détaillés
+
+#### invitation
+**Déclencheur :** Invitation à une session sportive
+**Données typiques :**
+```json
+{
+  "session_id": "550e8400-e29b-41d4-a716-446655440002",
+  "push_data": {
+    "sessionTitle": "Match de tennis",
+    "organizerName": "Jean Dupont",
+    "sessionDate": "2024-03-25",
+    "sessionTime": "18:00"
+  }
+}
+```
+
+#### reminder
+**Déclencheur :** Rappel de session (24h avant)
+**Données typiques :**
+```json
+{
+  "session_id": "550e8400-e29b-41d4-a716-446655440002",
+  "push_data": {
+    "sessionTitle": "Match de tennis",
+    "sessionDate": "2024-03-25",
+    "sessionTime": "18:00",
+    "location": "Tennis Club"
+  }
+}
+```
+
+#### update
+**Déclencheur :** Mise à jour générale
+**Données typiques :**
+```json
+{
+  "push_data": {
+    "message": "Mise à jour de l'application disponible"
+  }
+}
+```
+
+#### comment
+**Déclencheur :** Nouveau commentaire sur une session
+**Données typiques :**
+```json
+{
+  "session_id": "550e8400-e29b-41d4-a716-446655440002",
+  "push_data": {
+    "sessionTitle": "Match de tennis",
+    "commentAuthor": "Marie Martin",
+    "commentText": "Super session !"
+  }
+}
+```
+
+#### session_update
+**Déclencheur :** Modification d'une session
+**Données typiques :**
+```json
+{
+  "session_id": "550e8400-e29b-41d4-a716-446655440002",
+  "push_data": {
+    "sessionTitle": "Match de tennis",
+    "changes": ["time", "location"],
+    "organizerName": "Jean Dupont"
+  }
+}
+```
+
+#### session_cancelled
+**Déclencheur :** Session annulée
+**Données typiques :**
+```json
+{
+  "session_id": "550e8400-e29b-41d4-a716-446655440002",
+  "push_data": {
+    "sessionTitle": "Match de tennis",
+    "organizerName": "Jean Dupont",
+    "reason": "Mauvais temps"
+  }
+}
+```
+
+## 🚨 Codes d'erreur
+
+| Code | Description | HTTP Status |
+|------|-------------|-------------|
+| `NOTIFICATION_NOT_FOUND` | Notification non trouvée | 404 |
+| `FORBIDDEN` | Accès non autorisé | 403 |
+| `UNAUTHORIZED` | Token invalide ou manquant | 401 |
+| `VALIDATION_ERROR` | Erreur de validation des données | 400 |
+| `INTERNAL_ERROR` | Erreur serveur interne | 500 |
+| `NO_TOKENS_FOUND` | Aucun token push trouvé | 404 |
+| `PUSH_SEND_ERROR` | Erreur lors de l'envoi push | 500 |
+| `TOKEN_SAVE_ERROR` | Erreur lors de l'enregistrement du token | 500 |
+| `TOKEN_NOT_FOUND_OR_ALREADY_DELETED` | Token non trouvé ou déjà supprimé | 404 |
+
+## 🔄 Logique métier
+
+### Règles de sécurité
+- Seul l'utilisateur peut voir et modifier ses propres notifications
+- Vérification de propriété avant modification/suppression
+- Authentification requise pour tous les endpoints
+
+### Règles de pagination
+- Pagination automatique pour la liste des notifications
+- Tri par date de création (plus récentes en premier)
+- Limite par défaut : 20 éléments
+- Limite maximale : 50 éléments
+
+### Règles de notifications push
+- Enregistrement automatique des tokens Expo
+- Nettoyage automatique des tokens invalides
+- Support multi-appareils par utilisateur
+- Données supplémentaires dans `push_data`
+
+### Règles de suppression
+- Suppression en cascade des notifications liées aux sessions supprimées
+- Suppression en cascade des notifications liées aux utilisateurs supprimés
+- Conservation des données de push pour audit
+
+## 🧪 Tests recommandés
 
 ### Tests unitaires
-- Génération des différents types de notifications
-- Validation des données de notification
+- Validation des types de notifications
 - Logique de marquage comme lue
+- Gestion des erreurs d'authentification
+- Pagination des résultats
 
 ### Tests d'intégration
 - Création automatique de notifications lors d'actions utilisateur
-- Suppression automatique des notifications obsolètes
+- Envoi de notifications push
+- Gestion des tokens invalides
 - Comptage des notifications non lues
 
 ### Tests de performance
-- Pagination des notifications
-- Temps de réponse pour les requêtes fréquentes 
+- Temps de réponse pour les requêtes fréquentes
+- Gestion de la pagination avec de gros volumes
+- Envoi de notifications push en masse
+
+## 📱 Intégration mobile
+
+### Endpoints prioritaires pour le mobile
+1. `GET /notifications/unread-count` - Badge notifications
+2. `GET /notifications` - Liste des notifications
+3. `PATCH /notifications/{id}/read` - Marquer comme lue
+4. `PATCH /notifications/read-all` - Marquer toutes comme lues
+5. `POST /push-tokens` - Enregistrer token push
+
+### Gestion des erreurs côté mobile
+- Retry automatique pour les erreurs réseau
+- Cache local des notifications
+- Synchronisation des états lues/non lues
+- Gestion des tokens push expirés
+
+---
+
+**Dernière mise à jour :** 22/01/2025
+**Version :** 2.0
+**Statut :** ✅ Complète et à jour 

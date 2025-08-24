@@ -10,6 +10,7 @@ use App\Repositories\PushToken\PushTokenRepositoryInterface;
 use App\Services\ExpoPushNotificationService;
 use App\Repositories\SportSessionComment\SportSessionCommentRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
+use App\Services\DateFormatterService;
 use Illuminate\Support\Facades\Validator;
 
 class CreateCommentUseCase
@@ -106,6 +107,11 @@ class CreateCommentUseCase
             }
 
             $participants = $session->getParticipants();
+            
+            // Récupérer le nom de l'auteur
+            $author = $this->userRepository->findById($authorId);
+            $authorName = $author ? ($author->getFirstname() . ' ' . $author->getLastname()) : 'Un participant';
+            
             foreach ($participants as $participant) {
                 if (($participant['id'] ?? null) === $authorId) {
                     continue;
@@ -117,8 +123,8 @@ class CreateCommentUseCase
                 $notification = $this->notificationRepository->create([
                     'user_id' => $participant['id'],
                     'type' => 'comment',
-                    'title' => 'Nouveau commentaire',
-                    'message' => mb_strimwidth($comment->content, 0, 60, '…'),
+                    'title' => DateFormatterService::generateCommentTitle($session->getSport()),
+                    'message' => DateFormatterService::generateCommentMessageShort($authorName, $session->getSport()),
                     'session_id' => $sessionId,
                 ]);
 
@@ -133,13 +139,10 @@ class CreateCommentUseCase
                     'notification_id' => $notification->getId(),
                 ];
 
-                $author = $this->userRepository->findById($authorId);
-                $authorName = $author ? ($author->getFirstname() . ' ' . $author->getLastname()) : 'Un participant';
-
                 $this->expoService->sendNotification(
                     $tokens,
-                    $authorName . ' a commenté',
-                    mb_strimwidth($comment->content, 0, 60, '…'),
+                    DateFormatterService::generatePushCommentTitle($session->getSport()),
+                    DateFormatterService::generateCommentMessageShort($authorName, $session->getSport()),
                     $data
                 );
             }

@@ -8,6 +8,7 @@ use App\Repositories\Notification\NotificationRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
 use App\Repositories\PushToken\PushTokenRepositoryInterface;
 use App\Services\ExpoPushNotificationService;
+use App\Services\DateFormatterService;
 use Exception;
 
 class CreateSportSessionUseCase
@@ -113,11 +114,12 @@ class CreateSportSessionUseCase
 
     private function createSessionCreatedNotification(SportSession $session): void
     {
+        $sportName = DateFormatterService::getSportName($session->getSport());
         $this->notificationRepository->create([
             'user_id' => $session->getOrganizer()->getId(),
             'type' => 'update',
             'title' => 'Session créée',
-            'message' => "Votre session de {$session->getSport()} a été créée avec succès",
+            'message' => "Votre session de {$sportName} a été créée avec succès",
             'session_id' => $session->getId(),
         ]);
     }
@@ -138,8 +140,8 @@ class CreateSportSessionUseCase
                 $notification = $this->notificationRepository->create([
                     'user_id' => $participantId,
                     'type' => 'invitation',
-                    'title' => 'Invitation à une session sportive',
-                    'message' => "Vous avez été invité à participer à une session de {$session->getSport()} le {$session->getDate()} à {$session->getTime()}",
+                    'title' => DateFormatterService::generateInvitationTitle($session->getSport()),
+                    'message' => DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getTime()),
                     'session_id' => $session->getId()
                 ]);
 
@@ -173,8 +175,8 @@ class CreateSportSessionUseCase
             }
 
             // Préparer le message de notification
-            $title = '🏃‍♂️ Invitation à une session sportive';
-            $body = "Vous avez été invité à participer à une session de {$session->getSport()} le {$session->getDate()} à {$session->getTime()}";
+            $title = DateFormatterService::generatePushInvitationTitle($session->getSport());
+            $body = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getTime());
 
             // Données supplémentaires pour l'app mobile
             $data = [

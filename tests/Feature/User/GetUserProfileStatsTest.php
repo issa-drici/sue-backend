@@ -214,4 +214,55 @@ class GetUserProfileStatsTest extends TestCase
         // Vérifier que l'exécution est rapide (moins de 100ms)
         $this->assertLessThan(0.1, $executionTime, 'La requête doit être exécutée en moins de 100ms');
     }
+
+    public function test_api_profile_endpoint_returns_correct_stats(): void
+    {
+        // Créer quelques sessions pour l'utilisateur
+        SportSessionModel::factory()->count(2)->create([
+            'organizer_id' => $this->user->id,
+            'status' => 'active'
+        ]);
+
+        // Créer des participations pour l'utilisateur
+        $otherSessions = SportSessionModel::factory()->count(3)->create();
+        foreach ($otherSessions as $session) {
+            SportSessionParticipantModel::factory()->create([
+                'session_id' => $session->id,
+                'user_id' => $this->user->id,
+                'status' => 'accepted'
+            ]);
+        }
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/profile');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'firstname',
+                    'lastname',
+                    'email',
+                    'avatar',
+                    'stats' => [
+                        'sessionsCreated',
+                        'sessionsParticipated'
+                    ]
+                ]
+            ])
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $this->user->id,
+                    'firstname' => $this->user->firstname,
+                    'lastname' => $this->user->lastname,
+                    'email' => $this->user->email,
+                    'stats' => [
+                        'sessionsCreated' => 2,
+                        'sessionsParticipated' => 3
+                    ]
+                ]
+            ]);
+    }
 }

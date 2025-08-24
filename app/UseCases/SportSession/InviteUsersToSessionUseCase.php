@@ -7,6 +7,7 @@ use App\Repositories\User\UserRepositoryInterface;
 use App\Repositories\Notification\NotificationRepositoryInterface;
 use App\Repositories\PushToken\PushTokenRepositoryInterface;
 use App\Services\ExpoPushNotificationService;
+use App\Services\DateFormatterService;
 
 class InviteUsersToSessionUseCase
 {
@@ -104,10 +105,10 @@ class InviteUsersToSessionUseCase
 
                     if ($shouldCreateNotification) {
                         // Déterminer le type de message selon le cas
-                        $notificationTitle = $wasDeclined ? 'Nouvelle invitation à une session sportive' : 'Invitation à une session sportive';
-                        $notificationMessage = $wasDeclined
-                            ? "Vous avez été réinvité à participer à une session de {$session->getSport()} le {$session->getDate()} à {$session->getTime()}"
-                            : "Vous avez été invité à participer à une session de {$session->getSport()} le {$session->getDate()} à {$session->getTime()}";
+                        $notificationTitle = $wasDeclined
+                            ? DateFormatterService::generateInvitationTitle($session->getSport()) . ' (Nouvelle)'
+                            : DateFormatterService::generateInvitationTitle($session->getSport());
+                        $notificationMessage = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getTime());
 
                         // Créer une notification pour l'utilisateur invité
                         $notification = $this->notificationRepository->create([
@@ -187,10 +188,10 @@ class InviteUsersToSessionUseCase
             }
 
             // Préparer le message de notification
-            $title = $isReinvitation ? '🏃‍♂️ Nouvelle invitation à une session sportive' : '🏃‍♂️ Invitation à une session sportive';
-            $body = $isReinvitation
-                ? "Vous avez été réinvité à participer à une session de {$session->getSport()} le {$session->getDate()} à {$session->getTime()}"
-                : "Vous avez été invité à participer à une session de {$session->getSport()} le {$session->getDate()} à {$session->getTime()}";
+            $title = $isReinvitation
+                ? DateFormatterService::generatePushReinvitationTitle($session->getSport())
+                : DateFormatterService::generatePushInvitationTitle($session->getSport());
+            $body = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getTime());
 
             // Données supplémentaires pour l'app mobile
             $data = [

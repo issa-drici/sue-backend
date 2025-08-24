@@ -7,6 +7,7 @@ use App\Repositories\SportSession\SportSessionRepositoryInterface;
 use App\Repositories\Notification\NotificationRepositoryInterface;
 use App\Repositories\PushToken\PushTokenRepositoryInterface;
 use App\Services\ExpoPushNotificationService;
+use App\Services\DateFormatterService;
 use App\Repositories\SportSessionComment\SportSessionCommentRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
 use App\Events\CommentCreated;
@@ -77,9 +78,10 @@ class RespondToSessionInvitationUseCase
     {
         $organizerId = $session->getOrganizer()->getId();
 
+        $sportName = DateFormatterService::getSportName($session->getSport());
         $message = $response === 'accept'
-            ? "Un participant a accepté votre invitation à la session de {$session->getSport()}"
-            : "Un participant a décliné votre invitation à la session de {$session->getSport()}";
+            ? "Un participant a accepté votre invitation à la session de {$sportName}"
+            : "Un participant a décliné votre invitation à la session de {$sportName}";
 
         $title = $response === 'accept' ? 'Invitation acceptée' : 'Invitation déclinée';
 
