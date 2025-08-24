@@ -167,6 +167,8 @@ class CreateSportSessionUseCase
             // Récupérer les tokens push de l'utilisateur
             $pushTokens = $this->pushTokenRepository->getTokensForUser($userId);
 
+
+
             if (empty($pushTokens)) {
                 \Illuminate\Support\Facades\Log::info("Aucun token push trouvé pour l'utilisateur", [
                     'userId' => $userId

@@ -177,6 +177,42 @@ class PushTokenRepository implements PushTokenRepositoryInterface
     }
 
     /**
+     * Récupérer tous les tokens actifs pour une liste d'utilisateurs
+     */
+    public function getTokensForUsers(array $userIds): array
+    {
+        try {
+            return PushTokenModel::active()
+                ->whereIn('user_id', $userIds)
+                ->pluck('token')
+                ->toArray();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error getting tokens for users', [
+                'user_ids' => $userIds,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+
+    /**
+     * Récupérer tous les tokens actifs pour les participants d'une session
+     */
+    public function getTokensForSessionParticipants(array $participants): array
+    {
+        try {
+            $userIds = array_column($participants, 'id');
+            return $this->getTokensForUsers($userIds);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error getting tokens for session participants', [
+                'participants' => $participants,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
+    }
+
+    /**
      * Mapper le modèle Eloquent vers l'entité
      */
     private function mapToEntity(PushTokenModel $model): PushToken

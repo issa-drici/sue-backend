@@ -10,6 +10,10 @@
 - **Avant** : "Vous avez été invité à participer à une session de tennis le 2024-08-05 à 10:30"
 - **Après** : "Vous avez été invité à une session de Tennis lundi 5 août à 10h30"
 
+### 💬 Notifications de commentaires informatives
+- **Avant** : "Nouveau commentaire" / "Nouveau commentaire sur la session de tennis"
+- **Après** : "Commentaire Tennis" / "Jean Dupont a commenté la session de Tennis"
+
 ## 🔧 Implémentation réalisée
 
 ### 1. Service de formatage créé
@@ -23,9 +27,11 @@
 - **CreateSportSessionUseCase** : Notifications lors de la création de session
 - **InviteUsersToSessionUseCase** : Notifications lors d'invitations
 - **RespondToSessionInvitationUseCase** : Notifications de réponse
+- **CreateCommentUseCase** : Notifications de commentaires
+- **AddSessionCommentUseCase** : Notifications de commentaires (version alternative)
 
 ### 3. Tests et validation
-- **Tests unitaires** : 7 tests passants
+- **Tests unitaires** : 12 tests passants (40 assertions)
 - **Script de démonstration** : Validation visuelle du formatage
 - **Documentation** : Guide complet d'utilisation
 
@@ -47,6 +53,18 @@ Message: Vous avez été invité à une session de Football mardi 6 août à 14h
 ```
 Titre: 🏃‍♂️ Nouvelle invitation Golf
 Message: Vous avez été invité à une session de Golf mercredi 7 août à 18h30
+```
+
+### Notification de commentaire
+```
+Titre: Commentaire Tennis
+Message: Jean Dupont a commenté la session de Tennis
+```
+
+### Notification push de commentaire
+```
+Titre: 💬 Commentaire Football
+Message: Marie Martin a commenté la session de Football
 ```
 
 ## 🏃‍♂️ Sports supportés
@@ -94,6 +112,8 @@ php scripts/demo-notification-format.php
 - `app/UseCases/SportSession/CreateSportSessionUseCase.php`
 - `app/UseCases/SportSession/InviteUsersToSessionUseCase.php`
 - `app/UseCases/SportSession/RespondToSessionInvitationUseCase.php`
+- `app/UseCases/SportSession/AddSessionCommentUseCase.php`
+- `app/UseCases/SportSessionComment/CreateCommentUseCase.php`
 
 ## 🎉 Bénéfices
 

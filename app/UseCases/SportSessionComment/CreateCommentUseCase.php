@@ -103,23 +103,50 @@ class CreateCommentUseCase
         try {
             $session = $this->sessionRepository->findById($sessionId);
             if (!$session) {
+                \Illuminate\Support\Facades\Log::warning('Session not found for push notification', [
+                    'sessionId' => $sessionId
+                ]);
                 return;
             }
 
             $participants = $session->getParticipants();
-            
+
             // Récupérer le nom de l'auteur
             $author = $this->userRepository->findById($authorId);
             $authorName = $author ? ($author->getFirstname() . ' ' . $author->getLastname()) : 'Un participant';
-            
-            foreach ($participants as $participant) {
-                if (($participant['id'] ?? null) === $authorId) {
-                    continue;
-                }
-                if (($participant['status'] ?? null) !== 'accepted') {
-                    continue;
-                }
 
+            // Filtrer les participants acceptés (hors auteur)
+            $targetParticipants = array_filter($participants, function($participant) use ($authorId) {
+                return ($participant['id'] ?? null) !== $authorId &&
+                       ($participant['status'] ?? null) === 'accepted';
+            });
+
+            if (empty($targetParticipants)) {
+                \Illuminate\Support\Facades\Log::info('No target participants found for push notification', [
+                    'sessionId' => $sessionId,
+                    'authorId' => $authorId,
+                    'totalParticipants' => count($participants)
+                ]);
+                return;
+            }
+
+            \Illuminate\Support\Facades\Log::info('Sending push notifications for comment', [
+                'sessionId' => $sessionId,
+                'authorId' => $authorId,
+                'authorName' => $authorName,
+                'targetParticipantsCount' => count($targetParticipants),
+                'targetParticipantIds' => array_column($targetParticipants, 'id')
+            ]);
+
+            // Traiter chaque participant individuellement (comme pour les invitations)
+            dump([
+                'message' => 'Starting to process participants for push notifications',
+                'sessionId' => $sessionId,
+                'targetParticipants' => $targetParticipants,
+                'targetParticipantsCount' => count($targetParticipants)
+            ]);
+
+            foreach ($targetParticipants as $participant) {
                 $notification = $this->notificationRepository->create([
                     'user_id' => $participant['id'],
                     'type' => 'comment',
@@ -128,8 +155,30 @@ class CreateCommentUseCase
                     'session_id' => $sessionId,
                 ]);
 
+                // Récupérer les tokens pour cet utilisateur spécifique
                 $tokens = $this->pushTokenRepository->getTokensForUser($participant['id']);
+
+                dump([
+                    'message' => 'Tokens récupérés pour participant',
+                    'participantId' => $participant['id'],
+                    'participantName' => $participant['fullName'] ?? 'Unknown',
+                    'tokens' => $tokens,
+                    'tokensCount' => count($tokens)
+                ]);
+
+                \Illuminate\Support\Facades\Log::info('Tokens found for participant', [
+                    'sessionId' => $sessionId,
+                    'participantId' => $participant['id'],
+                    'participantName' => $participant['fullName'] ?? 'Unknown',
+                    'tokensCount' => count($tokens)
+                ]);
+
                 if (empty($tokens)) {
+                    \Illuminate\Support\Facades\Log::warning('No push tokens found for participant', [
+                        'sessionId' => $sessionId,
+                        'participantId' => $participant['id'],
+                        'participantName' => $participant['fullName'] ?? 'Unknown'
+                    ]);
                     continue;
                 }
 
@@ -139,17 +188,45 @@ class CreateCommentUseCase
                     'notification_id' => $notification->getId(),
                 ];
 
-                $this->expoService->sendNotification(
+                $result = $this->expoService->sendNotification(
                     $tokens,
                     DateFormatterService::generatePushCommentTitle($session->getSport()),
                     DateFormatterService::generateCommentMessageShort($authorName, $session->getSport()),
                     $data
                 );
+
+                // Gérer les tokens invalides
+                if (isset($result['results']) && is_array($result['results'])) {
+                    foreach ($result['results'] as $expoResult) {
+                        if (isset($expoResult['invalid_tokens']) && is_array($expoResult['invalid_tokens'])) {
+                            foreach ($expoResult['invalid_tokens'] as $invalidToken) {
+                                \Illuminate\Support\Facades\Log::warning('Invalid token detected, removing from database', [
+                                    'token' => $invalidToken,
+                                    'participantId' => $participant['id']
+                                ]);
+                                $this->pushTokenRepository->deleteToken($invalidToken);
+                            }
+                        }
+                    }
+                }
+
+                \Illuminate\Support\Facades\Log::info('Push notification sent for participant', [
+                    'sessionId' => $sessionId,
+                    'participantId' => $participant['id'],
+                    'participantName' => $participant['fullName'] ?? 'Unknown',
+                    'tokensCount' => count($tokens),
+                    'result' => $result
+                ]);
+
+                // Marquer la notification comme envoyée par push
+                $this->notificationRepository->markAsPushSent($notification->getId(), $result);
             }
+
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Error sending push for comment', [
                 'sessionId' => $sessionId,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
     }

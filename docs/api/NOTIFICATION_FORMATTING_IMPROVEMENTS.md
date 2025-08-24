@@ -52,24 +52,61 @@ Génère un titre de notification push avec emoji
 #### `generatePushReinvitationTitle(string $sport): string`
 Génère un titre de notification push pour une réinvitation
 
+#### `generateCommentTitle(string $sport): string`
+Génère un titre de notification pour un commentaire
+
+#### `generatePushCommentTitle(string $sport): string`
+Génère un titre de notification push pour un commentaire
+
+#### `generateCommentMessage(string $authorName, string $sport, string $date, string $time): string`
+Génère un message complet de notification de commentaire avec date et heure
+
+#### `generateCommentMessageShort(string $authorName, string $sport): string`
+Génère un message court de notification de commentaire
+
+#### `formatCommentDate(\DateTime $commentDate): string`
+Formate une date de commentaire en français
+
 ## 📱 Exemples de notifications
 
-### Notification standard
+### Notifications d'invitation
+
+#### Notification standard
 ```
 Titre: Invitation Tennis
 Message: Vous avez été invité à une session de Tennis lundi 5 août à 10h30
 ```
 
-### Notification push
+#### Notification push
 ```
 Titre: 🏃‍♂️ Invitation Football
 Message: Vous avez été invité à une session de Football mardi 6 août à 14h00
 ```
 
-### Réinvitation
+#### Réinvitation
 ```
 Titre: 🏃‍♂️ Nouvelle invitation Golf
 Message: Vous avez été invité à une session de Golf mercredi 7 août à 18h30
+```
+
+### Notifications de commentaires
+
+#### Notification standard
+```
+Titre: Commentaire Tennis
+Message: Jean Dupont a commenté la session de Tennis
+```
+
+#### Notification push
+```
+Titre: 💬 Commentaire Football
+Message: Marie Martin a commenté la session de Football
+```
+
+#### Notification détaillée
+```
+Titre: Commentaire Golf
+Message: Jean Dupont a commenté votre session de Golf lundi 5 août à 10h30
 ```
 
 ## 🏃‍♂️ Sports supportés
@@ -108,6 +145,12 @@ Lorsqu'un organisateur invite de nouveaux utilisateurs à une session existante.
 ### 3. Réinvitation
 Lorsqu'un utilisateur qui a décliné une invitation est réinvité.
 
+### 4. Nouveau commentaire
+Lorsqu'un participant commente une session sportive.
+
+### 5. Commentaire sur session
+Lorsqu'un utilisateur reçoit une notification de commentaire sur une session à laquelle il participe.
+
 ## 🧪 Tests
 
 Des tests unitaires ont été créés pour valider le bon fonctionnement du service :
@@ -123,6 +166,9 @@ php artisan test tests/Unit/DateFormatterServiceTest.php
 - Génération des messages complets
 - Génération des titres de notifications push
 - Tests avec différentes dates
+- Génération des titres de commentaires
+- Génération des messages de commentaires
+- Formatage des dates de commentaires
 
 ## 🚀 Démonstration
 
@@ -143,6 +189,8 @@ php scripts/demo-notification-format.php
 - `app/UseCases/SportSession/CreateSportSessionUseCase.php`
 - `app/UseCases/SportSession/InviteUsersToSessionUseCase.php`
 - `app/UseCases/SportSession/RespondToSessionInvitationUseCase.php`
+- `app/UseCases/SportSession/AddSessionCommentUseCase.php`
+- `app/UseCases/SportSessionComment/CreateCommentUseCase.php`
 
 ## ✅ Validation
 

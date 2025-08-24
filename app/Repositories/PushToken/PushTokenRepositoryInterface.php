@@ -55,4 +55,14 @@ interface PushTokenRepositoryInterface
      * Nettoyer les tokens inactifs
      */
     public function cleanInactiveTokens(): int;
+
+    /**
+     * Récupérer tous les tokens actifs pour une liste d'utilisateurs
+     */
+    public function getTokensForUsers(array $userIds): array;
+
+    /**
+     * Récupérer tous les tokens actifs pour les participants d'une session
+     */
+    public function getTokensForSessionParticipants(array $participants): array;
 }
