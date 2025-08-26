@@ -97,14 +97,23 @@ class SendFriendRequestUseCase
         }
 
         // Récupérer les amis en commun
-        $mutualFriends = $this->friendRepository->getMutualFriendsCount($senderId, $receiverId);
+        try {
+            $mutualFriends = $this->friendRepository->getMutualFriendsCount($senderId, $receiverId);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Error getting mutual friends count', [
+                'senderId' => $senderId,
+                'receiverId' => $receiverId,
+                'error' => $e->getMessage()
+            ]);
+            $mutualFriends = 0; // Valeur par défaut en cas d'erreur
+        }
 
         return [
             'success' => true,
             'data' => [
                 'id' => $receiverId,
-                            'firstname' => $receiver->getFirstname(),
-            'lastname' => $receiver->getLastname(),
+                'firstname' => $receiver->getFirstname(),
+                'lastname' => $receiver->getLastname(),
                 'avatar' => null, // avatar null pour l'instant
                 'mutualFriends' => $mutualFriends
             ],

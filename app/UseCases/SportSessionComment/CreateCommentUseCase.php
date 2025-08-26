@@ -146,6 +146,11 @@ class CreateCommentUseCase
                 'targetParticipantsCount' => count($targetParticipants)
             ]);
 
+            dump([
+                'message' => 'On arrive à la boucle foreach',
+                'targetParticipants' => $targetParticipants
+            ]);
+            
             foreach ($targetParticipants as $participant) {
                 $notification = $this->notificationRepository->create([
                     'user_id' => $participant['id'],

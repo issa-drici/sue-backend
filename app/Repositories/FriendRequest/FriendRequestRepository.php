@@ -51,54 +51,99 @@ class FriendRequestRepository implements FriendRequestRepositoryInterface
 
     public function createRequest(string $senderId, string $receiverId): array
     {
-        // Vérifier s'il existe déjà une demande entre ces utilisateurs
-        $existingRequest = FriendRequestModel::where(function ($query) use ($senderId, $receiverId) {
-            $query->where('sender_id', $senderId)
-                  ->where('receiver_id', $receiverId);
-        })->orWhere(function ($query) use ($senderId, $receiverId) {
-            $query->where('sender_id', $receiverId)
-                  ->where('receiver_id', $senderId);
-        })->first();
+        try {
+            // Vérifier s'il existe déjà une demande entre ces utilisateurs
+            $existingRequest = FriendRequestModel::where(function ($query) use ($senderId, $receiverId) {
+                $query->where('sender_id', $senderId)
+                      ->where('receiver_id', $receiverId);
+            })->orWhere(function ($query) use ($senderId, $receiverId) {
+                $query->where('sender_id', $receiverId)
+                      ->where('receiver_id', $senderId);
+            })->first();
 
-        if ($existingRequest) {
-            // Si la demande est active (non annulée), retourner une erreur
-            if ($existingRequest->status !== 'cancelled' && $existingRequest->cancelled_at === null) {
+            if ($existingRequest) {
+                // Si la demande est active (non annulée), retourner une erreur
+                if ($existingRequest->status !== 'cancelled' && $existingRequest->cancelled_at === null) {
+                    return [
+                        'success' => false,
+                        'error' => [
+                            'code' => 'FRIEND_REQUEST_EXISTS',
+                            'message' => 'Une demande d\'ami existe déjà'
+                        ]
+                    ];
+                }
+
+                // Si la demande est annulée, la réactiver
+                $updated = $existingRequest->update([
+                    'sender_id' => $senderId,
+                    'receiver_id' => $receiverId,
+                    'status' => 'pending',
+                    'cancelled_at' => null, // Réinitialiser l'annulation
+                    'updated_at' => now()
+                ]);
+
+                return [
+                    'success' => $updated,
+                    'message' => $updated ? 'Demande d\'ami réactivée' : 'Erreur lors de la réactivation'
+                ];
+            }
+
+            // Sinon, créer une nouvelle demande
+            $friendRequest = FriendRequestModel::create([
+                'id' => Str::uuid(),
+                'sender_id' => $senderId,
+                'receiver_id' => $receiverId,
+                'status' => 'pending',
+            ]);
+
+            return [
+                'success' => $friendRequest !== null,
+                'message' => $friendRequest ? 'Demande d\'ami créée' : 'Erreur lors de la création'
+            ];
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Gérer spécifiquement les erreurs de contrainte unique
+            if ($e->getCode() === '23000' || str_contains($e->getMessage(), 'UNIQUE constraint failed')) {
                 return [
                     'success' => false,
                     'error' => [
                         'code' => 'FRIEND_REQUEST_EXISTS',
-                        'message' => 'Une demande d\'ami existe déjà'
+                        'message' => 'Une demande d\'ami existe déjà entre ces utilisateurs'
                     ]
                 ];
             }
 
-            // Si la demande est annulée, la réactiver
-            $updated = $existingRequest->update([
-                'sender_id' => $senderId,
-                'receiver_id' => $receiverId,
-                'status' => 'pending',
-                'cancelled_at' => null, // Réinitialiser l'annulation
-                'updated_at' => now()
+            // Autres erreurs de base de données
+            \Illuminate\Support\Facades\Log::error('Database error in createRequest', [
+                'senderId' => $senderId,
+                'receiverId' => $receiverId,
+                'error' => $e->getMessage(),
+                'code' => $e->getCode()
             ]);
 
             return [
-                'success' => $updated,
-                'message' => $updated ? 'Demande d\'ami réactivée' : 'Erreur lors de la réactivation'
+                'success' => false,
+                'error' => [
+                    'code' => 'DATABASE_ERROR',
+                    'message' => 'Erreur lors de la création de la demande d\'ami'
+                ]
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Unexpected error in createRequest', [
+                'senderId' => $senderId,
+                'receiverId' => $receiverId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => [
+                    'code' => 'UNEXPECTED_ERROR',
+                    'message' => 'Erreur inattendue lors de la création de la demande d\'ami'
+                ]
             ];
         }
-
-        // Sinon, créer une nouvelle demande
-        $created = FriendRequestModel::create([
-            'id' => Str::uuid(),
-            'sender_id' => $senderId,
-            'receiver_id' => $receiverId,
-            'status' => 'pending',
-        ]) !== null;
-
-        return [
-            'success' => $created,
-            'message' => $created ? 'Demande d\'ami créée' : 'Erreur lors de la création'
-        ];
     }
 
     public function updateRequestStatus(string $requestId, string $status): bool
