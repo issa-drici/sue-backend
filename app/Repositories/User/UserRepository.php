@@ -125,11 +125,47 @@ class UserRepository implements UserRepositoryInterface
 
         return UserModel::where('id', '!=', $currentUserId)
             ->where(function($q) use ($cleanQuery) {
-                $q->whereRaw('LOWER(firstname) LIKE ?', ['%' . strtolower($cleanQuery) . '%'])
-                  ->orWhereRaw('LOWER(lastname) LIKE ?', ['%' . strtolower($cleanQuery) . '%'])
-                  ->orWhereRaw('LOWER(email) LIKE ?', ['%' . strtolower($cleanQuery) . '%']);
+                $this->buildFlexibleSearchQuery($q, $cleanQuery);
             })
             ->paginate($limit, ['*'], 'page', $page);
+    }
+
+    /**
+     * Construit une requête de recherche flexible selon les spécifications FR-20250122-007
+     */
+    private function buildFlexibleSearchQuery($query, string $searchTerm): void
+    {
+        // Diviser la requête en mots-clés
+        $keywords = explode(' ', trim($searchTerm));
+        $keywords = array_filter($keywords); // Supprimer les espaces vides
+
+        if (count($keywords) === 1) {
+            // Recherche par un seul mot : prénom OU nom OU email
+            $keyword = strtolower($keywords[0]);
+            $query->where(function($q) use ($keyword) {
+                $q->whereRaw('LOWER(firstname) LIKE ?', ["%{$keyword}%"])
+                  ->orWhereRaw('LOWER(lastname) LIKE ?', ["%{$keyword}%"])
+                  ->orWhereRaw('LOWER(email) LIKE ?', ["%{$keyword}%"]);
+            });
+        } else {
+            // Recherche par plusieurs mots : combinaisons possibles
+            $query->where(function($q) use ($keywords, $searchTerm) {
+                // Prénom + Nom (ordre normal)
+                $q->where(function($subQ) use ($keywords) {
+                    $subQ->whereRaw('LOWER(firstname) LIKE ?', ['%' . strtolower($keywords[0]) . '%'])
+                         ->whereRaw('LOWER(lastname) LIKE ?', ['%' . strtolower($keywords[1]) . '%']);
+                })
+                // Nom + Prénom (ordre inversé)
+                ->orWhere(function($subQ) use ($keywords) {
+                    $subQ->whereRaw('LOWER(firstname) LIKE ?', ['%' . strtolower($keywords[1]) . '%'])
+                         ->whereRaw('LOWER(lastname) LIKE ?', ['%' . strtolower($keywords[0]) . '%']);
+                })
+                // Recherche par email (pour les cas comme "jean.dupont@email.com")
+                ->orWhere(function($subQ) use ($searchTerm) {
+                    $subQ->whereRaw('LOWER(email) LIKE ?', ['%' . strtolower($searchTerm) . '%']);
+                });
+            });
+        }
     }
 
     /**
