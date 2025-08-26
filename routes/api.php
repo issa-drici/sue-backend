@@ -61,6 +61,7 @@ use App\Http\Controllers\User\GetUserProfileAction;
 use App\Http\Controllers\User\UpdateUserProfileAction;
 use App\Http\Controllers\User\GetUserFriendsAction;
 use App\Http\Controllers\User\GetFriendRequestsAction;
+use App\Http\Controllers\User\GetFriendRequestsCountAction;
 use App\Http\Controllers\User\SendFriendRequestAction;
 use App\Http\Controllers\User\RespondToFriendRequestAction;
 use App\Http\Controllers\User\SearchUsersAction;
@@ -161,6 +162,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/users/friends', GetUserFriendsAction::class);
     Route::delete('/users/friends/{friendId}', RemoveFriendAction::class);
     Route::get('/users/friend-requests', GetFriendRequestsAction::class);
+    Route::get('/users/friend-requests/count', GetFriendRequestsCountAction::class);
     Route::post('/users/friend-requests', SendFriendRequestAction::class);
     Route::patch('/users/friend-requests/{id}', RespondToFriendRequestAction::class);
     Route::delete('/users/friend-requests', CancelFriendRequestAction::class);
