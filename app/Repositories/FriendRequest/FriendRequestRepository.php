@@ -62,8 +62,8 @@ class FriendRequestRepository implements FriendRequestRepositoryInterface
             })->first();
 
             if ($existingRequest) {
-                // Si la demande est active (non annulée), retourner une erreur
-                if ($existingRequest->status !== 'cancelled' && $existingRequest->cancelled_at === null) {
+                // Si la demande est en attente (pending), retourner une erreur
+                if ($existingRequest->status === 'pending' && $existingRequest->cancelled_at === null) {
                     return [
                         'success' => false,
                         'error' => [
@@ -73,7 +73,18 @@ class FriendRequestRepository implements FriendRequestRepositoryInterface
                     ];
                 }
 
-                // Si la demande est annulée, la réactiver
+                // Si la demande est acceptée, ils sont déjà amis (géré par le UseCase)
+                if ($existingRequest->status === 'accepted') {
+                    return [
+                        'success' => false,
+                        'error' => [
+                            'code' => 'FRIEND_REQUEST_EXISTS',
+                            'message' => 'Vous êtes déjà amis avec cet utilisateur'
+                        ]
+                    ];
+                }
+
+                // Si la demande est refusée, annulée ou acceptée, créer une nouvelle demande
                 $updated = $existingRequest->update([
                     'sender_id' => $senderId,
                     'receiver_id' => $receiverId,
@@ -84,7 +95,7 @@ class FriendRequestRepository implements FriendRequestRepositoryInterface
 
                 return [
                     'success' => $updated,
-                    'message' => $updated ? 'Demande d\'ami réactivée' : 'Erreur lors de la réactivation'
+                    'message' => $updated ? 'Demande d\'ami envoyée' : 'Erreur lors de l\'envoi'
                 ];
             }
 

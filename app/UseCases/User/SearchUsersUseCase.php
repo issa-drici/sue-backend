@@ -45,7 +45,7 @@ class SearchUsersUseCase
             $relationshipStatus = $friendRequests[$userId] ?? 'none';
             $mutualFriends = $mutualFriendsCounts[$userId] ?? 0;
 
-            // Déterminer s'il y a une demande en attente (seulement pour pending, pas cancelled)
+            // Déterminer s'il y a une demande en attente (seulement pour pending, pas cancelled ou declined)
             $hasPendingRequest = in_array($relationshipStatus, ['pending_sent', 'pending_received']);
 
             // Normaliser le statut pour l'API
@@ -177,7 +177,8 @@ class SearchUsersUseCase
             case 'accepted':
                 return 'accepted';
             case 'declined':
-                return 'declined';
+                // Les demandes refusées sont traitées comme "none" pour permettre de rechercher à nouveau l'utilisateur
+                return 'none';
             case 'cancelled':
                 return 'cancelled';
             case 'none':
