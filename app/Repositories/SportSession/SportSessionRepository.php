@@ -311,24 +311,39 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $model->organizer->role
         );
 
-        // Récupérer les participants existants
+        // Récupérer les participants existants et les trier par statut
         $participants = $model->participants->map(function ($participant) {
             return [
                 'id' => $participant->user->id,
                 'fullName' => $participant->user->firstname . ' ' . $participant->user->lastname,
                 'status' => $participant->status,
+                'created_at' => $participant->created_at, // Pour le tri secondaire
             ];
-        })->toArray();
+        })->sortBy(function ($participant) {
+            // Tri par statut : accepted (1), pending (2), declined (3)
+            $statusOrder = [
+                'accepted' => 1,
+                'pending' => 2,
+                'declined' => 3
+            ];
+            return $statusOrder[$participant['status']] ?? 4;
+        })->sortBy('created_at') // Tri secondaire par date d'ajout
+        ->map(function ($participant) {
+            // Retirer le champ created_at du résultat final
+            unset($participant['created_at']);
+            return $participant;
+        })->values()->toArray();
 
         // Ajouter l'organisateur comme participant s'il n'est pas déjà dans la liste
         $organizerAlreadyInParticipants = collect($participants)->contains('id', $model->organizer->id);
 
         if (!$organizerAlreadyInParticipants) {
-            $participants[] = [
+            // Ajouter l'organisateur au début de la liste (statut accepted)
+            array_unshift($participants, [
                 'id' => $model->organizer->id,
                 'fullName' => $model->organizer->firstname . ' ' . $model->organizer->lastname,
                 'status' => 'accepted', // L'organisateur est automatiquement accepté
-            ];
+            ]);
         }
 
         $comments = $model->comments->map(function ($comment) {
