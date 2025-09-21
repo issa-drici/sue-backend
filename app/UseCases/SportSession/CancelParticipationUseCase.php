@@ -250,7 +250,8 @@ class CancelParticipationUseCase
                         'new_status' => 'declined',
                         'sport' => $session->getSport(),
                         'date' => $session->getDate(),
-                        'time' => $session->getTime(),
+                        'startTime' => $session->getStartTime(),
+                        'endTime' => $session->getEndTime(),
                         'location' => $session->getLocation(),
                     ];
 

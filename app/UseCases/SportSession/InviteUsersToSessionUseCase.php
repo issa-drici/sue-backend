@@ -108,7 +108,7 @@ class InviteUsersToSessionUseCase
                         $notificationTitle = $wasDeclined
                             ? DateFormatterService::generateInvitationTitle($session->getSport()) . ' (Nouvelle)'
                             : DateFormatterService::generateInvitationTitle($session->getSport());
-                        $notificationMessage = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getTime());
+                        $notificationMessage = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getStartTime(), $session->getEndTime());
 
                         // Créer une notification pour l'utilisateur invité
                         $notification = $this->notificationRepository->create([
@@ -190,7 +190,7 @@ class InviteUsersToSessionUseCase
             $title = $isReinvitation
                 ? DateFormatterService::generatePushReinvitationTitle($session->getSport())
                 : DateFormatterService::generatePushInvitationTitle($session->getSport());
-            $body = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getTime());
+            $body = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getStartTime(), $session->getEndTime());
 
             // Données supplémentaires pour l'app mobile
             $data = [
@@ -199,7 +199,8 @@ class InviteUsersToSessionUseCase
                 'notification_id' => $notification->getId(),
                 'sport' => $session->getSport(),
                 'date' => $session->getDate(),
-                'time' => $session->getTime(),
+                'startTime' => $session->getStartTime(),
+                'endTime' => $session->getEndTime(),
                 'location' => $session->getLocation(),
                 'is_reinvitation' => $isReinvitation
             ];

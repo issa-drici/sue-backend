@@ -55,8 +55,17 @@ class CreateSportSessionUseCase
             throw new Exception('Date invalide');
         }
 
-        if (!isset($data['time']) || !$this->isValidTime($data['time'])) {
-            throw new Exception('Heure invalide');
+        if (!isset($data['startTime']) || !$this->isValidTime($data['startTime'])) {
+            throw new Exception('Heure de début invalide');
+        }
+
+        if (!isset($data['endTime']) || !$this->isValidTime($data['endTime'])) {
+            throw new Exception('Heure de fin invalide');
+        }
+
+        // Vérifier que l'heure de fin est après l'heure de début
+        if (strtotime($data['endTime']) <= strtotime($data['startTime'])) {
+            throw new Exception('L\'heure de fin doit être après l\'heure de début');
         }
 
         if (!isset($data['location']) || empty(trim($data['location']))) {
@@ -70,6 +79,11 @@ class CreateSportSessionUseCase
         // Validation de maxParticipants
         if (isset($data['maxParticipants']) && $data['maxParticipants'] !== null && ($data['maxParticipants'] < 1 || $data['maxParticipants'] > 100)) {
             throw new Exception('Le nombre maximum de participants doit être entre 1 et 100');
+        }
+
+        // Validation de pricePerPerson
+        if (isset($data['pricePerPerson']) && $data['pricePerPerson'] !== null && $data['pricePerPerson'] < 0) {
+            throw new Exception('Le prix par personne ne peut pas être négatif');
         }
 
         // Vérifier que l'organisateur existe
@@ -141,7 +155,7 @@ class CreateSportSessionUseCase
                     'user_id' => $participantId,
                     'type' => 'invitation',
                     'title' => DateFormatterService::generateInvitationTitle($session->getSport()),
-                    'message' => DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getTime()),
+                    'message' => DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getStartTime(), $session->getEndTime()),
                     'session_id' => $session->getId()
                 ]);
 
@@ -178,7 +192,7 @@ class CreateSportSessionUseCase
 
             // Préparer le message de notification
             $title = DateFormatterService::generatePushInvitationTitle($session->getSport());
-            $body = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getTime());
+            $body = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getStartTime(), $session->getEndTime());
 
             // Données supplémentaires pour l'app mobile
             $data = [
@@ -187,7 +201,8 @@ class CreateSportSessionUseCase
                 'notification_id' => $notification->getId(),
                 'sport' => $session->getSport(),
                 'date' => $session->getDate(),
-                'time' => $session->getTime(),
+                'startTime' => $session->getStartTime(),
+                'endTime' => $session->getEndTime(),
                 'location' => $session->getLocation()
             ];
 

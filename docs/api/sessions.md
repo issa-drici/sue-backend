@@ -213,8 +213,11 @@ Content-Type: application/json
 {
   "sport": "tennis",
   "date": "2024-03-25",
-  "time": "18:00",
-  "location": "Tennis Club de Paris"
+  "startTime": "18:00",
+  "endTime": "20:00",
+  "location": "Tennis Club de Paris",
+  "maxParticipants": 4,
+  "pricePerPerson": 15.50
 }
 ```
 
@@ -226,8 +229,11 @@ Content-Type: application/json
     "id": "1",
     "sport": "tennis",
     "date": "2024-03-25",
-    "time": "18:00",
+    "startTime": "18:00",
+    "endTime": "20:00",
     "location": "Tennis Club de Paris",
+    "maxParticipants": 4,
+    "pricePerPerson": 15.50,
     "organizer": {
       "id": "1",
       "firstname": "Jean",
@@ -574,7 +580,8 @@ Content-Type: application/json
 ### Création/Mise à jour de session
 - **sport** : Requis, valeurs autorisées : tennis, golf, musculation, football, basketball
 - **date** : Requis, format YYYY-MM-DD, doit être dans le futur
-- **time** : Requis, format HH:MM
+- **startTime** : Requis, format HH:MM
+- **endTime** : Requis, format HH:MM, doit être après startTime
 - **location** : Requis, max 200 caractères
 
 ### Invitation
@@ -595,7 +602,9 @@ Content-Type: application/json
   "id": "string",
   "sport": "tennis | golf | musculation | football | basketball",
   "date": "string (YYYY-MM-DD)",
-  "time": "string (HH:MM)",
+  "startTime": "string (HH:MM)",
+  "endTime": "string (HH:MM)",
+  "pricePerPerson": "decimal | null",
   "location": "string",
   "status": "active | cancelled | completed",
   "maxParticipants": "integer | null",
@@ -693,9 +702,11 @@ Content-Type: application/json
 |-------|------|--------|-------------|-------------------|
 | `sport` | string | ✅ | Type de sport | - |
 | `date` | string (Y-m-d) | ✅ | Date de la session | - |
-| `time` | string (H:i) | ✅ | Heure de la session | - |
+| `startTime` | string (H:i) | ✅ | Heure de début de la session | - |
+| `endTime` | string (H:i) | ✅ | Heure de fin de la session | - |
 | `location` | string | ✅ | Lieu de la session | - |
 | `maxParticipants` | integer \| null | ❌ | Nombre maximum de participants (null = illimité) | null |
+| `pricePerPerson` | decimal \| null | ❌ | Prix par personne en euros | null |
 | `participantIds` | array | ❌ | Liste des UUIDs des utilisateurs à inviter | [] |
 
 ### Sports supportés

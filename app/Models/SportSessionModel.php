@@ -20,17 +20,21 @@ class SportSessionModel extends Model
         'id',
         'sport',
         'date',
-        'time',
+        'start_time',
+        'end_time',
         'location',
         'max_participants',
+        'price_per_person',
         'organizer_id',
         'status',
     ];
 
     protected $casts = [
         'date' => 'date',
-        'time' => 'string',
+        'start_time' => 'string',
+        'end_time' => 'string',
         'max_participants' => 'integer',
+        'price_per_person' => 'decimal:2',
     ];
 
     public function organizer(): BelongsTo

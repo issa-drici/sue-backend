@@ -18,9 +18,25 @@ class UpdateSportSessionAction extends Controller
         try {
             $data = $request->validate([
                 'date' => 'sometimes|date_format:Y-m-d|after_or_equal:today',
-                'time' => 'sometimes|date_format:H:i',
+                'startTime' => 'sometimes|date_format:H:i',
+                'endTime' => 'sometimes|date_format:H:i',
                 'location' => 'sometimes|string|max:200',
+                'maxParticipants' => 'sometimes|integer|min:1|max:100',
+                'pricePerPerson' => 'sometimes|numeric|min:0',
             ]);
+
+            // Validation personnalisée pour s'assurer que endTime > startTime si les deux sont fournis
+            if (isset($data['startTime']) && isset($data['endTime'])) {
+                if (strtotime($data['endTime']) <= strtotime($data['startTime'])) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => [
+                            'code' => 'VALIDATION_ERROR',
+                            'message' => 'L\'heure de fin doit être après l\'heure de début',
+                        ],
+                    ], 400);
+                }
+            }
 
             $userId = $request->user()->id;
             $session = $this->updateSportSessionUseCase->execute($id, $data, $userId);

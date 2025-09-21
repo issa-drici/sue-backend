@@ -51,8 +51,19 @@ class UpdateSportSessionUseCase
 
     private function validateUpdateData(array $data): void
     {
-        if (isset($data['time']) && !$this->isValidTime($data['time'])) {
-            throw new Exception('Heure invalide');
+        if (isset($data['startTime']) && !$this->isValidTime($data['startTime'])) {
+            throw new Exception('Heure de début invalide');
+        }
+
+        if (isset($data['endTime']) && !$this->isValidTime($data['endTime'])) {
+            throw new Exception('Heure de fin invalide');
+        }
+
+        // Vérifier que l'heure de fin est après l'heure de début si les deux sont fournis
+        if (isset($data['startTime']) && isset($data['endTime'])) {
+            if (strtotime($data['endTime']) <= strtotime($data['startTime'])) {
+                throw new Exception('L\'heure de fin doit être après l\'heure de début');
+            }
         }
 
         if (isset($data['location']) && empty(trim($data['location']))) {
@@ -71,7 +82,15 @@ class UpdateSportSessionUseCase
             throw new Exception('La date ne peut pas être dans le passé');
         }
 
+        // Validation de maxParticipants
+        if (isset($data['maxParticipants']) && $data['maxParticipants'] !== null && ($data['maxParticipants'] < 1 || $data['maxParticipants'] > 100)) {
+            throw new Exception('Le nombre maximum de participants doit être entre 1 et 100');
+        }
 
+        // Validation de pricePerPerson
+        if (isset($data['pricePerPerson']) && $data['pricePerPerson'] !== null && $data['pricePerPerson'] < 0) {
+            throw new Exception('Le prix par personne ne peut pas être négatif');
+        }
     }
 
     private function isValidDate(string $date): bool
@@ -109,8 +128,11 @@ class UpdateSportSessionUseCase
                         'organizer_id' => $session->getOrganizer()->getId(),
                         'changes' => [
                             'date' => $session->getDate(),
-                            'time' => $session->getTime(),
+                            'startTime' => $session->getStartTime(),
+                            'endTime' => $session->getEndTime(),
                             'location' => $session->getLocation(),
+                            'maxParticipants' => $session->getMaxParticipants(),
+                            'pricePerPerson' => $session->getPricePerPerson(),
                         ],
                     ]),
                 ]);

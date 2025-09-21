@@ -19,9 +19,11 @@ class CreateSportSessionAction extends Controller
             $data = $request->validate([
                 'sport' => 'required|in:tennis,golf,musculation,football,basketball',
                 'date' => 'required|date_format:Y-m-d|after_or_equal:today',
-                'time' => 'required|date_format:H:i',
+                'startTime' => 'required|date_format:H:i',
+                'endTime' => 'required|date_format:H:i|after:startTime',
                 'location' => 'required|string|max:255',
                 'maxParticipants' => 'nullable|integer|min:1|max:100',
+                'pricePerPerson' => 'nullable|numeric|min:0',
                 'participantIds' => 'nullable|array',
                 'participantIds.*' => 'required|string|uuid'
             ]);

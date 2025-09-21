@@ -37,7 +37,8 @@ test('peut réinviter un utilisateur qui a décliné une invitation', function (
     $session->shouldReceive('getId')->andReturn($sessionId);
     $session->shouldReceive('getSport')->andReturn('tennis');
     $session->shouldReceive('getDate')->andReturn('2024-01-15');
-    $session->shouldReceive('getTime')->andReturn('14:00');
+    $session->shouldReceive('getStartTime')->andReturn('14:00');
+    $session->shouldReceive('getEndTime')->andReturn('16:00');
 
     // Mock de l'utilisateur
     $user = mock('App\Entities\User');
@@ -129,7 +130,8 @@ test('peut inviter un nouvel utilisateur', function () {
     $session->shouldReceive('getId')->andReturn($sessionId);
     $session->shouldReceive('getSport')->andReturn('tennis');
     $session->shouldReceive('getDate')->andReturn('2024-01-15');
-    $session->shouldReceive('getTime')->andReturn('14:00');
+    $session->shouldReceive('getStartTime')->andReturn('14:00');
+    $session->shouldReceive('getEndTime')->andReturn('16:00');
 
     // Mock de l'utilisateur
     $user = mock('App\Entities\User');

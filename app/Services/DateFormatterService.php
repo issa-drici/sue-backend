@@ -66,15 +66,52 @@ class DateFormatterService
     }
 
     /**
-     * Génère un message de notification pour une invitation
-     * Exemple: "Vous avez été invité à une session de Tennis mardi 5 août à 10h30"
+     * Formate une date en français
+     * Exemple: "mardi 5 août"
      */
-    public static function generateInvitationMessage(string $sport, string $date, string $time): string
+    public static function formatDate(string $date): string
+    {
+        try {
+            $dateTime = new DateTime($date);
+            $formatter = new IntlDateFormatter(
+                'fr_FR',
+                IntlDateFormatter::FULL,
+                IntlDateFormatter::NONE,
+                null,
+                null,
+                'EEEE d MMMM'
+            );
+            return $formatter->format($dateTime);
+        } catch (\Exception $e) {
+            return "le {$date}";
+        }
+    }
+
+    /**
+     * Formate une heure en français
+     * Exemple: "10h30"
+     */
+    public static function formatTime(string $time): string
+    {
+        return str_replace(':', 'h', $time);
+    }
+
+    /**
+     * Génère un message de notification pour une invitation
+     * Exemple: "Vous avez été invité à une session de Tennis mardi 5 août de 10h30 à 12h30"
+     */
+    public static function generateInvitationMessage(string $sport, string $date, string $startTime, ?string $endTime = null): string
     {
         $sportName = self::getSportName($sport);
-        $formattedDateTime = self::formatDateAndTime($date, $time);
+        $formattedDate = self::formatDate($date);
+        $formattedStartTime = self::formatTime($startTime);
 
-        return "Vous avez été invité à une session de {$sportName} {$formattedDateTime}";
+        if ($endTime) {
+            $formattedEndTime = self::formatTime($endTime);
+            return "Vous avez été invité à une session de {$sportName} {$formattedDate} de {$formattedStartTime} à {$formattedEndTime}";
+        } else {
+            return "Vous avez été invité à une session de {$sportName} {$formattedDate} à {$formattedStartTime}";
+        }
     }
 
     /**
@@ -125,7 +162,7 @@ class DateFormatterService
     {
         $sportName = self::getSportName($sport);
         $formattedDateTime = self::formatDateAndTime($date, $time);
-        
+
         return "{$authorName} a commenté votre session de {$sportName} {$formattedDateTime}";
     }
 

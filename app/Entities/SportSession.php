@@ -9,9 +9,11 @@ class SportSession
     private string $id;
     private string $sport;
     private string $date;
-    private string $time;
+    private string $startTime;
+    private string $endTime;
     private string $location;
     private ?int $maxParticipants;
+    private ?float $pricePerPerson;
     private string $status;
     private User $organizer;
     private array $participants;
@@ -21,9 +23,11 @@ class SportSession
         string $id,
         string $sport,
         string $date,
-        string $time,
+        string $startTime,
+        string $endTime,
         string $location,
         ?int $maxParticipants,
+        ?float $pricePerPerson,
         string $status,
         User $organizer,
         array $participants = [],
@@ -32,9 +36,11 @@ class SportSession
         $this->id = $id;
         $this->sport = $sport;
         $this->date = $date;
-        $this->time = $time;
+        $this->startTime = $startTime;
+        $this->endTime = $endTime;
         $this->location = $location;
         $this->maxParticipants = $maxParticipants;
+        $this->pricePerPerson = $pricePerPerson;
         $this->status = $status;
         $this->organizer = $organizer;
         $this->participants = $participants;
@@ -56,9 +62,14 @@ class SportSession
         return $this->date;
     }
 
-    public function getTime(): string
+    public function getStartTime(): string
     {
-        return $this->time;
+        return $this->startTime;
+    }
+
+    public function getEndTime(): string
+    {
+        return $this->endTime;
     }
 
     public function getLocation(): string
@@ -69,6 +80,11 @@ class SportSession
     public function getMaxParticipants(): ?int
     {
         return $this->maxParticipants;
+    }
+
+    public function getPricePerPerson(): ?float
+    {
+        return $this->pricePerPerson;
     }
 
     public function getStatus(): string
@@ -137,9 +153,11 @@ class SportSession
             'id' => $this->id,
             'sport' => $this->sport,
             'date' => $this->date,
-            'time' => $this->time,
+            'startTime' => $this->startTime,
+            'endTime' => $this->endTime,
             'location' => $this->location,
             'maxParticipants' => $this->maxParticipants,
+            'pricePerPerson' => $this->pricePerPerson,
             'status' => $this->status,
             'organizer' => [
                 'id' => $this->organizer->getId(),

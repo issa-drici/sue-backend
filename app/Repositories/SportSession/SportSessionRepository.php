@@ -74,12 +74,12 @@ class SportSessionRepository implements SportSessionRepositoryInterface
                   ->orWhere('status', 'cancelled');
             });
             // Pour l'historique : tri par date décroissante puis heure décroissante (plus récent en premier)
-            $paginator = $query->orderBy('date', 'desc')->orderBy('time', 'desc')->paginate($limit, ['*'], 'page', $page);
+            $paginator = $query->orderBy('date', 'desc')->orderBy('start_time', 'desc')->paginate($limit, ['*'], 'page', $page);
         } else {
             // Pour les sessions futures/actuelles : exclure les sessions passées et les sessions annulées
             $query->where('status', 'active')
                   ->where('date', '>=', now()->format('Y-m-d'));
-            $paginator = $query->orderBy('date', 'asc')->orderBy('time', 'asc')->paginate($limit, ['*'], 'page', $page);
+            $paginator = $query->orderBy('date', 'asc')->orderBy('start_time', 'asc')->paginate($limit, ['*'], 'page', $page);
         }
 
         $paginator->getCollection()->transform(function ($model) {
@@ -95,9 +95,11 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             'id' => Str::uuid(),
             'sport' => $data['sport'],
             'date' => $data['date'],
-            'time' => $data['time'],
+            'start_time' => $data['startTime'],
+            'end_time' => $data['endTime'],
             'location' => $data['location'],
             'max_participants' => $data['maxParticipants'] ?? null,
+            'price_per_person' => $data['pricePerPerson'] ?? null,
             'organizer_id' => $data['organizer_id'],
             'status' => 'active',
         ]);
@@ -181,7 +183,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $query->byDate($filters['date']);
         }
 
-        $paginator = $query->orderBy('date', 'asc')->orderBy('time', 'asc')->paginate($limit, ['*'], 'page', $page);
+        $paginator = $query->orderBy('date', 'asc')->orderBy('start_time', 'asc')->paginate($limit, ['*'], 'page', $page);
 
         $paginator->getCollection()->transform(function ($model) {
             return $this->mapToEntity($model);
@@ -360,9 +362,11 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $model->id,
             $model->sport,
             $model->date->format('Y-m-d'),
-            $model->time,
+            $model->start_time,
+            $model->end_time,
             $model->location,
             $model->max_participants,
+            $model->price_per_person,
             $model->status ?? 'active',
             $organizer,
             $participants,

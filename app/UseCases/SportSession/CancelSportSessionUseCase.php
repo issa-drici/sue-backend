@@ -116,7 +116,8 @@ class CancelSportSessionUseCase
                         'organizer_id' => $session->getOrganizer()->getId(),
                         'sport' => $session->getSport(),
                         'date' => $session->getDate(),
-                        'time' => $session->getTime(),
+                        'startTime' => $session->getStartTime(),
+                        'endTime' => $session->getEndTime(),
                     ]),
                 ]);
             }
@@ -145,7 +146,8 @@ class CancelSportSessionUseCase
                         'organizer_id' => $session->getOrganizer()->getId(),
                         'sport' => $session->getSport(),
                         'date' => $session->getDate(),
-                        'time' => $session->getTime(),
+                        'startTime' => $session->getStartTime(),
+                        'endTime' => $session->getEndTime(),
                     ]
                 );
             }
