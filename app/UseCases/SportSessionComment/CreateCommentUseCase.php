@@ -121,6 +121,23 @@ class CreateCommentUseCase
                        ($participant['status'] ?? null) === 'accepted';
             });
 
+            // CORRECTION: S'assurer que l'organisateur est inclus dans les notifications
+            // même s'il n'est pas dans la liste des participants
+            $organizerId = $session->getOrganizer()->getId();
+            $organizerAlreadyIncluded = collect($targetParticipants)->contains('id', $organizerId);
+
+            if (!$organizerAlreadyIncluded && $organizerId !== $authorId) {
+                // Ajouter l'organisateur à la liste des destinataires
+                $organizer = $this->userRepository->findById($organizerId);
+                if ($organizer) {
+                    $targetParticipants[] = [
+                        'id' => $organizerId,
+                        'fullName' => $organizer->getFirstname() . ' ' . $organizer->getLastname(),
+                        'status' => 'accepted'
+                    ];
+                }
+            }
+
             if (empty($targetParticipants)) {
                 \Illuminate\Support\Facades\Log::info('No target participants found for push notification', [
                     'sessionId' => $sessionId,
@@ -139,18 +156,7 @@ class CreateCommentUseCase
             ]);
 
             // Traiter chaque participant individuellement (comme pour les invitations)
-            dump([
-                'message' => 'Starting to process participants for push notifications',
-                'sessionId' => $sessionId,
-                'targetParticipants' => $targetParticipants,
-                'targetParticipantsCount' => count($targetParticipants)
-            ]);
 
-            dump([
-                'message' => 'On arrive à la boucle foreach',
-                'targetParticipants' => $targetParticipants
-            ]);
-            
             foreach ($targetParticipants as $participant) {
                 $notification = $this->notificationRepository->create([
                     'user_id' => $participant['id'],
@@ -162,14 +168,6 @@ class CreateCommentUseCase
 
                 // Récupérer les tokens pour cet utilisateur spécifique
                 $tokens = $this->pushTokenRepository->getTokensForUser($participant['id']);
-
-                dump([
-                    'message' => 'Tokens récupérés pour participant',
-                    'participantId' => $participant['id'],
-                    'participantName' => $participant['fullName'] ?? 'Unknown',
-                    'tokens' => $tokens,
-                    'tokensCount' => count($tokens)
-                ]);
 
                 \Illuminate\Support\Facades\Log::info('Tokens found for participant', [
                     'sessionId' => $sessionId,

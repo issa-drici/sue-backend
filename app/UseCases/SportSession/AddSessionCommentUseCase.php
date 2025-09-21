@@ -7,6 +7,7 @@ use App\Repositories\Notification\NotificationRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
 use App\Services\DateFormatterService;
 use App\Events\CommentCreated;
+use App\Entities\SportSessionComment;
 use Exception;
 
 class AddSessionCommentUseCase
@@ -111,8 +112,8 @@ class AddSessionCommentUseCase
                 'commentId' => $comment['id'] ?? 'unknown'
             ]);
 
-            // Pour compatibilité, créer un objet comment temporaire
-            $commentEntity = (object) $comment;
+            // Créer une entité SportSessionComment appropriée
+            $commentEntity = SportSessionComment::fromArray($comment);
             broadcast(new CommentCreated($commentEntity, $sessionId));
 
             \Illuminate\Support\Facades\Log::info("Event broadcasted successfully", [
