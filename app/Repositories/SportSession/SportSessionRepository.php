@@ -118,7 +118,28 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             return null;
         }
 
-        $model->update($data);
+        // Mapper les champs de l'API vers les champs de la base de données
+        $mappedData = [];
+        if (isset($data['startTime'])) {
+            $mappedData['start_time'] = $data['startTime'];
+        }
+        if (isset($data['endTime'])) {
+            $mappedData['end_time'] = $data['endTime'];
+        }
+        if (isset($data['maxParticipants'])) {
+            $mappedData['max_participants'] = $data['maxParticipants'];
+        }
+        if (isset($data['pricePerPerson'])) {
+            $mappedData['price_per_person'] = $data['pricePerPerson'];
+        }
+        if (isset($data['date'])) {
+            $mappedData['date'] = $data['date'];
+        }
+        if (isset($data['location'])) {
+            $mappedData['location'] = $data['location'];
+        }
+
+        $model->update($mappedData);
 
         return $this->findById($id);
     }

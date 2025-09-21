@@ -435,7 +435,8 @@ curl -X DELETE "https://api.alarrache.com/api/notifications/550e8400-e29b-41d4-a
     "sessionTitle": "Match de tennis",
     "organizerName": "Jean Dupont",
     "sessionDate": "2024-03-25",
-    "sessionTime": "18:00"
+    "startTime": "18:00",
+    "endTime": "20:00"
   }
 }
 ```
@@ -449,7 +450,8 @@ curl -X DELETE "https://api.alarrache.com/api/notifications/550e8400-e29b-41d4-a
   "push_data": {
     "sessionTitle": "Match de tennis",
     "sessionDate": "2024-03-25",
-    "sessionTime": "18:00",
+    "startTime": "18:00",
+    "endTime": "20:00",
     "location": "Tennis Club"
   }
 }
@@ -488,7 +490,7 @@ curl -X DELETE "https://api.alarrache.com/api/notifications/550e8400-e29b-41d4-a
   "session_id": "550e8400-e29b-41d4-a716-446655440002",
   "push_data": {
     "sessionTitle": "Match de tennis",
-    "changes": ["time", "location"],
+    "changes": ["startTime", "endTime", "location"],
     "organizerName": "Jean Dupont"
   }
 }

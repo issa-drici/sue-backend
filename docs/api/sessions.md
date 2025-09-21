@@ -58,7 +58,9 @@ Authorization: Bearer <token>
       "id": "1",
       "sport": "tennis",
       "date": "2024-03-25",
-      "time": "18:00",
+      "startTime": "18:00",
+      "endTime": "20:00",
+      "pricePerPerson": 15.50,
       "location": "Tennis Club de Paris",
       "organizer": {
         "id": "1",
@@ -94,7 +96,9 @@ Authorization: Bearer <token>
       "id": "2",
       "sport": "golf",
       "date": "2024-03-26",
-      "time": "14:00",
+      "startTime": "14:00",
+      "endTime": "16:00",
+      "pricePerPerson": 25.00,
       "location": "Golf Club de Versailles",
       "organizer": {
         "id": "2",
@@ -1031,7 +1035,9 @@ Accept: application/json
       "id": "session-uuid",
       "sport": "tennis",
       "date": "2025-02-15",
-      "time": "14:00",
+      "startTime": "14:00",
+      "endTime": "16:00",
+      "pricePerPerson": 25.00,
       "location": "Tennis Club",
       "participants": [
         {

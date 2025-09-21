@@ -29,11 +29,7 @@ class RespondToSessionInvitationAction extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'id' => $session->getId(),
-                    'sport' => $session->getSport(),
-                    'participants' => $session->getParticipants(),
-                ],
+                'data' => $session->toArray(),
                 'message' => $message,
             ]);
 
