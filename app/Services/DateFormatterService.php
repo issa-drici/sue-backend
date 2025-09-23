@@ -155,6 +155,17 @@ class DateFormatterService
     }
 
     /**
+     * Génère un titre de notification push pour un commentaire avec date et prénom
+     * Exemple: "Golf le mardi 21 - Jean"
+     */
+    public static function generatePushCommentTitleWithDate(string $sport, string $date, string $firstName): string
+    {
+        $sportName = self::getSportName($sport);
+        $formattedDate = self::formatDate($date);
+        return "{$sportName} {$formattedDate} - {$firstName}";
+    }
+
+    /**
      * Génère un message de notification pour un commentaire
      * Exemple: "Jean Dupont a commenté votre session de Tennis lundi 5 août à 10h30"
      */
@@ -174,6 +185,15 @@ class DateFormatterService
     {
         $sportName = self::getSportName($sport);
         return "{$authorName} a commenté la session de {$sportName}";
+    }
+
+    /**
+     * Génère un message de notification push pour un commentaire (version courte avec contenu)
+     * Exemple: "Super session aujourd'hui !"
+     */
+    public static function generatePushCommentMessageShort(string $comment): string
+    {
+        return $comment;
     }
 
     /**

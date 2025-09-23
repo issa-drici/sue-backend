@@ -114,6 +114,7 @@ class CreateCommentUseCase
             // Récupérer le nom de l'auteur
             $author = $this->userRepository->findById($authorId);
             $authorName = $author ? ($author->getFirstname() . ' ' . $author->getLastname()) : 'Un participant';
+            $authorFirstName = $author ? $author->getFirstname() : 'Un participant';
 
             // Filtrer les participants acceptés (hors auteur)
             $targetParticipants = array_filter($participants, function($participant) use ($authorId) {
@@ -193,8 +194,8 @@ class CreateCommentUseCase
 
                 $result = $this->expoService->sendNotification(
                     $tokens,
-                    DateFormatterService::generatePushCommentTitle($session->getSport()),
-                    DateFormatterService::generateCommentMessageShort($authorName, $session->getSport()),
+                    DateFormatterService::generatePushCommentTitleWithDate($session->getSport(), $session->getDate(), $authorFirstName),
+                    DateFormatterService::generatePushCommentMessageShort($comment->content),
                     $data
                 );
 
