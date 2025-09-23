@@ -20,7 +20,8 @@ class DeletePushTokenAction extends Controller
                 'token' => 'required|string|max:255',
             ]);
 
-            $result = $this->deletePushTokenUseCase->execute($data['token']);
+            $userId = $request->user()->id;
+            $result = $this->deletePushTokenUseCase->execute($userId, $data['token']);
 
             if ($result['success']) {
                 return response()->json(['success' => true], 200);

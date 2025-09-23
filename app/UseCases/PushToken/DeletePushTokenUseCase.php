@@ -10,9 +10,19 @@ class DeletePushTokenUseCase
         private PushTokenRepositoryInterface $pushTokenRepository
     ) {}
 
-    public function execute(string $token): array
+    public function execute(string $userId, string $token): array
     {
         try {
+            // Vérifier que le token appartient à l'utilisateur connecté
+            $existingToken = $this->pushTokenRepository->findByToken($token);
+
+            if (!$existingToken || $existingToken->getUserId() !== $userId) {
+                return [
+                    'success' => false,
+                    'error' => 'TOKEN_NOT_FOUND_OR_ALREADY_DELETED'
+                ];
+            }
+
             $deleted = $this->pushTokenRepository->deleteToken($token);
 
             if (!$deleted) {
@@ -29,6 +39,7 @@ class DeletePushTokenUseCase
 
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error deleting push token', [
+                'user_id' => $userId,
                 'token' => $token,
                 'error' => $e->getMessage()
             ]);
