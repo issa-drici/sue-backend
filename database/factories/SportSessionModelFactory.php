@@ -30,10 +30,12 @@ class SportSessionModelFactory extends Factory
             'id' => Str::uuid(),
             'sport' => $this->faker->randomElement(['tennis', 'golf', 'musculation', 'football', 'basketball']),
             'date' => $this->faker->dateTimeBetween('now', '+30 days')->format('Y-m-d'),
-            'time' => $this->faker->time('H:i'),
+            'start_time' => $this->faker->time('H:i'),
+            'end_time' => $this->faker->time('H:i'),
             'location' => $this->faker->city() . ' ' . $this->faker->randomElement(['Club', 'Centre Sportif', 'Gymnase', 'Stade']),
             'organizer_id' => UserModel::factory(),
             'max_participants' => $this->faker->optional()->numberBetween(2, 20),
+            'price_per_person' => $this->faker->optional()->randomFloat(2, 0, 50),
             'status' => 'active',
         ];
     }

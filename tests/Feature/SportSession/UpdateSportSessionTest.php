@@ -38,7 +38,8 @@ class UpdateSportSessionTest extends TestCase
             'organizer_id' => $this->organizer->id,
             'sport' => 'tennis',
             'date' => now()->addDays(7)->format('Y-m-d'),
-            'time' => '14:00',
+            'start_time' => '14:00',
+            'end_time' => '16:00',
             'location' => 'Tennis Club',
             'max_participants' => 4,
             'status' => 'active',
@@ -57,7 +58,8 @@ class UpdateSportSessionTest extends TestCase
     {
         $updateData = [
             'date' => now()->addDays(10)->format('Y-m-d'),
-            'time' => '16:00',
+            'startTime' => '16:00',
+            'endTime' => '18:00',
             'location' => 'Nouveau Tennis Club',
         ];
 
@@ -76,7 +78,8 @@ class UpdateSportSessionTest extends TestCase
                     'id',
                     'sport',
                     'date',
-                    'time',
+                    'startTime',
+                    'endTime',
                     'location',
                     'maxParticipants',
                     'status',
@@ -88,7 +91,7 @@ class UpdateSportSessionTest extends TestCase
         // Vérifier que les données ont été mises à jour
         $this->session->refresh();
         $this->assertEquals($updateData['date'], $this->session->date->format('Y-m-d'));
-        $this->assertEquals($updateData['time'], substr($this->session->time, 0, 5)); // Enlever les secondes
+        $this->assertEquals($updateData['startTime'], substr($this->session->start_time, 0, 5)); // Enlever les secondes
         $this->assertEquals($updateData['location'], $this->session->location);
     }
 
@@ -96,7 +99,8 @@ class UpdateSportSessionTest extends TestCase
     {
         $updateData = [
             'date' => now()->addDays(10)->format('Y-m-d'),
-            'time' => '16:00',
+            'startTime' => '16:00',
+            'endTime' => '18:00',
         ];
 
         $response = $this->actingAs($this->participant)
@@ -134,7 +138,7 @@ class UpdateSportSessionTest extends TestCase
     public function test_cannot_update_session_with_invalid_time(): void
     {
         $updateData = [
-            'time' => '25:00', // Heure invalide
+            'startTime' => '25:00', // Heure invalide
         ];
 
         $response = $this->actingAs($this->organizer)
@@ -178,13 +182,15 @@ class UpdateSportSessionTest extends TestCase
             'organizer_id' => $this->organizer->id,
             'sport' => 'tennis',
             'date' => now()->subDays(1)->format('Y-m-d'),
-            'time' => '14:00',
+            'start_time' => '14:00',
+            'end_time' => '16:00',
             'location' => 'Tennis Club',
             'status' => 'active',
         ]);
 
         $updateData = [
-            'time' => '16:00',
+            'startTime' => '16:00',
+            'endTime' => '18:00',
         ];
 
         $response = $this->actingAs($this->organizer)
@@ -216,7 +222,8 @@ class UpdateSportSessionTest extends TestCase
         ]);
 
         $updateData = [
-            'time' => '16:00',
+            'startTime' => '16:00',
+            'endTime' => '18:00',
             'location' => 'Nouveau Tennis Club',
         ];
 
@@ -246,6 +253,145 @@ class UpdateSportSessionTest extends TestCase
             'type' => 'session_update',
             'session_id' => $this->session->id,
         ]);
+    }
+
+    public function test_can_update_max_participants_to_null(): void
+    {
+        // Créer une session avec maxParticipants défini
+        $sessionWithMaxParticipants = SportSessionModel::factory()->create([
+            'organizer_id' => $this->organizer->id,
+            'sport' => 'tennis',
+            'date' => now()->addDays(7)->format('Y-m-d'),
+            'start_time' => '14:00',
+            'end_time' => '16:00',
+            'location' => 'Tennis Club',
+            'max_participants' => 4,
+            'price_per_person' => 10.50,
+            'status' => 'active',
+        ]);
+
+        $updateData = [
+            'maxParticipants' => null,
+        ];
+
+        $response = $this->actingAs($this->organizer)
+            ->putJson("/api/sessions/{$sessionWithMaxParticipants->id}", $updateData);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Session mise à jour avec succès',
+            ]);
+
+        // Vérifier que maxParticipants est bien null en base
+        $sessionWithMaxParticipants->refresh();
+        $this->assertNull($sessionWithMaxParticipants->max_participants);
+    }
+
+    public function test_can_update_price_per_person_to_null(): void
+    {
+        // Créer une session avec pricePerPerson défini
+        $sessionWithPrice = SportSessionModel::factory()->create([
+            'organizer_id' => $this->organizer->id,
+            'sport' => 'tennis',
+            'date' => now()->addDays(7)->format('Y-m-d'),
+            'start_time' => '14:00',
+            'end_time' => '16:00',
+            'location' => 'Tennis Club',
+            'max_participants' => 4,
+            'price_per_person' => 10.50,
+            'status' => 'active',
+        ]);
+
+        $updateData = [
+            'pricePerPerson' => null,
+        ];
+
+        $response = $this->actingAs($this->organizer)
+            ->putJson("/api/sessions/{$sessionWithPrice->id}", $updateData);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Session mise à jour avec succès',
+            ]);
+
+        // Vérifier que pricePerPerson est bien null en base
+        $sessionWithPrice->refresh();
+        $this->assertNull($sessionWithPrice->price_per_person);
+    }
+
+    public function test_can_update_both_max_participants_and_price_to_null(): void
+    {
+        // Créer une session avec maxParticipants et pricePerPerson définis
+        $sessionWithBoth = SportSessionModel::factory()->create([
+            'organizer_id' => $this->organizer->id,
+            'sport' => 'tennis',
+            'date' => now()->addDays(7)->format('Y-m-d'),
+            'start_time' => '14:00',
+            'end_time' => '16:00',
+            'location' => 'Tennis Club',
+            'max_participants' => 4,
+            'price_per_person' => 10.50,
+            'status' => 'active',
+        ]);
+
+        $updateData = [
+            'maxParticipants' => null,
+            'pricePerPerson' => null,
+        ];
+
+        $response = $this->actingAs($this->organizer)
+            ->putJson("/api/sessions/{$sessionWithBoth->id}", $updateData);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Session mise à jour avec succès',
+            ]);
+
+        // Vérifier que les deux champs sont bien null en base
+        $sessionWithBoth->refresh();
+        $this->assertNull($sessionWithBoth->max_participants);
+        $this->assertNull($sessionWithBoth->price_per_person);
+    }
+
+    public function test_cannot_update_max_participants_to_invalid_value(): void
+    {
+        $updateData = [
+            'maxParticipants' => 0, // Valeur invalide
+        ];
+
+        $response = $this->actingAs($this->organizer)
+            ->putJson("/api/sessions/{$this->session->id}", $updateData);
+
+        $response->assertStatus(400)
+            ->assertJson([
+                'success' => false,
+                'error' => [
+                    'code' => 'VALIDATION_ERROR',
+                    'message' => 'Données invalides',
+                ],
+            ]);
+    }
+
+    public function test_cannot_update_price_per_person_to_negative_value(): void
+    {
+        $updateData = [
+            'pricePerPerson' => -5.0, // Valeur négative
+        ];
+
+        $response = $this->actingAs($this->organizer)
+            ->putJson("/api/sessions/{$this->session->id}", $updateData);
+
+        $response->assertStatus(400)
+            ->assertJson([
+                'success' => false,
+                'error' => [
+                    'code' => 'VALIDATION_ERROR',
+                    'message' => 'Données invalides',
+                ],
+            ]);
     }
 
     public function test_pending_participants_do_not_receive_notifications(): void

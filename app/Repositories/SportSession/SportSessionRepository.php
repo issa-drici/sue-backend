@@ -126,10 +126,10 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         if (isset($data['endTime'])) {
             $mappedData['end_time'] = $data['endTime'];
         }
-        if (isset($data['maxParticipants'])) {
+        if (array_key_exists('maxParticipants', $data)) {
             $mappedData['max_participants'] = $data['maxParticipants'];
         }
-        if (isset($data['pricePerPerson'])) {
+        if (array_key_exists('pricePerPerson', $data)) {
             $mappedData['price_per_person'] = $data['pricePerPerson'];
         }
         if (isset($data['date'])) {

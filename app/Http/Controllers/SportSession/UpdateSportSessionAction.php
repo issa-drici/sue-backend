@@ -21,8 +21,8 @@ class UpdateSportSessionAction extends Controller
                 'startTime' => 'sometimes|date_format:H:i',
                 'endTime' => 'sometimes|date_format:H:i',
                 'location' => 'sometimes|string|max:200',
-                'maxParticipants' => 'sometimes|integer|min:1|max:100',
-                'pricePerPerson' => 'sometimes|numeric|min:0',
+                'maxParticipants' => 'sometimes|nullable|integer|min:1|max:100',
+                'pricePerPerson' => 'sometimes|nullable|numeric|min:0',
             ]);
 
             // Validation personnalisée pour s'assurer que endTime > startTime si les deux sont fournis
