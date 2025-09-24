@@ -151,8 +151,8 @@ class SportSessionCommentRepository implements SportSessionCommentRepositoryInte
             'user_id' => $comment->user_id,
             'content' => $comment->content,
             'mentions' => $comment->mentions,
-            'created_at' => $comment->created_at->toDateTimeString(),
-            'updated_at' => $comment->updated_at->toDateTimeString(),
+            'created_at' => $comment->created_at->format('c'),
+            'updated_at' => $comment->updated_at->format('c'),
             'user' => $userArray,
         ]);
     }

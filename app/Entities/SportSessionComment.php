@@ -37,8 +37,8 @@ class SportSessionComment
             'user_id' => $this->userId,
             'content' => $this->content,
             'mentions' => $this->mentions,
-            'created_at' => $this->createdAt->format('Y-m-d H:i:s'),
-            'updated_at' => $this->updatedAt->format('Y-m-d H:i:s'),
+            'created_at' => $this->createdAt->format('c'),
+            'updated_at' => $this->updatedAt->format('c'),
             'user' => $this->user?->toArray(),
         ];
     }

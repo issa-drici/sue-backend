@@ -41,10 +41,10 @@ class SportSessionPresence
             'user_id' => $this->userId,
             'is_online' => $this->isOnline,
             'is_typing' => $this->isTyping,
-            'last_seen_at' => $this->lastSeenAt?->format('Y-m-d H:i:s'),
-            'typing_started_at' => $this->typingStartedAt?->format('Y-m-d H:i:s'),
-            'created_at' => $this->createdAt->format('Y-m-d H:i:s'),
-            'updated_at' => $this->updatedAt->format('Y-m-d H:i:s'),
+            'last_seen_at' => $this->lastSeenAt?->format('c'),
+            'typing_started_at' => $this->typingStartedAt?->format('c'),
+            'created_at' => $this->createdAt->format('c'),
+            'updated_at' => $this->updatedAt->format('c'),
             'user' => $this->user?->toArray(),
         ];
     }
