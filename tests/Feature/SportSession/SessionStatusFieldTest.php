@@ -40,7 +40,8 @@ class SessionStatusFieldTest extends TestCase
             'organizer_id' => $this->organizer->id,
             'sport' => 'tennis',
             'date' => now()->addDays(7)->format('Y-m-d'),
-            'time' => '14:00',
+            'start_time' => '14:00',
+            'end_time' => '16:00',
             'location' => 'Tennis Club',
             'status' => 'active',
         ]);
@@ -50,7 +51,8 @@ class SessionStatusFieldTest extends TestCase
             'organizer_id' => $this->organizer->id,
             'sport' => 'golf',
             'date' => now()->addDays(5)->format('Y-m-d'),
-            'time' => '10:00',
+            'start_time' => '10:00',
+            'end_time' => '12:00',
             'location' => 'Golf Club',
             'status' => 'cancelled',
         ]);
@@ -60,7 +62,8 @@ class SessionStatusFieldTest extends TestCase
             'organizer_id' => $this->organizer->id,
             'sport' => 'football',
             'date' => now()->subDays(1)->format('Y-m-d'),
-            'time' => '16:00',
+            'start_time' => '16:00',
+            'end_time' => '18:00',
             'location' => 'Stade Municipal',
             'status' => 'completed',
         ]);

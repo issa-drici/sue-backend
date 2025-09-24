@@ -138,6 +138,9 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         if (isset($data['location'])) {
             $mappedData['location'] = $data['location'];
         }
+        if (isset($data['status'])) {
+            $mappedData['status'] = $data['status'];
+        }
 
         $model->update($mappedData);
 
