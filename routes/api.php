@@ -59,6 +59,7 @@ use App\Http\Controllers\Notification\SendPushNotificationAction;
 // User Controllers
 use App\Http\Controllers\User\GetUserProfileAction;
 use App\Http\Controllers\User\UpdateUserProfileAction;
+use App\Http\Controllers\User\UpdateSportsPreferencesAction;
 use App\Http\Controllers\User\GetUserFriendsAction;
 use App\Http\Controllers\User\GetFriendRequestsAction;
 use App\Http\Controllers\User\GetFriendRequestsCountAction;
@@ -159,6 +160,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // User Management (nouveaux endpoints)
     Route::get('/users/profile', GetUserProfileAction::class);
     Route::put('/users/profile', UpdateUserProfileAction::class);
+    Route::put('/users/sports-preferences', UpdateSportsPreferencesAction::class);
     Route::get('/users/friends', GetUserFriendsAction::class);
     Route::delete('/users/friends/{friendId}', RemoveFriendAction::class);
     Route::get('/users/friend-requests', GetFriendRequestsAction::class);

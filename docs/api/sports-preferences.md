@@ -1,0 +1,226 @@
+# API Sports Préférés - Documentation Backend
+
+## Vue d'ensemble
+
+Ce document détaille les endpoints de gestion des sports préférés utilisateur pour l'application Alarrache.
+
+## Base URL
+```
+https://api.alarrache.com/api
+```
+
+## Endpoints
+
+### 1. PUT /users/sports-preferences
+
+**Description :** Mettre à jour les sports préférés de l'utilisateur connecté
+
+**URL :** `/users/sports-preferences`
+
+**Méthode :** `PUT`
+
+**Headers :**
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Body :**
+```json
+{
+  "sports_preferences": ["tennis", "football", "basketball"]
+}
+```
+
+**Réponse Succès (200) :**
+```json
+{
+  "success": true,
+  "message": "Sports préférés mis à jour avec succès",
+  "data": {
+    "sports_preferences": ["tennis", "football", "basketball"]
+  }
+}
+```
+
+**Réponse Erreur (400) - Sports invalides :**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Sports invalides ou utilisateur non trouvé"
+  }
+}
+```
+
+**Réponse Erreur (400) - Données invalides :**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_DATA",
+    "message": "Les sports préférés doivent être un tableau"
+  }
+}
+```
+
+**Réponse Erreur (401) - Non autorisé :**
+```json
+{
+  "message": "Unauthenticated."
+}
+```
+
+### 2. GET /users/profile (modifié)
+
+**Description :** Récupérer le profil de l'utilisateur connecté (inclut maintenant les sports préférés)
+
+**URL :** `/users/profile`
+
+**Méthode :** `GET`
+
+**Headers :**
+```
+Authorization: Bearer <token>
+```
+
+**Réponse Succès (200) :**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "1",
+    "firstname": "John",
+    "lastname": "Doe",
+    "email": "john.doe@example.com",
+    "avatar": "https://i.pravatar.cc/150?img=1",
+    "sports_preferences": ["tennis", "football", "basketball"],
+    "stats": {
+      "sessionsCreated": 12,
+      "sessionsParticipated": 45
+    }
+  }
+}
+```
+
+## Validation des sports
+
+### Sports valides
+Les sports suivants sont acceptés :
+- `tennis`
+- `golf`
+- `musculation`
+- `football`
+- `basketball`
+
+### Règles de validation
+1. **Sports valides uniquement** : Seuls les sports listés ci-dessus sont acceptés
+2. **Maximum 5 sports** : Un utilisateur ne peut pas avoir plus de 5 sports préférés
+3. **Tableau requis** : Le champ `sports_preferences` doit être un tableau
+4. **Ordre préservé** : L'ordre des sports est préservé tel que fourni
+
+### Exemples de validation
+
+#### ✅ Valide
+```json
+{
+  "sports_preferences": ["tennis", "football"]
+}
+```
+
+#### ✅ Valide (tous les sports)
+```json
+{
+  "sports_preferences": ["tennis", "golf", "musculation", "football", "basketball"]
+}
+```
+
+#### ❌ Invalide (sport non reconnu)
+```json
+{
+  "sports_preferences": ["invalid-sport", "tennis"]
+}
+```
+
+#### ❌ Invalide (trop de sports)
+```json
+{
+  "sports_preferences": ["tennis", "golf", "musculation", "football", "basketball", "extra-sport"]
+}
+```
+
+#### ❌ Invalide (pas un tableau)
+```json
+{
+  "sports_preferences": "tennis"
+}
+```
+
+## Codes de réponse
+
+| Code | Description |
+|------|-------------|
+| 200 | Succès |
+| 400 | Données invalides (sports non reconnus, trop de sports, format incorrect) |
+| 401 | Non autorisé (token manquant ou invalide) |
+| 422 | Erreur de validation |
+| 500 | Erreur serveur |
+
+## Cas d'usage
+
+### 1. Définir ses sports préférés
+```bash
+curl -X PUT https://api.alarrache.com/api/users/sports-preferences \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"sports_preferences": ["tennis", "football"]}'
+```
+
+### 2. Récupérer son profil avec sports préférés
+```bash
+curl -X GET https://api.alarrache.com/api/users/profile \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### 3. Mettre à jour ses sports préférés
+```bash
+curl -X PUT https://api.alarrache.com/api/users/sports-preferences \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"sports_preferences": ["tennis", "golf", "basketball"]}'
+```
+
+## Impact sur le mobile
+
+### Écrans concernés
+- `app/create-session.tsx` - Affichage prioritaire des sports préférés
+- `app/(onboarding)/` - Éventuel écran de sélection des sports (optionnel)
+
+### Hooks/Composants à créer
+- `hooks/useSportsPreferences.ts` - Gestion des sports préférés
+- `services/users/updateSportsPreferences.ts` - Service API
+- Modification de `services/users/getUserProfile.ts`
+
+### Tests à implémenter
+- Test de récupération des sports préférés
+- Test de mise à jour des sports préférés
+- Test de validation des sports
+- Test d'affichage prioritaire dans create-session
+
+## Notes techniques
+
+### Base de données
+- Le champ `sports_preferences` est stocké en JSON dans la table `users`
+- Le champ est nullable (peut être null si aucun sport préféré défini)
+- L'ordre des sports est préservé
+
+### Performance
+- Aucun impact sur les performances existantes
+- Les sports préférés sont récupérés avec le profil utilisateur
+- Validation côté serveur pour garantir l'intégrité des données
+
+### Sécurité
+- Authentification requise pour tous les endpoints
+- Validation stricte des sports acceptés
+- Limitation du nombre de sports pour éviter les abus

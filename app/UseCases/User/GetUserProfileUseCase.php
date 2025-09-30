@@ -16,7 +16,7 @@ class GetUserProfileUseCase
     public function execute(string $userId): ?UserProfile
     {
         $userProfile = $this->userRepository->getUserProfile($userId);
-        
+
         if (!$userProfile) {
             return null;
         }
@@ -31,7 +31,8 @@ class GetUserProfileUseCase
             $userProfile->getLastname(),
             $userProfile->getEmail(),
             $userProfile->getAvatar(),
-            $stats
+            $stats,
+            $userProfile->getSportsPreferences()
         );
     }
 

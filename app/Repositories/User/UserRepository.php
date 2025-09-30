@@ -26,7 +26,8 @@ class UserRepository implements UserRepositoryInterface
             $userModel->lastname,
             $userModel->email,
             $userModel->phone,
-            $userModel->role
+            $userModel->role,
+            $userModel->sports_preferences
         );
     }
 
@@ -43,7 +44,8 @@ class UserRepository implements UserRepositoryInterface
             $userModel->lastname,
             $userModel->email,
             $userModel->phone,
-            $userModel->role
+            $userModel->role,
+            $userModel->sports_preferences
         );
     }
 
@@ -56,7 +58,8 @@ class UserRepository implements UserRepositoryInterface
             $userModel->lastname,
             $userModel->email,
             $userModel->phone,
-            $userModel->role
+            $userModel->role,
+            $userModel->sports_preferences
         );
     }
 
@@ -74,7 +77,8 @@ class UserRepository implements UserRepositoryInterface
             $userModel->lastname,
             $userModel->email,
             $userModel->phone,
-            $userModel->role
+            $userModel->role,
+            $userModel->sports_preferences
         );
     }
 
@@ -96,7 +100,8 @@ class UserRepository implements UserRepositoryInterface
             $userModel->lastname,
             $userModel->email,
             $userModel->avatar ?? null,
-            []
+            [],
+            $userModel->sports_preferences
         );
     }
 

@@ -25,6 +25,7 @@ class UserModel extends Authenticatable
         'phone',
         'password',
         'role',
+        'sports_preferences',
     ];
 
     protected $hidden = [
@@ -35,6 +36,7 @@ class UserModel extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'sports_preferences' => 'array',
     ];
 
     public function toEntity(): User

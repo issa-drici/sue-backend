@@ -10,6 +10,7 @@ class User
     private string $email;
     private ?string $phone;
     private string $role;
+    private ?array $sportsPreferences;
 
     public function __construct(
         ?string $id,
@@ -18,6 +19,7 @@ class User
         string $email,
         ?string $phone,
         string $role = 'player',
+        ?array $sportsPreferences = null,
     ) {
         $this->id = $id;
         $this->firstname = $firstname;
@@ -25,6 +27,7 @@ class User
         $this->email = $email;
         $this->phone = $phone;
         $this->role = $role;
+        $this->sportsPreferences = $sportsPreferences;
     }
 
     public function getId(): ?string
@@ -87,6 +90,16 @@ class User
         $this->role = $role;
     }
 
+    public function getSportsPreferences(): ?array
+    {
+        return $this->sportsPreferences;
+    }
+
+    public function setSportsPreferences(?array $sportsPreferences): void
+    {
+        $this->sportsPreferences = $sportsPreferences;
+    }
+
     public function toArray(): array
     {
         return [
@@ -96,6 +109,7 @@ class User
             'email' => $this->email,
             'phone' => $this->phone,
             'role' => $this->role,
+            'sports_preferences' => $this->sportsPreferences,
         ];
     }
 
@@ -108,6 +122,7 @@ class User
             email: $data['email'],
             phone: $data['phone'] ?? null,
             role: $data['role'] ?? 'player',
+            sportsPreferences: $data['sports_preferences'] ?? null,
         );
     }
 }
