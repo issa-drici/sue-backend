@@ -116,10 +116,10 @@ class CreateCommentUseCase
             $authorName = $author ? ($author->getFirstname() . ' ' . $author->getLastname()) : 'Un participant';
             $authorFirstName = $author ? $author->getFirstname() : 'Un participant';
 
-            // Filtrer les participants acceptés (hors auteur)
+            // Filtrer les participants acceptés et en attente (hors auteur)
             $targetParticipants = array_filter($participants, function($participant) use ($authorId) {
                 return ($participant['id'] ?? null) !== $authorId &&
-                       ($participant['status'] ?? null) === 'accepted';
+                       in_array($participant['status'] ?? null, ['accepted', 'pending']);
             });
 
             // CORRECTION: S'assurer que l'organisateur est inclus dans les notifications

@@ -426,3 +426,4 @@ php artisan test tests/Unit/PushToken/DeletePushTokenUseCaseTest.php
 **Dernière mise à jour :** 22 Janvier 2025  
 **Version de l'API :** 1.0  
 **Maintenu par :** Équipe Backend
+
