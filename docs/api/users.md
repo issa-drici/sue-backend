@@ -559,11 +559,14 @@ Récupère le profil d'un utilisateur spécifique par son ID.
     "lastname": "Dupont",
     "email": "jean.dupont@example.com",
     "avatar": "https://example.com/avatar.jpg",
+    "sports_preferences": ["tennis", "football", "basketball"],
     "stats": {
       "sessionsCreated": 5,
       "sessionsParticipated": 12
     },
-    "isAlreadyFriend": false
+    "isAlreadyFriend": false,
+    "hasPendingRequest": false,
+    "relationshipStatus": "none"
   }
 }
 ```
@@ -592,11 +595,26 @@ Récupère le profil d'un utilisateur spécifique par son ID.
 - `lastname` : Nom de famille de l'utilisateur
 - `email` : Adresse email de l'utilisateur
 - `avatar` : URL de l'avatar de l'utilisateur (peut être null)
+- `sports_preferences` : Liste des sports préférés de l'utilisateur (tableau de chaînes)
 - `isAlreadyFriend` : Indique si l'utilisateur connecté a déjà cet utilisateur en ami
+- `hasPendingRequest` : Indique s'il y a une demande d'ami en attente
+- `relationshipStatus` : Statut de la relation entre les utilisateurs
+
+#### Sports préférés
+- `sports_preferences` : Tableau des sports préférés de l'utilisateur
+- **Type** : `array` de `string`
+- **Valeurs possibles** : Voir la liste des sports valides (48 sports supportés)
+- **Valeur par défaut** : `[]` (tableau vide) si l'utilisateur n'a pas de préférences
+- **Exemple** : `["tennis", "football", "basketball"]`
 
 #### Statistiques
 - `stats.sessionsCreated` : Nombre de sessions sportives créées par l'utilisateur
 - `stats.sessionsParticipated` : Nombre de sessions sportives auxquelles l'utilisateur a participé (statut "accepted")
+
+#### Relations
+- `isAlreadyFriend` : `boolean` - Indique si l'utilisateur connecté est ami avec l'utilisateur demandé
+- `hasPendingRequest` : `boolean` - Indique s'il y a une demande d'ami en attente
+- `relationshipStatus` : `string` - Statut de la relation (`none`, `pending`, `received`, `accepted`, `declined`, `cancelled`)
 
 ### Exemples d'utilisation
 

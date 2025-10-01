@@ -21,7 +21,7 @@ class FindUserByIdUseCase
         // Récupérer l'utilisateur et son profil
         $user = $this->userRepository->findById($userId);
         $userProfile = $this->userRepository->getUserProfile($userId);
- 
+
         if (!$user) {
             return null;
         }
@@ -41,6 +41,7 @@ class FindUserByIdUseCase
             'lastname' => $user->getLastname(),
             'email' => $user->getEmail(),
             'avatar' => $userProfile ? $userProfile->getAvatar() : null,
+            'sports_preferences' => $user->getSportsPreferences() ?? [],
             'stats' => $stats,
             'isAlreadyFriend' => $isAlreadyFriend,
             'hasPendingRequest' => $relationshipInfo['hasPendingRequest'],
@@ -89,7 +90,7 @@ class FindUserByIdUseCase
 
         // Vérifier si les utilisateurs sont déjà amis
         $isAlreadyFriend = $this->friendRepository->areFriends($currentUserId, $targetUserId);
-        
+
         if ($isAlreadyFriend) {
             return [
                 'hasPendingRequest' => false,
@@ -99,7 +100,7 @@ class FindUserByIdUseCase
 
         // Vérifier si l'utilisateur connecté a envoyé une demande en attente
         $pendingRequestSent = $this->friendRequestRepository->getPendingRequest($currentUserId, $targetUserId);
-        
+
         if ($pendingRequestSent) {
             return [
                 'hasPendingRequest' => true,
@@ -109,7 +110,7 @@ class FindUserByIdUseCase
 
         // Vérifier si l'utilisateur cible a envoyé une demande en attente
         $pendingRequestReceived = $this->friendRequestRepository->getPendingRequest($targetUserId, $currentUserId);
-        
+
         if ($pendingRequestReceived) {
             return [
                 'hasPendingRequest' => false,
@@ -119,10 +120,10 @@ class FindUserByIdUseCase
 
         // Vérifier le statut de relation complet (inclut declined, cancelled, etc.)
         $relationshipStatus = $this->friendRequestRepository->getRelationshipStatus($currentUserId, $targetUserId);
-        
+
         // Normaliser le statut pour l'API
         $normalizedStatus = $this->normalizeRelationshipStatus($relationshipStatus);
-        
+
         return [
             'hasPendingRequest' => $normalizedStatus === 'pending',
             'relationshipStatus' => $normalizedStatus

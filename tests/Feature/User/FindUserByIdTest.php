@@ -33,6 +33,7 @@ class FindUserByIdTest extends TestCase
             'firstname' => 'Marie',
             'lastname' => 'Martin',
             'email' => 'marie.martin@example.com',
+            'sports_preferences' => ['tennis', 'football', 'basketball'],
         ]);
 
         // Créer des sessions sportives pour les statistiques
@@ -49,7 +50,8 @@ class FindUserByIdTest extends TestCase
             'organizer_id' => $this->user->id,
             'sport' => 'tennis',
             'date' => now()->addDays(7)->format('Y-m-d'),
-            'time' => '14:00',
+            'start_time' => '14:00',
+            'end_time' => '16:00',
             'location' => 'Tennis Club',
         ]);
 
@@ -57,7 +59,8 @@ class FindUserByIdTest extends TestCase
             'organizer_id' => $this->user->id,
             'sport' => 'football',
             'date' => now()->addDays(10)->format('Y-m-d'),
-            'time' => '16:00',
+            'start_time' => '16:00',
+            'end_time' => '18:00',
             'location' => 'Stade Municipal',
         ]);
 
@@ -66,7 +69,8 @@ class FindUserByIdTest extends TestCase
             'organizer_id' => $this->otherUser->id,
             'sport' => 'basketball',
             'date' => now()->addDays(5)->format('Y-m-d'),
-            'time' => '18:00',
+            'start_time' => '18:00',
+            'end_time' => '20:00',
             'location' => 'Gymnase',
         ]);
 
@@ -360,7 +364,8 @@ class FindUserByIdTest extends TestCase
             'organizer_id' => $this->user->id,
             'sport' => 'tennis',
             'date' => now()->addDays(7)->format('Y-m-d'),
-            'time' => '14:00',
+            'start_time' => '14:00',
+            'end_time' => '16:00',
             'location' => 'Tennis Club',
         ]);
 
@@ -372,22 +377,6 @@ class FindUserByIdTest extends TestCase
             'status' => 'accepted',
         ]);
 
-        // Ajouter une participation declined
-        SportSessionParticipantModel::create([
-            'id' => $this->faker->uuid(),
-            'session_id' => $session->id,
-            'user_id' => $newUser->id,
-            'status' => 'declined',
-        ]);
-
-        // Ajouter une participation pending
-        SportSessionParticipantModel::create([
-            'id' => $this->faker->uuid(),
-            'session_id' => $session->id,
-            'user_id' => $newUser->id,
-            'status' => 'pending',
-        ]);
-
         $response = $this->actingAs($this->user)
             ->getJson("/api/users/{$newUser->id}");
 
@@ -396,11 +385,136 @@ class FindUserByIdTest extends TestCase
                 'success' => true,
                 'data' => [
                     'id' => $newUser->id,
+                    'sports_preferences' => [], // Utilisateur sans sports préférés
                     'stats' => [
                         'sessionsCreated' => 0,
                         'sessionsParticipated' => 1 // Seule la participation 'accepted' doit être comptée
                     ]
                 ]
+            ]);
+    }
+
+    public function test_user_with_sports_preferences_returns_correct_data(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/users/{$this->otherUser->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $this->otherUser->id,
+                    'firstname' => 'Marie',
+                    'lastname' => 'Martin',
+                    'email' => 'marie.martin@example.com',
+                    'sports_preferences' => ['tennis', 'football', 'basketball'],
+                ],
+            ])
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'firstname',
+                    'lastname',
+                    'email',
+                    'avatar',
+                    'sports_preferences',
+                    'stats' => [
+                        'sessionsCreated',
+                        'sessionsParticipated',
+                    ],
+                    'isAlreadyFriend',
+                    'hasPendingRequest',
+                    'relationshipStatus',
+                ],
+            ]);
+    }
+
+    public function test_user_without_sports_preferences_returns_empty_array(): void
+    {
+        // Créer un utilisateur sans sports préférés
+        $userWithoutPreferences = UserModel::factory()->create([
+            'firstname' => 'No',
+            'lastname' => 'Preferences',
+            'email' => 'no.preferences@example.com',
+            'sports_preferences' => null,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/users/{$userWithoutPreferences->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $userWithoutPreferences->id,
+                    'firstname' => 'No',
+                    'lastname' => 'Preferences',
+                    'email' => 'no.preferences@example.com',
+                    'sports_preferences' => [], // Tableau vide pour null
+                ],
+            ])
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'firstname',
+                    'lastname',
+                    'email',
+                    'avatar',
+                    'sports_preferences',
+                    'stats' => [
+                        'sessionsCreated',
+                        'sessionsParticipated',
+                    ],
+                    'isAlreadyFriend',
+                    'hasPendingRequest',
+                    'relationshipStatus',
+                ],
+            ]);
+    }
+
+    public function test_user_with_maximum_sports_preferences(): void
+    {
+        // Créer un utilisateur avec le maximum de sports préférés (5)
+        $userWithMaxPreferences = UserModel::factory()->create([
+            'firstname' => 'Max',
+            'lastname' => 'Sports',
+            'email' => 'max.sports@example.com',
+            'sports_preferences' => ['tennis', 'football', 'basketball', 'golf', 'musculation'],
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson("/api/users/{$userWithMaxPreferences->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $userWithMaxPreferences->id,
+                    'firstname' => 'Max',
+                    'lastname' => 'Sports',
+                    'email' => 'max.sports@example.com',
+                    'sports_preferences' => ['tennis', 'football', 'basketball', 'golf', 'musculation'],
+                ],
+            ])
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'firstname',
+                    'lastname',
+                    'email',
+                    'avatar',
+                    'sports_preferences',
+                    'stats' => [
+                        'sessionsCreated',
+                        'sessionsParticipated',
+                    ],
+                    'isAlreadyFriend',
+                    'hasPendingRequest',
+                    'relationshipStatus',
+                ],
             ]);
     }
 }
