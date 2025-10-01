@@ -107,12 +107,37 @@ Authorization: Bearer <token>
 ## Validation des sports
 
 ### Sports valides
-Les sports suivants sont acceptés :
-- `tennis`
-- `golf`
-- `musculation`
-- `football`
-- `basketball`
+Les sports suivants sont acceptés (48 sports au total) :
+
+**Sports de raquette :**
+- `tennis`, `padel`, `badminton`, `squash`, `ping-pong`, `volleyball`, `basketball`, `handball`
+
+**Sports aquatiques :**
+- `natation`, `surf`, `planche-à-voile`, `kayak`, `aviron`, `aquafitness`, `sauvetage-sportif`, `bodyboard`
+
+**Sports d'endurance :**
+- `course`, `cyclisme`, `randonnée`, `marche-nordique`, `marche-sportive`, `triathlon`
+
+**Arts martiaux :**
+- `boxe`, `jiu-jitsu-brésilien`, `aïkido`, `judo`, `karaté`
+
+**Sports de glisse :**
+- `ski`, `snowboard`, `skateboard`, `stand-up-paddle`
+
+**Sports collectifs :**
+- `football`, `rugby`, `hockey`, `baseball`, `volleyball`, `handball`
+
+**Sports de bien-être :**
+- `yoga`, `pilates`, `danse`
+
+**Sports de précision :**
+- `golf`, `tir-à-l-arc`, `pétanque`
+
+**Autres :**
+- `musculation`, `escalade`, `équitation`, `gymnastique`, `athlétisme`, `bowling`, `pêche`
+
+**Liste complète (ordre alphabétique) :**
+`aïkido`, `aquafitness`, `athlétisme`, `aviron`, `badminton`, `baseball`, `basketball`, `bodyboard`, `bowling`, `boxe`, `course`, `cyclisme`, `danse`, `équitation`, `escalade`, `football`, `golf`, `gymnastique`, `handball`, `hockey`, `jiu-jitsu-brésilien`, `judo`, `karaté`, `kayak`, `marche-nordique`, `marche-sportive`, `musculation`, `natation`, `padel`, `pêche`, `pétanque`, `pilates`, `ping-pong`, `planche-à-voile`, `randonnée`, `rugby`, `sauvetage-sportif`, `ski`, `skateboard`, `snowboard`, `squash`, `stand-up-paddle`, `surf`, `tennis`, `tir-à-l-arc`, `triathlon`, `volleyball`, `yoga`
 
 ### Règles de validation
 1. **Sports valides uniquement** : Seuls les sports listés ci-dessus sont acceptés
@@ -129,10 +154,17 @@ Les sports suivants sont acceptés :
 }
 ```
 
-#### ✅ Valide (tous les sports)
+#### ✅ Valide (5 sports maximum)
 ```json
 {
   "sports_preferences": ["tennis", "golf", "musculation", "football", "basketball"]
+}
+```
+
+#### ✅ Valide (nouveaux sports)
+```json
+{
+  "sports_preferences": ["natation", "yoga", "padel", "escalade", "surf"]
 }
 ```
 
@@ -146,7 +178,7 @@ Les sports suivants sont acceptés :
 #### ❌ Invalide (trop de sports)
 ```json
 {
-  "sports_preferences": ["tennis", "golf", "musculation", "football", "basketball", "extra-sport"]
+  "sports_preferences": ["tennis", "golf", "musculation", "football", "basketball", "natation"]
 }
 ```
 

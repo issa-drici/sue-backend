@@ -3,11 +3,12 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Services\DateFormatterService;
+use App\Services\SportService;
 
 echo "=== Démonstration du nouveau formatage des notifications d'invitation ===\n\n";
 
 // Exemples de sports
-$sports = ['tennis', 'golf', 'musculation', 'football', 'basketball'];
+$sports = \App\Services\SportService::getSupportedSports();
 $dates = [
     ['date' => '2024-08-05', 'time' => '10:30', 'jour' => 'lundi'],
     ['date' => '2024-08-06', 'time' => '14:00', 'jour' => 'mardi'],
@@ -54,7 +55,7 @@ foreach ($sports as $sport) {
     $pushCommentTitle = DateFormatterService::generatePushCommentTitle($sport);
     $commentMessage = DateFormatterService::generateCommentMessage('Jean Dupont', $sport, '2024-08-05', '10:30');
     $commentMessageShort = DateFormatterService::generateCommentMessageShort('Marie Martin', $sport);
-    
+
     echo "  {$sport}:\n";
     echo "    Titre: {$commentTitle}\n";
     echo "    Titre (push): {$pushCommentTitle}\n";

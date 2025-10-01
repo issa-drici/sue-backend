@@ -17,7 +17,7 @@ class CreateSportSessionAction extends Controller
     {
         try {
             $data = $request->validate([
-                'sport' => 'required|in:tennis,golf,musculation,football,basketball',
+                'sport' => 'required|in:' . \App\Services\SportService::getValidationRule(),
                 'date' => 'required|date_format:Y-m-d|after_or_equal:today',
                 'startTime' => 'required|date_format:H:i',
                 'endTime' => 'required|date_format:H:i|after:startTime',

@@ -28,7 +28,7 @@ class SportSessionModelFactory extends Factory
     {
         return [
             'id' => Str::uuid(),
-            'sport' => $this->faker->randomElement(['tennis', 'golf', 'musculation', 'football', 'basketball']),
+            'sport' => $this->faker->randomElement(\App\Services\SportService::getSupportedSports()),
             'date' => $this->faker->dateTimeBetween('now', '+30 days')->format('Y-m-d'),
             'start_time' => $this->faker->time('H:i'),
             'end_time' => $this->faker->time('H:i'),

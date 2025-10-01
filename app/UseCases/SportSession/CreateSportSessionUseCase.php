@@ -47,7 +47,7 @@ class CreateSportSessionUseCase
 
     private function validateData(array $data): void
     {
-        if (!isset($data['sport']) || !in_array($data['sport'], ['tennis', 'golf', 'musculation', 'football', 'basketball'])) {
+        if (!isset($data['sport']) || !\App\Services\SportService::isValidSport($data['sport'])) {
             throw new Exception('Sport invalide');
         }
 

@@ -582,7 +582,7 @@ Content-Type: application/json
 ## Validation
 
 ### Création/Mise à jour de session
-- **sport** : Requis, valeurs autorisées : tennis, golf, musculation, football, basketball
+- **sport** : Requis, valeurs autorisées : voir la liste complète des 48 sports supportés ci-dessus
 - **date** : Requis, format YYYY-MM-DD, doit être dans le futur
 - **startTime** : Requis, format HH:MM
 - **endTime** : Requis, format HH:MM, doit être après startTime
@@ -604,7 +604,7 @@ Content-Type: application/json
 ```json
 {
   "id": "string",
-  "sport": "tennis | golf | musculation | football | basketball",
+  "sport": "Voir la liste complète des 48 sports supportés ci-dessus",
   "date": "string (YYYY-MM-DD)",
   "startTime": "string (HH:MM)",
   "endTime": "string (HH:MM)",
@@ -684,11 +684,28 @@ Content-Type: application/json
 9. Seuls les utilisateurs invités peuvent répondre aux invitations
 
 ## Sports supportés
-- tennis
-- golf
-- musculation
-- football
-- basketball 
+L'API supporte maintenant 48 sports organisés par catégories :
+
+**Sports de raquette :** tennis, padel, badminton, squash, ping-pong, volleyball, basketball, handball
+
+**Sports aquatiques :** natation, surf, planche-à-voile, kayak, aviron, aquafitness, sauvetage-sportif, bodyboard
+
+**Sports d'endurance :** course, cyclisme, randonnée, marche-nordique, marche-sportive, triathlon
+
+**Arts martiaux :** boxe, jiu-jitsu-brésilien, aïkido, judo, karaté
+
+**Sports de glisse :** ski, snowboard, skateboard, stand-up-paddle
+
+**Sports collectifs :** football, rugby, hockey, baseball, volleyball, handball
+
+**Sports de bien-être :** yoga, pilates, danse
+
+**Sports de précision :** golf, tir-à-l-arc, pétanque
+
+**Autres :** musculation, escalade, équitation, gymnastique, athlétisme, bowling, pêche
+
+**Liste complète (ordre alphabétique) :**
+aïkido, aquafitness, athlétisme, aviron, badminton, baseball, basketball, bodyboard, bowling, boxe, course, cyclisme, danse, équitation, escalade, football, golf, gymnastique, handball, hockey, jiu-jitsu-brésilien, judo, karaté, kayak, marche-nordique, marche-sportive, musculation, natation, padel, pêche, pétanque, pilates, ping-pong, planche-à-voile, randonnée, rugby, sauvetage-sportif, ski, skateboard, snowboard, squash, stand-up-paddle, surf, tennis, tir-à-l-arc, triathlon, volleyball, yoga 
 
 # Endpoints des Sessions Sportives
 
@@ -714,11 +731,7 @@ Content-Type: application/json
 | `participantIds` | array | ❌ | Liste des UUIDs des utilisateurs à inviter | [] |
 
 ### Sports supportés
-- `tennis`
-- `golf`
-- `musculation`
-- `football`
-- `basketball`
+Voir la section "Sports supportés" ci-dessus pour la liste complète des 48 sports disponibles.
 
 ### Exemple de requête
 

@@ -65,9 +65,9 @@ test('should return null if user not found', function () {
     expect($result)->toBeNull();
 });
 
-test('should accept all valid sports', function () {
+test('should accept all 5 original valid sports', function () {
     $userId = 'test-user-id';
-    $sportsPreferences = SportSession::getSupportedSports();
+    $sportsPreferences = ['tennis', 'golf', 'musculation', 'football', 'basketball'];
     $user = new User($userId, 'John', 'Doe', 'john@example.com', null, 'player', null);
 
     $this->userRepository

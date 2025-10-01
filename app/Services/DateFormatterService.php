@@ -7,13 +7,6 @@ use IntlDateFormatter;
 
 class DateFormatterService
 {
-    private static array $sportNames = [
-        'tennis' => 'Tennis',
-        'golf' => 'Golf',
-        'musculation' => 'Musculation',
-        'football' => 'Football',
-        'basketball' => 'Basketball'
-    ];
 
     /**
      * Formate une date et heure en français
@@ -52,7 +45,7 @@ class DateFormatterService
      */
     public static function getSportName(string $sport): string
     {
-        return self::$sportNames[$sport] ?? ucfirst($sport);
+        return SportService::getFormattedSportName($sport);
     }
 
     /**

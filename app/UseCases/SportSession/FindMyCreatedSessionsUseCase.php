@@ -24,7 +24,7 @@ class FindMyCreatedSessionsUseCase
     {
         $validFilters = [];
 
-        if (isset($filters['sport']) && in_array($filters['sport'], ['tennis', 'golf', 'musculation', 'football', 'basketball'])) {
+        if (isset($filters['sport']) && \App\Services\SportService::isValidSport($filters['sport'])) {
             $validFilters['sport'] = $filters['sport'];
         }
 

@@ -170,11 +170,11 @@ class SportSession
 
     public static function getSupportedSports(): array
     {
-        return ['tennis', 'golf', 'musculation', 'football', 'basketball'];
+        return \App\Services\SportService::getSupportedSports();
     }
 
     public static function isValidSport(string $sport): bool
     {
-        return in_array($sport, self::getSupportedSports());
+        return \App\Services\SportService::isValidSport($sport);
     }
 }
