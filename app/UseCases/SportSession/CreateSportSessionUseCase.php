@@ -9,6 +9,7 @@ use App\Repositories\User\UserRepositoryInterface;
 use App\Repositories\PushToken\PushTokenRepositoryInterface;
 use App\Services\ExpoPushNotificationService;
 use App\Services\DateFormatterService;
+use App\UseCases\User\UpdateSportsPreferencesUseCase;
 use Exception;
 
 class CreateSportSessionUseCase
@@ -18,7 +19,8 @@ class CreateSportSessionUseCase
         private NotificationRepositoryInterface $notificationRepository,
         private UserRepositoryInterface $userRepository,
         private PushTokenRepositoryInterface $pushTokenRepository,
-        private ExpoPushNotificationService $expoPushService
+        private ExpoPushNotificationService $expoPushService,
+        private UpdateSportsPreferencesUseCase $updateSportsPreferencesUseCase
     ) {}
 
     public function execute(array $data): SportSession
@@ -28,6 +30,9 @@ class CreateSportSessionUseCase
 
         // Créer la session
         $session = $this->sportSessionRepository->create($data);
+
+        // Ajouter automatiquement le sport aux préférences de l'organisateur
+        $this->addSportToOrganizerPreferences($data['organizer_id'], $data['sport']);
 
         // Ajouter les participants si spécifiés
         if (isset($data['participantIds']) && !empty($data['participantIds'])) {
@@ -228,6 +233,28 @@ class CreateSportSessionUseCase
             \Illuminate\Support\Facades\Log::error("Erreur lors de l'envoi de notification push", [
                 'userId' => $userId,
                 'sessionId' => $session->getId(),
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Ajoute automatiquement le sport aux préférences de l'organisateur
+     */
+    private function addSportToOrganizerPreferences(string $organizerId, string $sport): void
+    {
+        try {
+            $this->updateSportsPreferencesUseCase->addSportToPreferences($organizerId, $sport);
+
+            \Illuminate\Support\Facades\Log::info("Sport ajouté automatiquement aux préférences", [
+                'userId' => $organizerId,
+                'sport' => $sport
+            ]);
+        } catch (\Exception $e) {
+            // Log l'erreur mais ne pas faire échouer la création de session
+            \Illuminate\Support\Facades\Log::error("Erreur lors de l'ajout automatique du sport aux préférences", [
+                'userId' => $organizerId,
+                'sport' => $sport,
                 'error' => $e->getMessage()
             ]);
         }

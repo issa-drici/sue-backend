@@ -221,9 +221,15 @@ Content-Type: application/json
   "endTime": "20:00",
   "location": "Tennis Club de Paris",
   "maxParticipants": 4,
-  "pricePerPerson": 15.50
+  "pricePerPerson": 15.50,
+  "participantIds": ["user-id-1", "user-id-2"]
 }
 ```
+
+**Comportement automatique :**
+- Le sport sélectionné est automatiquement ajouté aux préférences de l'organisateur s'il n'y est pas déjà présent
+- L'organisateur est automatiquement ajouté comme participant avec le statut "accepted"
+- Les utilisateurs spécifiés dans `participantIds` sont invités avec le statut "pending"
 
 **Réponse Succès (201) :**
 ```json
@@ -733,15 +739,22 @@ aïkido, aquafitness, athlétisme, aviron, badminton, baseball, basketball, body
 ### Sports supportés
 Voir la section "Sports supportés" ci-dessus pour la liste complète des 48 sports disponibles.
 
+### Comportement automatique
+- **Ajout aux préférences** : Le sport sélectionné est automatiquement ajouté aux préférences de l'organisateur s'il n'y est pas déjà présent
+- **Organisateur participant** : L'organisateur est automatiquement ajouté comme participant avec le statut "accepted"
+- **Invitations** : Les utilisateurs spécifiés dans `participantIds` sont invités avec le statut "pending"
+
 ### Exemple de requête
 
 ```json
 {
-    "sport": "tennis",
+    "sport": "aïkido",
     "date": "2024-01-15",
-    "time": "18:00",
-    "location": "Tennis Club de Paris",
-    "maxParticipants": 4,
+    "startTime": "18:00",
+    "endTime": "20:00",
+    "location": "Dojo central",
+    "maxParticipants": 8,
+    "pricePerPerson": 15,
     "participantIds": [
         "123e4567-e89b-12d3-a456-426614174000",
         "456e7890-e89b-12d3-a456-426614174001"

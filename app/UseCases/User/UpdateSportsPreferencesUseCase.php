@@ -34,6 +34,44 @@ class UpdateSportsPreferencesUseCase
         return $sportsPreferences;
     }
 
+    /**
+     * Ajoute un sport aux préférences de l'utilisateur s'il n'est pas déjà présent
+     */
+    public function addSportToPreferences(string $userId, string $sport): ?array
+    {
+        // Validation du sport
+        if (!SportSession::isValidSport($sport)) {
+            return null;
+        }
+
+        // Récupérer l'utilisateur
+        $user = $this->userRepository->findById($userId);
+        if (!$user) {
+            return null;
+        }
+
+        // Récupérer les préférences actuelles
+        $currentPreferences = $user->getSportsPreferences() ?? [];
+
+        // Vérifier si le sport est déjà dans les préférences
+        if (in_array($sport, $currentPreferences)) {
+            return $currentPreferences; // Pas de changement nécessaire
+        }
+
+        // Ajouter le sport à la fin de la liste
+        $newPreferences = array_merge($currentPreferences, [$sport]);
+
+        // Mettre à jour les préférences
+        $user->setSportsPreferences($newPreferences);
+
+        // Sauvegarder en base
+        $this->userRepository->update($userId, [
+            'sports_preferences' => $newPreferences
+        ]);
+
+        return $newPreferences;
+    }
+
     private function validateSports(array $sports): bool
     {
         $validSports = SportSession::getSupportedSports();
