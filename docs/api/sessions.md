@@ -528,9 +528,11 @@ Content-Type: application/json
 }
 ```
 
-**Commentaires système :** Lorsqu'un utilisateur accepte ou refuse une invitation, un commentaire système est automatiquement ajouté à la session avec le message :
-- Acceptation : `"a accepté l'invitation à cette session ✅"`
-- Refus : `"a décliné l'invitation à cette session ❌"`
+**Comportement automatique :**
+- **Ajout aux préférences** : Lors de l'acceptation d'une invitation, le sport de la session est automatiquement ajouté aux préférences de l'utilisateur s'il n'y est pas déjà présent
+- **Commentaires système** : Un commentaire système est automatiquement ajouté à la session avec le message :
+  - Acceptation : `"a accepté l'invitation à cette session ✅"`
+  - Refus : `"a décliné l'invitation à cette session ❌"`
 
 Ce commentaire système déclenche également un événement WebSocket `comment.created` sur le canal `sport-session.{sessionId}` pour l'affichage en temps réel.
 
@@ -963,7 +965,8 @@ Si la session a une limite de participants (`maxParticipants`), l'acceptation d'
 
 1. **Limite de participants** : Si `maxParticipants` est défini, l'acceptation sera bloquée une fois la limite atteinte
 2. **Pas de limite** : Si `maxParticipants` est `null`, il n'y a pas de limite au nombre de participants
-3. **Statuts** : 
+3. **Ajout automatique aux préférences** : Lors de l'acceptation d'une invitation, le sport est automatiquement ajouté aux préférences de l'utilisateur
+4. **Statuts** : 
    - `accepted` : Participant a accepté l'invitation
    - `declined` : Participant a décliné l'invitation
    - `pending` : Participant n'a pas encore répondu 

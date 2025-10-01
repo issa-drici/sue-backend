@@ -10,6 +10,7 @@ use App\Services\ExpoPushNotificationService;
 use App\Services\DateFormatterService;
 use App\Repositories\SportSessionComment\SportSessionCommentRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
+use App\UseCases\User\UpdateSportsPreferencesUseCase;
 use App\Events\CommentCreated;
 use Exception;
 
@@ -21,7 +22,8 @@ class RespondToSessionInvitationUseCase
         private SportSessionCommentRepositoryInterface $commentRepository,
         private UserRepositoryInterface $userRepository,
         private PushTokenRepositoryInterface $pushTokenRepository,
-        private ExpoPushNotificationService $expoService
+        private ExpoPushNotificationService $expoService,
+        private UpdateSportsPreferencesUseCase $updateSportsPreferencesUseCase
     ) {}
 
     public function execute(string $sessionId, string $userId, string $response): SportSession
@@ -56,6 +58,11 @@ class RespondToSessionInvitationUseCase
 
         if (!$success) {
             throw new Exception('Erreur lors de la mise à jour du statut');
+        }
+
+        // Si l'utilisateur accepte, ajouter automatiquement le sport à ses préférences
+        if ($response === 'accept') {
+            $this->addSportToUserPreferences($userId, $session->getSport());
         }
 
         // Créer une notification pour l'organisateur
@@ -172,6 +179,28 @@ class RespondToSessionInvitationUseCase
                 'sessionId' => $session->getId(),
                 'userId' => $userId,
                 'response' => $response,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Ajoute automatiquement le sport aux préférences de l'utilisateur
+     */
+    private function addSportToUserPreferences(string $userId, string $sport): void
+    {
+        try {
+            $this->updateSportsPreferencesUseCase->addSportToPreferences($userId, $sport);
+
+            \Illuminate\Support\Facades\Log::info("Sport ajouté automatiquement aux préférences lors de l'acceptation", [
+                'userId' => $userId,
+                'sport' => $sport
+            ]);
+        } catch (\Exception $e) {
+            // Log l'erreur mais ne pas faire échouer l'acceptation de l'invitation
+            \Illuminate\Support\Facades\Log::error("Erreur lors de l'ajout automatique du sport aux préférences lors de l'acceptation", [
+                'userId' => $userId,
+                'sport' => $sport,
                 'error' => $e->getMessage()
             ]);
         }
