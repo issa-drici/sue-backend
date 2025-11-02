@@ -26,6 +26,11 @@ interface NotificationRepositoryInterface
     public function findBySession(string $sessionId): array;
 
     /**
+     * Vérifie si une notification d'invitation existe déjà pour un utilisateur et une session
+     */
+    public function hasInvitationNotification(string $userId, string $sessionId): bool;
+
+    /**
      * Marquer une notification comme envoyée par push
      */
     public function markAsPushSent(string $id, array $pushData = []): bool;

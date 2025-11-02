@@ -101,26 +101,33 @@ class InviteUsersToSessionUseCase
                     // Déterminer si on doit créer une notification
                     $shouldCreateNotification = $wasDeclined || !$isAlreadyInvited;
 
-
-
                     if ($shouldCreateNotification) {
-                        // Déterminer le type de message selon le cas
-                        $notificationTitle = $wasDeclined
-                            ? DateFormatterService::generateInvitationTitle($session->getSport()) . ' (Nouvelle)'
-                            : DateFormatterService::generateInvitationTitle($session->getSport());
-                        $notificationMessage = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getStartTime(), $session->getEndTime());
+                        // Vérifier si une notification d'invitation existe déjà pour éviter les doublons
+                        if ($this->notificationRepository->hasInvitationNotification($userId, $sessionId)) {
+                            \Illuminate\Support\Facades\Log::info("Notification d'invitation déjà existante, ignorée", [
+                                'userId' => $userId,
+                                'sessionId' => $sessionId,
+                                'wasDeclined' => $wasDeclined
+                            ]);
+                        } else {
+                            // Déterminer le type de message selon le cas
+                            $notificationTitle = $wasDeclined
+                                ? DateFormatterService::generateInvitationTitle($session->getSport()) . ' (Nouvelle)'
+                                : DateFormatterService::generateInvitationTitle($session->getSport());
+                            $notificationMessage = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getStartTime(), $session->getEndTime());
 
-                        // Créer une notification pour l'utilisateur invité
-                        $notification = $this->notificationRepository->create([
-                            'user_id' => $userId,
-                            'type' => 'invitation',
-                            'title' => $notificationTitle,
-                            'message' => $notificationMessage,
-                            'session_id' => $sessionId
-                        ]);
+                            // Créer une notification pour l'utilisateur invité
+                            $notification = $this->notificationRepository->create([
+                                'user_id' => $userId,
+                                'type' => 'invitation',
+                                'title' => $notificationTitle,
+                                'message' => $notificationMessage,
+                                'session_id' => $sessionId
+                            ]);
 
-                        // Envoyer une notification push
-                        $this->sendPushNotification($userId, $session, $notification, $wasDeclined);
+                            // Envoyer une notification push
+                            $this->sendPushNotification($userId, $session, $notification, $wasDeclined);
+                        }
                     }
 
                     // Mettre à jour les compteurs

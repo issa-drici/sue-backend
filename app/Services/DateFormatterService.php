@@ -86,6 +86,9 @@ class DateFormatterService
      */
     public static function formatTime(string $time): string
     {
+        // Supprimer les secondes si présentes (format HH:mm:ss -> HH:mm)
+        $time = preg_replace('/:(\d{2})$/', '', $time);
+        // Remplacer les deux points restants par "h"
         return str_replace(':', 'h', $time);
     }
 

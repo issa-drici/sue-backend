@@ -40,7 +40,7 @@ class CreateSportSessionUseCase
         }
 
         // Créer une notification pour l'organisateur
-        $this->createSessionCreatedNotification($session);
+        // $this->createSessionCreatedNotification($session);
 
         // Envoyer des notifications push aux participants invités
         if (isset($data['participantIds']) && !empty($data['participantIds'])) {
@@ -155,6 +155,15 @@ class CreateSportSessionUseCase
             }
 
             try {
+                // Vérifier si une notification d'invitation existe déjà pour éviter les doublons
+                if ($this->notificationRepository->hasInvitationNotification($participantId, $session->getId())) {
+                    \Illuminate\Support\Facades\Log::info("Notification d'invitation déjà existante, ignorée", [
+                        'userId' => $participantId,
+                        'sessionId' => $session->getId()
+                    ]);
+                    continue;
+                }
+
                 // Créer une notification pour l'utilisateur invité
                 $notification = $this->notificationRepository->create([
                     'user_id' => $participantId,
@@ -166,7 +175,6 @@ class CreateSportSessionUseCase
 
                 // Envoyer une notification push
                 $this->sendPushNotification($participantId, $session, $notification);
-
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error("Erreur lors de l'envoi de notification d'invitation", [
                     'userId' => $participantId,
@@ -228,7 +236,6 @@ class CreateSportSessionUseCase
                 'tokensCount' => count($pushTokens),
                 'result' => $result
             ]);
-
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Erreur lors de l'envoi de notification push", [
                 'userId' => $userId,

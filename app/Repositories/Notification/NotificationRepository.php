@@ -105,6 +105,17 @@ class NotificationRepository implements NotificationRepositoryInterface
             ->toArray();
     }
 
+    /**
+     * Vérifie si une notification d'invitation existe déjà pour un utilisateur et une session
+     */
+    public function hasInvitationNotification(string $userId, string $sessionId): bool
+    {
+        return NotificationModel::where('user_id', $userId)
+            ->where('session_id', $sessionId)
+            ->where('type', 'invitation')
+            ->exists();
+    }
+
     public function markAsPushSent(string $id, array $pushData = []): bool
     {
         $model = NotificationModel::find($id);
