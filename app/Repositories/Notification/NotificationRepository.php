@@ -131,6 +131,39 @@ class NotificationRepository implements NotificationRepositoryInterface
         ]);
     }
 
+    /**
+     * Crée une notification d'invitation de manière atomique pour éviter les doublons
+     * Utilise une transaction avec un verrou pour éviter les conditions de course
+     */
+    public function createInvitationNotificationIfNotExists(string $userId, string $sessionId, string $title, string $message): ?Notification
+    {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($userId, $sessionId, $title, $message) {
+            // Vérifier avec un verrou pour éviter les conditions de course
+            $existing = NotificationModel::where('user_id', $userId)
+                ->where('session_id', $sessionId)
+                ->where('type', 'invitation')
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing) {
+                return $this->mapToEntity($existing);
+            }
+
+            // Créer la notification
+            $model = NotificationModel::create([
+                'id' => Str::uuid(),
+                'user_id' => $userId,
+                'type' => 'invitation',
+                'title' => $title,
+                'message' => $message,
+                'session_id' => $sessionId,
+                'read' => false,
+            ]);
+
+            return $this->mapToEntity($model);
+        });
+    }
+
     private function mapToEntity(NotificationModel $model): Notification
     {
         return new Notification(
