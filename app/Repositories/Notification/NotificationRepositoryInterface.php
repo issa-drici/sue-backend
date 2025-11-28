@@ -34,10 +34,4 @@ interface NotificationRepositoryInterface
      * Marquer une notification comme envoyée par push
      */
     public function markAsPushSent(string $id, array $pushData = []): bool;
-
-    /**
-     * Crée une notification d'invitation de manière atomique pour éviter les doublons
-     * Retourne la notification existante si elle existe déjà, sinon crée une nouvelle
-     */
-    public function createInvitationNotificationIfNotExists(string $userId, string $sessionId, string $title, string $message): ?Notification;
 }

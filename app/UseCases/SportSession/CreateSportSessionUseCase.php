@@ -42,10 +42,8 @@ class CreateSportSessionUseCase
         // Créer une notification pour l'organisateur
         // $this->createSessionCreatedNotification($session);
 
-        // Envoyer des notifications push aux participants invités
-        if (isset($data['participantIds']) && !empty($data['participantIds'])) {
-            $this->sendInvitationNotifications($session, $data['participantIds']);
-        }
+        // Note: Les notifications d'invitation sont envoyées uniquement via l'endpoint d'invitation classique
+        // pour éviter les doublons
 
         return $session;
     }
@@ -143,123 +141,6 @@ class CreateSportSessionUseCase
         ]);
     }
 
-    /**
-     * Envoie des notifications push aux participants invités
-     */
-    private function sendInvitationNotifications(SportSession $session, array $participantIds): void
-    {
-        foreach ($participantIds as $participantId) {
-            // Ignorer l'organisateur
-            if ($participantId === $session->getOrganizer()->getId()) {
-                continue;
-            }
-
-            try {
-                // Créer une notification de manière atomique pour éviter les doublons
-                $title = DateFormatterService::generateInvitationTitle($session->getSport());
-                $message = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getStartTime(), $session->getEndTime());
-                
-                // Enregistrer le timestamp avant la création pour détecter si c'est une nouvelle notification
-                $beforeCreation = time();
-                
-                $notification = $this->notificationRepository->createInvitationNotificationIfNotExists(
-                    $participantId,
-                    $session->getId(),
-                    $title,
-                    $message
-                );
-
-                if (!$notification) {
-                    \Illuminate\Support\Facades\Log::warning("Impossible de créer la notification d'invitation", [
-                        'userId' => $participantId,
-                        'sessionId' => $session->getId()
-                    ]);
-                    continue;
-                }
-
-                // Envoyer une notification push seulement si c'est une nouvelle notification
-                // (vérifier si la notification a été créée récemment, dans les 5 dernières secondes)
-                $createdAtTimestamp = $notification->getCreatedAt()->getTimestamp();
-                $isNewNotification = ($createdAtTimestamp >= $beforeCreation - 2);
-
-                if ($isNewNotification && !$notification->isPushSent()) {
-                    $this->sendPushNotification($participantId, $session, $notification);
-                } else {
-                    \Illuminate\Support\Facades\Log::info("Notification d'invitation déjà existante ou push déjà envoyé", [
-                        'userId' => $participantId,
-                        'sessionId' => $session->getId(),
-                        'isPushSent' => $notification->isPushSent()
-                    ]);
-                }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error("Erreur lors de l'envoi de notification d'invitation", [
-                    'userId' => $participantId,
-                    'sessionId' => $session->getId(),
-                    'error' => $e->getMessage()
-                ]);
-            }
-        }
-    }
-
-    /**
-     * Envoie une notification push à l'utilisateur invité
-     */
-    private function sendPushNotification(string $userId, SportSession $session, $notification): void
-    {
-        try {
-            // Récupérer les tokens push de l'utilisateur
-            $pushTokens = $this->pushTokenRepository->getTokensForUser($userId);
-
-
-
-            if (empty($pushTokens)) {
-                \Illuminate\Support\Facades\Log::info("Aucun token push trouvé pour l'utilisateur", [
-                    'userId' => $userId
-                ]);
-                return;
-            }
-
-            // Préparer le message de notification
-            $title = DateFormatterService::generatePushInvitationTitle($session->getSport());
-            $body = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getStartTime(), $session->getEndTime());
-
-            // Données supplémentaires pour l'app mobile
-            $data = [
-                'type' => 'session_invitation',
-                'session_id' => $session->getId(),
-                'notification_id' => $notification->getId(),
-                'sport' => $session->getSport(),
-                'date' => $session->getDate(),
-                'startTime' => $session->getStartTime(),
-                'endTime' => $session->getEndTime(),
-                'location' => $session->getLocation()
-            ];
-
-            // Envoyer la notification push
-            $result = $this->expoPushService->sendNotification(
-                $pushTokens,
-                $title,
-                $body,
-                $data
-            );
-
-            // Marquer la notification comme envoyée par push
-            $this->notificationRepository->markAsPushSent($notification->getId(), $result);
-
-            \Illuminate\Support\Facades\Log::info("Notification push envoyée pour invitation", [
-                'userId' => $userId,
-                'sessionId' => $session->getId(),
-                'tokensCount' => count($pushTokens),
-                'result' => $result
-            ]);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Erreur lors de l'envoi de notification push", [
-                'userId' => $userId,
-                'sessionId' => $session->getId(),
-                'error' => $e->getMessage()
-            ]);
-        }
-    }
 
     /**
      * Ajoute automatiquement le sport aux préférences de l'organisateur

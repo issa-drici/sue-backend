@@ -99,60 +99,35 @@ class InviteUsersToSessionUseCase
                     ];
 
                     // Déterminer si on doit créer une notification
-                    // Ne créer une notification que si :
-                    // 1. L'utilisateur a décliné (réinvitation) OU
-                    // 2. L'utilisateur n'était pas déjà invité (nouvelle invitation)
-                    // IMPORTANT: Si l'utilisateur est déjà invité, on ne crée JAMAIS de notification
-                    // pour éviter les doublons même en cas de condition de course
                     $shouldCreateNotification = $wasDeclined || !$isAlreadyInvited;
 
                     if ($shouldCreateNotification) {
-                        // Déterminer le type de message selon le cas
-                        $notificationTitle = $wasDeclined
-                            ? DateFormatterService::generateInvitationTitle($session->getSport()) . ' (Nouvelle)'
-                            : DateFormatterService::generateInvitationTitle($session->getSport());
-                        $notificationMessage = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getStartTime(), $session->getEndTime());
-
-                        // Enregistrer le timestamp avant la création pour détecter si c'est une nouvelle notification
-                        $beforeCreation = time();
-
-                        // Créer une notification de manière atomique pour éviter les doublons
-                        $notification = $this->notificationRepository->createInvitationNotificationIfNotExists(
-                            $userId,
-                            $sessionId,
-                            $notificationTitle,
-                            $notificationMessage
-                        );
-
-                        if (!$notification) {
-                            \Illuminate\Support\Facades\Log::warning("Impossible de créer la notification d'invitation", [
+                        // Vérifier si une notification d'invitation existe déjà pour éviter les doublons
+                        if ($this->notificationRepository->hasInvitationNotification($userId, $sessionId)) {
+                            \Illuminate\Support\Facades\Log::info("Notification d'invitation déjà existante, ignorée", [
                                 'userId' => $userId,
-                                'sessionId' => $sessionId
+                                'sessionId' => $sessionId,
+                                'wasDeclined' => $wasDeclined
                             ]);
                         } else {
-                            // Envoyer une notification push seulement si c'est une nouvelle notification
-                            // (vérifier si la notification a été créée récemment, dans les 2 dernières secondes)
-                            $createdAtTimestamp = $notification->getCreatedAt()->getTimestamp();
-                            $isNewNotification = ($createdAtTimestamp >= $beforeCreation - 2);
+                            // Déterminer le type de message selon le cas
+                            $notificationTitle = $wasDeclined
+                                ? DateFormatterService::generateInvitationTitle($session->getSport()) . ' (Nouvelle)'
+                                : DateFormatterService::generateInvitationTitle($session->getSport());
+                            $notificationMessage = DateFormatterService::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getStartTime(), $session->getEndTime());
 
-                            if ($isNewNotification && !$notification->isPushSent()) {
-                                $this->sendPushNotification($userId, $session, $notification, $wasDeclined);
-                            } else {
-                                \Illuminate\Support\Facades\Log::info("Notification d'invitation déjà existante ou push déjà envoyé", [
-                                    'userId' => $userId,
-                                    'sessionId' => $sessionId,
-                                    'wasDeclined' => $wasDeclined,
-                                    'isPushSent' => $notification->isPushSent()
-                                ]);
-                            }
+                            // Créer une notification pour l'utilisateur invité
+                            $notification = $this->notificationRepository->create([
+                                'user_id' => $userId,
+                                'type' => 'invitation',
+                                'title' => $notificationTitle,
+                                'message' => $notificationMessage,
+                                'session_id' => $sessionId
+                            ]);
+
+                            // Envoyer une notification push
+                            $this->sendPushNotification($userId, $session, $notification, $wasDeclined);
                         }
-                    } else {
-                        \Illuminate\Support\Facades\Log::info("Notification d'invitation non créée (utilisateur déjà invité)", [
-                            'userId' => $userId,
-                            'sessionId' => $sessionId,
-                            'isAlreadyInvited' => $isAlreadyInvited,
-                            'wasDeclined' => $wasDeclined
-                        ]);
                     }
 
                     // Mettre à jour les compteurs
