@@ -17,6 +17,7 @@ class UpdateSportSessionAction extends Controller
     {
         try {
             $data = $request->validate([
+                'sport' => 'sometimes|in:' . \App\Services\SportService::getValidationRule(),
                 'date' => 'sometimes|date_format:Y-m-d|after_or_equal:today',
                 'startTime' => 'sometimes|date_format:H:i',
                 'endTime' => 'sometimes|date_format:H:i',

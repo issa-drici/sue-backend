@@ -120,6 +120,9 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
         // Mapper les champs de l'API vers les champs de la base de données
         $mappedData = [];
+        if (isset($data['sport'])) {
+            $mappedData['sport'] = $data['sport'];
+        }
         if (isset($data['startTime'])) {
             $mappedData['start_time'] = $data['startTime'];
         }

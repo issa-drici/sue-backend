@@ -5,6 +5,7 @@ namespace App\UseCases\SportSession;
 use App\Entities\SportSession;
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
 use App\Repositories\Notification\NotificationRepositoryInterface;
+use App\Services\SportService;
 use Exception;
 
 class UpdateSportSessionUseCase
@@ -51,6 +52,11 @@ class UpdateSportSessionUseCase
 
     private function validateUpdateData(array $data): void
     {
+        // Validation du sport
+        if (isset($data['sport']) && !SportService::isValidSport($data['sport'])) {
+            throw new Exception('Sport invalide');
+        }
+
         if (isset($data['startTime']) && !$this->isValidTime($data['startTime'])) {
             throw new Exception('Heure de début invalide');
         }
@@ -127,6 +133,7 @@ class UpdateSportSessionUseCase
                         'session_id' => $session->getId(),
                         'organizer_id' => $session->getOrganizer()->getId(),
                         'changes' => [
+                            'sport' => $session->getSport(),
                             'date' => $session->getDate(),
                             'startTime' => $session->getStartTime(),
                             'endTime' => $session->getEndTime(),
