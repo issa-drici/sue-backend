@@ -94,7 +94,7 @@ class SendSessionRemindersCommand extends Command
             '9f8fedb9-23a3-4294-bbd6-52813e86cbe9'
         ];
 
-        $now = Carbon::now();
+        $now = Carbon::now('Europe/Paris');
 
         // Session dans 24h
         $session24hDate = $now->copy()->addHours(24);
@@ -144,9 +144,9 @@ class SendSessionRemindersCommand extends Command
         // Afficher les dates/heures recherchées pour le débogage
         $this->newLine();
         $this->info('Dates/heures qui seront recherchées:');
-        $this->line("  24h: " . Carbon::now()->addHours(24)->format('Y-m-d H:i'));
-        $this->line("  1h: " . Carbon::now()->addHour()->format('Y-m-d H:i'));
-        $this->line("  Maintenant: " . Carbon::now()->format('Y-m-d H:i'));
+        $this->line("  24h: " . Carbon::now('Europe/Paris')->addHours(24)->format('Y-m-d H:i'));
+        $this->line("  1h: " . Carbon::now('Europe/Paris')->addHour()->format('Y-m-d H:i'));
+        $this->line("  Maintenant: " . Carbon::now('Europe/Paris')->format('Y-m-d H:i'));
     }
 }
 

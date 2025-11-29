@@ -91,9 +91,10 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function create(array $data): SportSession
     {
-        // Combiner date + startTime en start_date et date + endTime en end_date
-        $startDate = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['startTime'] . ':00');
-        $endDate = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['endTime'] . ':00');
+        // Les dates/heures fournies sont en heure locale (Europe/Paris)
+        // On les crée en Europe/Paris puis on les convertit en UTC pour le stockage
+        $startDate = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['startTime'] . ':00', 'Europe/Paris')->utc();
+        $endDate = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['endTime'] . ':00', 'Europe/Paris')->utc();
 
         $model = SportSessionModel::create([
             'id' => Str::uuid(),
@@ -127,11 +128,12 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $mappedData['sport'] = $data['sport'];
         }
         // Si date, startTime ou endTime sont fournis, combiner en start_date et end_date
+        // Les dates/heures fournies sont en heure locale (Europe/Paris), on les convertit en UTC
         if (isset($data['date']) && isset($data['startTime'])) {
-            $mappedData['start_date'] = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['startTime'] . ':00');
+            $mappedData['start_date'] = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['startTime'] . ':00', 'Europe/Paris')->utc();
         }
         if (isset($data['date']) && isset($data['endTime'])) {
-            $mappedData['end_date'] = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['endTime'] . ':00');
+            $mappedData['end_date'] = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['endTime'] . ':00', 'Europe/Paris')->utc();
         }
         if (array_key_exists('maxParticipants', $data)) {
             $mappedData['max_participants'] = $data['maxParticipants'];
@@ -411,20 +413,41 @@ class SportSessionRepository implements SportSessionRepositoryInterface
      */
     public function findByDateAndTime(string $date, string $time, int $marginMinutes = 1): array
     {
-        // Formater l'heure pour enlever les secondes si présentes (format H:i:s -> H:i)
-        // On garde seulement les 5 premiers caractères (HH:MM) si le format est H:i:s
-        $timeFormatted = preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $time)
-            ? substr($time, 0, 5)
-            : $time;
+        try {
+            // Parser la date
+            $dateParts = explode('-', $date);
+            if (count($dateParts) !== 3) {
+                return [];
+            }
 
-        // Vérifier que le format est valide (H:i)
-        if (empty($timeFormatted) || !preg_match('/^\d{2}:\d{2}$/', $timeFormatted)) {
-            return [];
-        }
+            // Parser l'heure (gère H:i et H:i:s)
+            $timeParts = explode(':', $time);
+            if (count($timeParts) < 2) {
+                return [];
+            }
 
-        // Créer la date/heure cible
-        $targetDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $date . ' ' . $timeFormatted . ':00');
-        if (!$targetDateTime) {
+            $hour = (int) $timeParts[0];
+            $minute = (int) $timeParts[1];
+            $second = isset($timeParts[2]) ? (int) $timeParts[2] : 0;
+
+            // Créer la date/heure cible directement en Europe/Paris
+            $targetDateTime = \Carbon\Carbon::create(
+                (int) $dateParts[0], // year
+                (int) $dateParts[1], // month
+                (int) $dateParts[2], // day
+                $hour,
+                $minute,
+                $second,
+                'Europe/Paris'
+            );
+
+            if (!$targetDateTime) {
+                return [];
+            }
+
+            // Convertir en UTC pour la comparaison avec la base de données (qui stocke en UTC)
+            $targetDateTime = $targetDateTime->utc();
+        } catch (\Exception $e) {
             return [];
         }
 

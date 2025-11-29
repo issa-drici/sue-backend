@@ -191,18 +191,8 @@ class RespondToSessionInvitationUseCase
     {
         try {
             $this->updateSportsPreferencesUseCase->addSportToPreferences($userId, $sport);
-
-            \Illuminate\Support\Facades\Log::info("Sport ajouté automatiquement aux préférences lors de l'acceptation", [
-                'userId' => $userId,
-                'sport' => $sport
-            ]);
         } catch (\Exception $e) {
-            // Log l'erreur mais ne pas faire échouer l'acceptation de l'invitation
-            \Illuminate\Support\Facades\Log::error("Erreur lors de l'ajout automatique du sport aux préférences lors de l'acceptation", [
-                'userId' => $userId,
-                'sport' => $sport,
-                'error' => $e->getMessage()
-            ]);
+            // Ignorer silencieusement l'erreur pour ne pas faire échouer l'acceptation de l'invitation
         }
     }
 }

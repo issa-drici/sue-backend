@@ -15,15 +15,15 @@ class DateFormatterService
     public static function formatDateAndTime(string $date, string $time): string
     {
         try {
-            // Combiner la date et l'heure
-            $dateTime = new DateTime($date . ' ' . $time);
+            // Les dates/heures reçues sont en Europe/Paris (depuis les getters de SportSession)
+            $dateTime = new DateTime($date . ' ' . $time, new \DateTimeZone('Europe/Paris'));
 
             // Créer un formateur de date en français
             $formatter = new IntlDateFormatter(
                 'fr_FR',
                 IntlDateFormatter::FULL,
                 IntlDateFormatter::SHORT,
-                null,
+                \IntlTimeZone::createTimeZone('Europe/Paris'),
                 null,
                 'EEEE d MMMM à HH:mm'
             );
@@ -65,12 +65,13 @@ class DateFormatterService
     public static function formatDate(string $date): string
     {
         try {
-            $dateTime = new DateTime($date);
+            // Les dates reçues sont en Europe/Paris (depuis les getters de SportSession)
+            $dateTime = new DateTime($date, new \DateTimeZone('Europe/Paris'));
             $formatter = new IntlDateFormatter(
                 'fr_FR',
                 IntlDateFormatter::FULL,
                 IntlDateFormatter::NONE,
-                null,
+                \IntlTimeZone::createTimeZone('Europe/Paris'),
                 null,
                 'EEEE d MMMM'
             );
@@ -86,13 +87,24 @@ class DateFormatterService
      */
     public static function formatTime(string $time): string
     {
-        // Supprimer les secondes si présentes (format HH:mm:ss -> HH:mm)
-        // On garde seulement les 5 premiers caractères (HH:MM) si le format est H:i:s
-        $time = preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $time) 
-            ? substr($time, 0, 5) 
-            : $time;
-        // Remplacer les deux points restants par "h"
-        return str_replace(':', 'h', $time);
+        try {
+            // Parser l'heure avec DateTime (gère H:i et H:i:s)
+            $dateTime = DateTime::createFromFormat('H:i:s', $time);
+            if (!$dateTime) {
+                $dateTime = DateTime::createFromFormat('H:i', $time);
+            }
+
+            if (!$dateTime) {
+                // Fallback si le format n'est pas reconnu
+                return str_replace(':', 'h', $time);
+            }
+
+            // Formater en "Hhmm"
+            return $dateTime->format('H\hi');
+        } catch (\Exception $e) {
+            // Fallback en cas d'erreur
+            return str_replace(':', 'h', $time);
+        }
     }
 
     /**
@@ -227,9 +239,9 @@ class DateFormatterService
         $formattedDate = self::formatDate($date);
         $formattedStartTime = self::formatTime($startTime);
 
-        // Vérifier si c'est vraiment demain
-        $sessionDate = new DateTime($date);
-        $tomorrow = new DateTime('tomorrow');
+        // Vérifier si c'est vraiment demain (en Europe/Paris)
+        $sessionDate = new DateTime($date, new \DateTimeZone('Europe/Paris'));
+        $tomorrow = new DateTime('tomorrow', new \DateTimeZone('Europe/Paris'));
         $isTomorrow = $sessionDate->format('Y-m-d') === $tomorrow->format('Y-m-d');
 
         if ($endTime) {

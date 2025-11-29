@@ -48,8 +48,8 @@ class SendSessionRemindersUseCase
     private function sendReminders24h(array &$result): void
     {
         try {
-            // Calculer la date/heure cible (24h avant le début de la session)
-            $targetDateTime = Carbon::now()->addHours(24);
+            // Calculer la date/heure cible en Europe/Paris (24h avant le début de la session)
+            $targetDateTime = Carbon::now('Europe/Paris')->addHours(24);
             $targetDate = $targetDateTime->format('Y-m-d');
             $targetTime = $targetDateTime->format('H:i');
 
@@ -85,8 +85,8 @@ class SendSessionRemindersUseCase
     private function sendReminders1h(array &$result): void
     {
         try {
-            // Calculer la date/heure cible (1h avant le début de la session)
-            $targetDateTime = Carbon::now()->addHour();
+            // Calculer la date/heure cible en Europe/Paris (1h avant le début de la session)
+            $targetDateTime = Carbon::now('Europe/Paris')->addHour();
             $targetDate = $targetDateTime->format('Y-m-d');
             $targetTime = $targetDateTime->format('H:i');
 
@@ -122,8 +122,8 @@ class SendSessionRemindersUseCase
     private function sendRemindersStart(array &$result): void
     {
         try {
-            // Calculer la date/heure actuelle
-            $now = Carbon::now();
+            // Calculer la date/heure actuelle en Europe/Paris
+            $now = Carbon::now('Europe/Paris');
             $targetDate = $now->format('Y-m-d');
             $targetTime = $now->format('H:i');
 
@@ -154,14 +154,9 @@ class SendSessionRemindersUseCase
      */
     private function findSessionsForReminder(string $targetDate, string $targetTime, int $marginMinutes = 1): array
     {
-        // Formater l'heure pour enlever les secondes si présentes (format H:i:s -> H:i)
-        // On garde seulement les 5 premiers caractères (HH:MM) si le format est H:i:s
-        $targetTimeFormatted = preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $targetTime)
-            ? substr($targetTime, 0, 5)
-            : $targetTime;
-
-        // Utiliser la méthode optimisée du repository avec la marge de tolérance
-        return $this->sportSessionRepository->findByDateAndTime($targetDate, $targetTimeFormatted, $marginMinutes);
+        // Le repository gère maintenant le parsing de l'heure avec Carbon
+        // Pas besoin de formater ici, on passe directement la valeur
+        return $this->sportSessionRepository->findByDateAndTime($targetDate, $targetTime, $marginMinutes);
     }
 
     /**

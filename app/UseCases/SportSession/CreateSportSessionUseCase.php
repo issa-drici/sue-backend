@@ -149,18 +149,8 @@ class CreateSportSessionUseCase
     {
         try {
             $this->updateSportsPreferencesUseCase->addSportToPreferences($organizerId, $sport);
-
-            \Illuminate\Support\Facades\Log::info("Sport ajouté automatiquement aux préférences", [
-                'userId' => $organizerId,
-                'sport' => $sport
-            ]);
         } catch (\Exception $e) {
-            // Log l'erreur mais ne pas faire échouer la création de session
-            \Illuminate\Support\Facades\Log::error("Erreur lors de l'ajout automatique du sport aux préférences", [
-                'userId' => $organizerId,
-                'sport' => $sport,
-                'error' => $e->getMessage()
-            ]);
+            // Ignorer silencieusement l'erreur pour ne pas faire échouer la création de session
         }
     }
 }

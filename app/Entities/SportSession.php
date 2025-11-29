@@ -56,17 +56,35 @@ class SportSession
 
     public function getDate(): string
     {
-        return $this->startDate->format('Y-m-d');
+        // Convertir en Europe/Paris avant de formater (la date en base est en UTC)
+        if ($this->startDate instanceof \Carbon\Carbon) {
+            return $this->startDate->copy()->setTimezone('Europe/Paris')->format('Y-m-d');
+        }
+        $date = clone $this->startDate;
+        $date->setTimezone(new \DateTimeZone('Europe/Paris'));
+        return $date->format('Y-m-d');
     }
 
     public function getStartTime(): string
     {
-        return $this->startDate->format('H:i');
+        // Convertir en Europe/Paris avant de formater (la date en base est en UTC)
+        if ($this->startDate instanceof \Carbon\Carbon) {
+            return $this->startDate->copy()->setTimezone('Europe/Paris')->format('H:i');
+        }
+        $date = clone $this->startDate;
+        $date->setTimezone(new \DateTimeZone('Europe/Paris'));
+        return $date->format('H:i');
     }
 
     public function getEndTime(): string
     {
-        return $this->endDate->format('H:i');
+        // Convertir en Europe/Paris avant de formater (la date en base est en UTC)
+        if ($this->endDate instanceof \Carbon\Carbon) {
+            return $this->endDate->copy()->setTimezone('Europe/Paris')->format('H:i');
+        }
+        $date = clone $this->endDate;
+        $date->setTimezone(new \DateTimeZone('Europe/Paris'));
+        return $date->format('H:i');
     }
 
     public function getStartDate(): DateTime
