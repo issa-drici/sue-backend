@@ -199,18 +199,8 @@ class UpdateSportSessionUseCase
         }
 
         $messages = [];
-        $fieldLabels = [
-            'sport' => 'Sport',
-            'date' => 'Date',
-            'startTime' => 'Heure de début',
-            'endTime' => 'Heure de fin',
-            'location' => 'Lieu',
-            'maxParticipants' => 'Nombre maximum de participants',
-            'pricePerPerson' => 'Prix par personne'
-        ];
 
         foreach ($changes as $field => $values) {
-            $label = $fieldLabels[$field] ?? $field;
             $oldValue = $values['old'];
             $newValue = $values['new'];
 
@@ -218,32 +208,36 @@ class UpdateSportSessionUseCase
             if ($field === 'pricePerPerson') {
                 $oldValue = $oldValue !== null ? number_format($oldValue, 2, ',', ' ') . ' €' : 'Gratuit';
                 $newValue = $newValue !== null ? number_format($newValue, 2, ',', ' ') . ' €' : 'Gratuit';
+                $messages[] = "Prix changé : {$newValue}";
             } elseif ($field === 'maxParticipants') {
                 $oldValue = $oldValue !== null ? (string)$oldValue : 'Illimité';
                 $newValue = $newValue !== null ? (string)$newValue : 'Illimité';
+                $messages[] = "Participants max : {$newValue}";
             } elseif ($field === 'sport') {
                 $oldValue = \App\Services\SportService::getFormattedSportName($oldValue);
                 $newValue = \App\Services\SportService::getFormattedSportName($newValue);
+                $messages[] = "Sport changé : {$newValue}";
             } elseif ($field === 'date') {
-                // Formater la date en français
-                $oldValue = \App\Services\DateFormatterService::formatDate($oldValue);
                 $newValue = \App\Services\DateFormatterService::formatDate($newValue);
-            } elseif ($field === 'startTime' || $field === 'endTime') {
-                // Formater l'heure
-                $oldValue = \App\Services\DateFormatterService::formatTime($oldValue);
+                $messages[] = "Date : {$newValue}";
+            } elseif ($field === 'startTime') {
                 $newValue = \App\Services\DateFormatterService::formatTime($newValue);
+                $messages[] = "Début à {$newValue}";
+            } elseif ($field === 'endTime') {
+                $newValue = \App\Services\DateFormatterService::formatTime($newValue);
+                $messages[] = "Fin à {$newValue}";
+            } elseif ($field === 'location') {
+                $messages[] = "Lieu : {$newValue}";
             }
-
-            $messages[] = "{$label} : {$oldValue} → {$newValue}";
         }
 
-        return implode("\n", $messages);
+        return implode(', ', $messages);
     }
 
     private function createSessionUpdatedNotification(SportSession $oldSession, SportSession $newSession, array $changes): void
     {
-        $organizerName = $newSession->getOrganizer()->getFirstname() . ' ' . $newSession->getOrganizer()->getLastname();
         $changesMessage = $this->formatChangesMessage($changes);
+        $sportName = \App\Services\SportService::getFormattedSportName($oldSession->getSport());
 
         foreach ($oldSession->getParticipants() as $participant) {
             // Ne pas notifier l'organisateur lui-même
@@ -253,9 +247,9 @@ class UpdateSportSessionUseCase
 
             // Notifier les participants qui ont accepté ou sont en attente
             if ($participant['status'] === 'accepted' || $participant['status'] === 'pending') {
-                $message = "{$organizerName} a modifié sa session de {$oldSession->getSport()}";
+                $message = "Session de {$sportName} modifiée";
                 if (!empty($changesMessage)) {
-                    $message .= "\n\n" . $changesMessage;
+                    $message .= ". " . $changesMessage;
                 }
 
                 $this->notificationRepository->create([
@@ -277,8 +271,8 @@ class UpdateSportSessionUseCase
 
     private function sendPushNotifications(SportSession $oldSession, SportSession $newSession, array $changes): void
     {
-        $organizerName = $newSession->getOrganizer()->getFirstname() . ' ' . $newSession->getOrganizer()->getLastname();
         $changesMessage = $this->formatChangesMessage($changes);
+        $sportName = \App\Services\SportService::getFormattedSportName($oldSession->getSport());
 
         foreach ($oldSession->getParticipants() as $participant) {
             // Ne pas notifier l'organisateur lui-même
@@ -292,9 +286,9 @@ class UpdateSportSessionUseCase
                 $pushTokens = $this->pushTokenRepository->getTokensForUser($participant['id']);
                 
                 if (!empty($pushTokens)) {
-                    $message = "{$organizerName} a modifié sa session de {$oldSession->getSport()}";
+                    $message = "Session de {$sportName} modifiée";
                     if (!empty($changesMessage)) {
-                        $message .= "\n\n" . $changesMessage;
+                        $message .= ". " . $changesMessage;
                     }
 
                     $this->pushNotificationService->sendNotification(
