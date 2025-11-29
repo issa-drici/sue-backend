@@ -147,6 +147,9 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         if (isset($data['status'])) {
             $mappedData['status'] = $data['status'];
         }
+        if (isset($data['organizer_id'])) {
+            $mappedData['organizer_id'] = $data['organizer_id'];
+        }
 
         $model->update($mappedData);
 

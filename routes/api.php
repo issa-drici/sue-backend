@@ -30,6 +30,7 @@ use App\Http\Controllers\SportSession\InviteUsersToSessionAction;
 use App\Http\Controllers\SportSession\FindMyCreatedSessionsAction;
 use App\Http\Controllers\SportSession\FindMyParticipationsAction;
 use App\Http\Controllers\SportSession\FindMyHistoryAction;
+use App\Http\Controllers\SportSession\ChangeSessionOrganizerAction;
 
 // Comment Controllers
 use App\Http\Controllers\SportSession\CreateCommentAction;
@@ -135,6 +136,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::patch('/sessions/{id}/respond', RespondToSessionInvitationAction::class);
     Route::patch('/sessions/{id}/cancel-participation', CancelParticipationAction::class);
     Route::patch('/sessions/{id}/cancel', CancelSportSessionAction::class);
+    Route::patch('/sessions/{id}/change-organizer', ChangeSessionOrganizerAction::class);
 
     // Commentaires en temps réel
     Route::get('/sessions/{sessionId}/comments', GetCommentsAction::class);

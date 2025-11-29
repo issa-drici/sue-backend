@@ -121,7 +121,8 @@ class UpdateSportSessionUseCase
                 continue;
             }
 
-            if ($participant['status'] === 'accepted') {
+            // Notifier les participants qui ont accepté ou sont en attente
+            if ($participant['status'] === 'accepted' || $participant['status'] === 'pending') {
                 $this->notificationRepository->create([
                     'user_id' => $participant['id'],
                     'type' => 'session_update',
