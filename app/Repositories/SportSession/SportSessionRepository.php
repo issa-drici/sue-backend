@@ -400,4 +400,98 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $comments
         );
     }
+
+    /**
+     * Trouve les sessions actives qui commencent à une date et heure précises
+     * Optimisé pour les rappels - ne charge que les sessions nécessaires
+     * Compatible PostgreSQL et MySQL
+     *
+     * @param string $date Date au format Y-m-d
+     * @param string $time Heure au format H:i
+     * @param int $marginMinutes Marge de tolérance en minutes (par défaut 1 minute)
+     */
+    public function findByDateAndTime(string $date, string $time, int $marginMinutes = 1): array
+    {
+        // Formater l'heure pour enlever les secondes si présentes
+        $timeFormatted = preg_replace('/:(\d{2})$/', '', $time);
+
+        // Vérifier que le format est valide
+        if (empty($timeFormatted) || !preg_match('/^\d{2}:\d{2}$/', $timeFormatted)) {
+            return [];
+        }
+
+        // Détecter le driver de base de données
+        $connection = \Illuminate\Support\Facades\DB::connection();
+        $driver = $connection->getDriverName();
+
+        $models = SportSessionModel::with(['organizer', 'participants.user'])
+            ->where('status', 'active')
+            ->whereDate('date', $date);
+
+        // Utiliser la syntaxe appropriée selon le driver
+        if ($driver === 'pgsql') {
+            // PostgreSQL : utiliser TO_CHAR pour formater l'heure en HH24:MI
+            // start_time est un type TIME(0), on le formate directement
+            if ($marginMinutes > 0) {
+                // Créer une plage de temps en utilisant une date complète pour Carbon
+                $timeObj = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $date . ' ' . $timeFormatted . ':00');
+                if (!$timeObj) {
+                    return [];
+                }
+
+                $minTime = $timeObj->copy()->subMinutes($marginMinutes)->format('H:i');
+                $maxTime = $timeObj->copy()->addMinutes($marginMinutes)->format('H:i');
+
+                // Gérer le cas où on passe minuit (ex: 23:59 > 00:01)
+                if ($minTime > $maxTime) {
+                    // Si minTime > maxTime, on cherche dans deux plages : de minTime à 23:59 et de 00:00 à maxTime
+                    $models->where(function ($query) use ($minTime, $maxTime) {
+                        $query->whereRaw("TO_CHAR(start_time, 'HH24:MI') >= ?", [$minTime])
+                              ->orWhereRaw("TO_CHAR(start_time, 'HH24:MI') <= ?", [$maxTime]);
+                    });
+                } else {
+                    $models->whereRaw("TO_CHAR(start_time, 'HH24:MI') >= ? AND TO_CHAR(start_time, 'HH24:MI') <= ?", [$minTime, $maxTime]);
+                }
+            } else {
+                // Recherche exacte
+                $models->whereRaw("TO_CHAR(start_time, 'HH24:MI') = ?", [$timeFormatted]);
+            }
+        } else {
+            // MySQL/MariaDB : utiliser TIME_FORMAT
+            if ($marginMinutes > 0) {
+                try {
+                    // Créer une plage de temps en utilisant une date complète pour Carbon
+                    $timeObj = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $date . ' ' . $timeFormatted . ':00');
+                    if (!$timeObj) {
+                        return [];
+                    }
+
+                    $minTime = $timeObj->copy()->subMinutes($marginMinutes)->format('H:i');
+                    $maxTime = $timeObj->copy()->addMinutes($marginMinutes)->format('H:i');
+
+                    // Gérer le cas où on passe minuit (ex: 23:59 > 00:01)
+                    if ($minTime > $maxTime) {
+                        // Si minTime > maxTime, on cherche dans deux plages : de minTime à 23:59 et de 00:00 à maxTime
+                        $models->where(function ($query) use ($minTime, $maxTime) {
+                            $query->whereRaw('TIME_FORMAT(start_time, "%H:%i") >= ?', [$minTime])
+                                  ->orWhereRaw('TIME_FORMAT(start_time, "%H:%i") <= ?', [$maxTime]);
+                        });
+                    } else {
+                        $models->whereRaw('TIME_FORMAT(start_time, "%H:%i") >= ? AND TIME_FORMAT(start_time, "%H:%i") <= ?', [$minTime, $maxTime]);
+                    }
+                } catch (\Exception $e) {
+                    // En cas d'erreur, fallback sur une recherche exacte
+                    $models->whereRaw('TIME_FORMAT(start_time, "%H:%i") = ?', [$timeFormatted]);
+                }
+            } else {
+                $models->whereRaw('TIME_FORMAT(start_time, "%H:%i") = ?', [$timeFormatted]);
+            }
+        }
+
+        $models = $models->get();
+
+        return $models->map(function ($model) {
+            return $this->mapToEntity($model);
+        })->toArray();
+    }
 }

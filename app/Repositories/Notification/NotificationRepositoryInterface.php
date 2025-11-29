@@ -34,4 +34,9 @@ interface NotificationRepositoryInterface
      * Marquer une notification comme envoyée par push
      */
     public function markAsPushSent(string $id, array $pushData = []): bool;
+
+    /**
+     * Vérifie si une notification de rappel d'un type spécifique existe déjà pour un utilisateur et une session
+     */
+    public function hasReminderNotification(string $userId, string $sessionId, string $reminderType): bool;
 }

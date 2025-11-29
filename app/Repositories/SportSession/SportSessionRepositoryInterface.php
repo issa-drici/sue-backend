@@ -42,4 +42,9 @@ interface SportSessionRepositoryInterface
     public function findParticipant(string $sessionId, string $userId): ?array;
 
     public function inviteUser(string $sessionId, string $userId): bool;
+
+    /**
+     * Trouve les sessions actives qui commencent à une date et heure précises
+     */
+    public function findByDateAndTime(string $date, string $time): array;
 }

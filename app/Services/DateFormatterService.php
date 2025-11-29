@@ -203,4 +203,79 @@ class DateFormatterService
             $commentDate->format('H:i')
         );
     }
+
+    /**
+     * Génère un titre de notification push pour un rappel 24h avant
+     * Exemple: "⏰ Rappel Tennis"
+     */
+    public static function generateReminder24hTitle(string $sport): string
+    {
+        $sportName = self::getSportName($sport);
+        return "⏰ Rappel {$sportName}";
+    }
+
+    /**
+     * Génère un message de notification pour un rappel 24h avant
+     * Exemple: "Votre session de Tennis commence demain mardi 5 août à 10h30"
+     */
+    public static function generateReminder24hMessage(string $sport, string $date, string $startTime, ?string $endTime = null): string
+    {
+        $sportName = self::getSportName($sport);
+        $formattedDate = self::formatDate($date);
+        $formattedStartTime = self::formatTime($startTime);
+
+        if ($endTime) {
+            $formattedEndTime = self::formatTime($endTime);
+            return "Votre session de {$sportName} commence demain {$formattedDate} de {$formattedStartTime} à {$formattedEndTime}";
+        } else {
+            return "Votre session de {$sportName} commence demain {$formattedDate} à {$formattedStartTime}";
+        }
+    }
+
+    /**
+     * Génère un titre de notification push pour un rappel 1h avant
+     * Exemple: "⏰ Rappel Tennis"
+     */
+    public static function generateReminder1hTitle(string $sport): string
+    {
+        $sportName = self::getSportName($sport);
+        return "⏰ Rappel {$sportName}";
+    }
+
+    /**
+     * Génère un message de notification pour un rappel 1h avant
+     * Exemple: "Votre session de Tennis commence dans 1 heure à 10h30"
+     */
+    public static function generateReminder1hMessage(string $sport, string $date, string $startTime, ?string $endTime = null): string
+    {
+        $sportName = self::getSportName($sport);
+        $formattedStartTime = self::formatTime($startTime);
+
+        if ($endTime) {
+            $formattedEndTime = self::formatTime($endTime);
+            return "Votre session de {$sportName} commence dans 1 heure de {$formattedStartTime} à {$formattedEndTime}";
+        } else {
+            return "Votre session de {$sportName} commence dans 1 heure à {$formattedStartTime}";
+        }
+    }
+
+    /**
+     * Génère un titre de notification push pour un rappel au démarrage
+     * Exemple: "🏃‍♂️ Session Tennis"
+     */
+    public static function generateReminderStartTitle(string $sport): string
+    {
+        $sportName = self::getSportName($sport);
+        return "🏃‍♂️ Session {$sportName}";
+    }
+
+    /**
+     * Génère un message de notification pour un rappel au démarrage
+     * Exemple: "Votre session de Tennis commence maintenant !"
+     */
+    public static function generateReminderStartMessage(string $sport): string
+    {
+        $sportName = self::getSportName($sport);
+        return "Votre session de {$sportName} commence maintenant !";
+    }
 }

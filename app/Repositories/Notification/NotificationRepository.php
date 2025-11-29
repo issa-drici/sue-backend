@@ -131,6 +131,21 @@ class NotificationRepository implements NotificationRepositoryInterface
         ]);
     }
 
+    /**
+     * Vérifie si une notification de rappel d'un type spécifique existe déjà pour un utilisateur et une session
+     * Le type de rappel est stocké dans le champ push_data avec la clé 'reminder_type'
+     * Optimisé avec une requête SQL directe
+     */
+    public function hasReminderNotification(string $userId, string $sessionId, string $reminderType): bool
+    {
+        // Utiliser JSON_EXTRACT pour une recherche plus efficace
+        return NotificationModel::where('user_id', $userId)
+            ->where('session_id', $sessionId)
+            ->where('type', 'reminder')
+            ->whereRaw('JSON_EXTRACT(push_data, "$.reminder_type") = ?', [json_encode($reminderType)])
+            ->exists();
+    }
+
     private function mapToEntity(NotificationModel $model): Notification
     {
         return new Notification(
