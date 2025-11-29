@@ -154,8 +154,11 @@ class SendSessionRemindersUseCase
      */
     private function findSessionsForReminder(string $targetDate, string $targetTime, int $marginMinutes = 1): array
     {
-        // Formater l'heure pour enlever les secondes si présentes
-        $targetTimeFormatted = preg_replace('/:(\d{2})$/', '', $targetTime);
+        // Formater l'heure pour enlever les secondes si présentes (format H:i:s -> H:i)
+        // On garde seulement les 5 premiers caractères (HH:MM) si le format est H:i:s
+        $targetTimeFormatted = preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $targetTime)
+            ? substr($targetTime, 0, 5)
+            : $targetTime;
 
         // Utiliser la méthode optimisée du repository avec la marge de tolérance
         return $this->sportSessionRepository->findByDateAndTime($targetDate, $targetTimeFormatted, $marginMinutes);

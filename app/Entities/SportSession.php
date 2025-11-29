@@ -8,9 +8,8 @@ class SportSession
 {
     private string $id;
     private string $sport;
-    private string $date;
-    private string $startTime;
-    private string $endTime;
+    private DateTime $startDate;
+    private DateTime $endDate;
     private string $location;
     private ?int $maxParticipants;
     private ?float $pricePerPerson;
@@ -22,9 +21,8 @@ class SportSession
     public function __construct(
         string $id,
         string $sport,
-        string $date,
-        string $startTime,
-        string $endTime,
+        DateTime|string $startDate,
+        DateTime|string $endDate,
         string $location,
         ?int $maxParticipants,
         ?float $pricePerPerson,
@@ -35,9 +33,8 @@ class SportSession
     ) {
         $this->id = $id;
         $this->sport = $sport;
-        $this->date = $date;
-        $this->startTime = $startTime;
-        $this->endTime = $endTime;
+        $this->startDate = $startDate instanceof DateTime ? $startDate : new DateTime($startDate);
+        $this->endDate = $endDate instanceof DateTime ? $endDate : new DateTime($endDate);
         $this->location = $location;
         $this->maxParticipants = $maxParticipants;
         $this->pricePerPerson = $pricePerPerson;
@@ -59,17 +56,27 @@ class SportSession
 
     public function getDate(): string
     {
-        return $this->date;
+        return $this->startDate->format('Y-m-d');
     }
 
     public function getStartTime(): string
     {
-        return $this->startTime;
+        return $this->startDate->format('H:i');
     }
 
     public function getEndTime(): string
     {
-        return $this->endTime;
+        return $this->endDate->format('H:i');
+    }
+
+    public function getStartDate(): DateTime
+    {
+        return $this->startDate;
+    }
+
+    public function getEndDate(): DateTime
+    {
+        return $this->endDate;
     }
 
     public function getLocation(): string
@@ -152,9 +159,11 @@ class SportSession
         return [
             'id' => $this->id,
             'sport' => $this->sport,
-            'date' => $this->date,
-            'startTime' => $this->startTime,
-            'endTime' => $this->endTime,
+            'date' => $this->getDate(),
+            'startTime' => $this->getStartTime(),
+            'endTime' => $this->getEndTime(),
+            'startDate' => $this->startDate->format('c'),
+            'endDate' => $this->endDate->format('c'),
             'location' => $this->location,
             'maxParticipants' => $this->maxParticipants,
             'pricePerPerson' => $this->pricePerPerson,

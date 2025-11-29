@@ -19,9 +19,8 @@ class SportSessionModel extends Model
     protected $fillable = [
         'id',
         'sport',
-        'date',
-        'start_time',
-        'end_time',
+        'start_date',
+        'end_date',
         'location',
         'max_participants',
         'price_per_person',
@@ -30,9 +29,8 @@ class SportSessionModel extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
-        'start_time' => 'string',
-        'end_time' => 'string',
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
         'max_participants' => 'integer',
         'price_per_person' => 'decimal:2',
     ];
@@ -64,7 +62,7 @@ class SportSessionModel extends Model
 
     public function scopeByDate($query, string $date)
     {
-        return $query->where('date', $date);
+        return $query->whereDate('start_date', $date);
     }
 
     public function scopeByOrganizer($query, string $organizerId)
@@ -74,11 +72,11 @@ class SportSessionModel extends Model
 
     public function scopeUpcoming($query)
     {
-        return $query->where('date', '>=', now()->toDateString());
+        return $query->where('start_date', '>=', now());
     }
 
     public function scopePast($query)
     {
-        return $query->where('date', '<', now()->toDateString());
+        return $query->where('start_date', '<', now());
     }
 }

@@ -41,7 +41,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $query->byOrganizer($filters['organizer_id']);
         }
 
-        $paginator = $query->orderBy('date', 'asc')->paginate($limit, ['*'], 'page', $page);
+        $paginator = $query->orderBy('start_date', 'asc')->paginate($limit, ['*'], 'page', $page);
 
         $paginator->getCollection()->transform(function ($model) {
             return $this->mapToEntity($model);
@@ -70,16 +70,16 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         if (isset($filters['past_sessions']) && $filters['past_sessions']) {
             // Pour l'historique : inclure les sessions passées ET les sessions annulées (même futures)
             $query->where(function ($q) {
-                $q->where('date', '<', now()->format('Y-m-d'))
+                $q->where('start_date', '<', now())
                   ->orWhere('status', 'cancelled');
             });
-            // Pour l'historique : tri par date décroissante puis heure décroissante (plus récent en premier)
-            $paginator = $query->orderBy('date', 'desc')->orderBy('start_time', 'desc')->paginate($limit, ['*'], 'page', $page);
+            // Pour l'historique : tri par date décroissante (plus récent en premier)
+            $paginator = $query->orderBy('start_date', 'desc')->paginate($limit, ['*'], 'page', $page);
         } else {
             // Pour les sessions futures/actuelles : exclure les sessions passées et les sessions annulées
             $query->where('status', 'active')
-                  ->where('date', '>=', now()->format('Y-m-d'));
-            $paginator = $query->orderBy('date', 'asc')->orderBy('start_time', 'asc')->paginate($limit, ['*'], 'page', $page);
+                  ->where('start_date', '>=', now());
+            $paginator = $query->orderBy('start_date', 'asc')->paginate($limit, ['*'], 'page', $page);
         }
 
         $paginator->getCollection()->transform(function ($model) {
@@ -91,12 +91,15 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function create(array $data): SportSession
     {
+        // Combiner date + startTime en start_date et date + endTime en end_date
+        $startDate = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['startTime'] . ':00');
+        $endDate = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['endTime'] . ':00');
+
         $model = SportSessionModel::create([
             'id' => Str::uuid(),
             'sport' => $data['sport'],
-            'date' => $data['date'],
-            'start_time' => $data['startTime'],
-            'end_time' => $data['endTime'],
+            'start_date' => $startDate,
+            'end_date' => $endDate,
             'location' => $data['location'],
             'max_participants' => $data['maxParticipants'] ?? null,
             'price_per_person' => $data['pricePerPerson'] ?? null,
@@ -123,20 +126,18 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         if (isset($data['sport'])) {
             $mappedData['sport'] = $data['sport'];
         }
-        if (isset($data['startTime'])) {
-            $mappedData['start_time'] = $data['startTime'];
+        // Si date, startTime ou endTime sont fournis, combiner en start_date et end_date
+        if (isset($data['date']) && isset($data['startTime'])) {
+            $mappedData['start_date'] = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['startTime'] . ':00');
         }
-        if (isset($data['endTime'])) {
-            $mappedData['end_time'] = $data['endTime'];
+        if (isset($data['date']) && isset($data['endTime'])) {
+            $mappedData['end_date'] = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['endTime'] . ':00');
         }
         if (array_key_exists('maxParticipants', $data)) {
             $mappedData['max_participants'] = $data['maxParticipants'];
         }
         if (array_key_exists('pricePerPerson', $data)) {
             $mappedData['price_per_person'] = $data['pricePerPerson'];
-        }
-        if (isset($data['date'])) {
-            $mappedData['date'] = $data['date'];
         }
         if (isset($data['location'])) {
             $mappedData['location'] = $data['location'];
@@ -171,7 +172,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $query->bySport($filters['sport']);
         }
 
-        return $query->orderBy('date', 'asc')->get()->map(function ($model) {
+        return $query->orderBy('start_date', 'asc')->get()->map(function ($model) {
             return $this->mapToEntity($model);
         })->toArray();
     }
@@ -188,7 +189,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $query->bySport($filters['sport']);
         }
 
-        return $query->orderBy('date', 'asc')->get()->map(function ($model) {
+        return $query->orderBy('start_date', 'asc')->get()->map(function ($model) {
             return $this->mapToEntity($model);
         })->toArray();
     }
@@ -210,7 +211,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $query->byDate($filters['date']);
         }
 
-        $paginator = $query->orderBy('date', 'asc')->orderBy('start_time', 'asc')->paginate($limit, ['*'], 'page', $page);
+        $paginator = $query->orderBy('start_date', 'asc')->paginate($limit, ['*'], 'page', $page);
 
         $paginator->getCollection()->transform(function ($model) {
             return $this->mapToEntity($model);
@@ -388,9 +389,8 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         return new SportSession(
             $model->id,
             $model->sport,
-            $model->date->format('Y-m-d'),
-            $model->start_time,
-            $model->end_time,
+            $model->start_date,
+            $model->end_date,
             $model->location,
             $model->max_participants,
             $model->price_per_person,
@@ -404,7 +404,6 @@ class SportSessionRepository implements SportSessionRepositoryInterface
     /**
      * Trouve les sessions actives qui commencent à une date et heure précises
      * Optimisé pour les rappels - ne charge que les sessions nécessaires
-     * Compatible PostgreSQL et MySQL
      *
      * @param string $date Date au format Y-m-d
      * @param string $time Heure au format H:i
@@ -412,80 +411,41 @@ class SportSessionRepository implements SportSessionRepositoryInterface
      */
     public function findByDateAndTime(string $date, string $time, int $marginMinutes = 1): array
     {
-        // Formater l'heure pour enlever les secondes si présentes
-        $timeFormatted = preg_replace('/:(\d{2})$/', '', $time);
+        // Formater l'heure pour enlever les secondes si présentes (format H:i:s -> H:i)
+        // On garde seulement les 5 premiers caractères (HH:MM) si le format est H:i:s
+        $timeFormatted = preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $time)
+            ? substr($time, 0, 5)
+            : $time;
 
-        // Vérifier que le format est valide
+        // Vérifier que le format est valide (H:i)
         if (empty($timeFormatted) || !preg_match('/^\d{2}:\d{2}$/', $timeFormatted)) {
             return [];
         }
 
-        // Détecter le driver de base de données
-        $connection = \Illuminate\Support\Facades\DB::connection();
-        $driver = $connection->getDriverName();
+        // Créer la date/heure cible
+        $targetDateTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $date . ' ' . $timeFormatted . ':00');
+        if (!$targetDateTime) {
+            return [];
+        }
 
         $models = SportSessionModel::with(['organizer', 'participants.user'])
-            ->where('status', 'active')
-            ->whereDate('date', $date);
+            ->where('status', 'active');
 
-        // Utiliser la syntaxe appropriée selon le driver
-        if ($driver === 'pgsql') {
-            // PostgreSQL : utiliser TO_CHAR pour formater l'heure en HH24:MI
-            // start_time est un type TIME(0), on le formate directement
-            if ($marginMinutes > 0) {
-                // Créer une plage de temps en utilisant une date complète pour Carbon
-                $timeObj = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $date . ' ' . $timeFormatted . ':00');
-                if (!$timeObj) {
-                    return [];
-                }
+        if ($marginMinutes > 0) {
+            $minDateTime = $targetDateTime->copy()->subMinutes($marginMinutes);
+            $maxDateTime = $targetDateTime->copy()->addMinutes($marginMinutes);
 
-                $minTime = $timeObj->copy()->subMinutes($marginMinutes)->format('H:i');
-                $maxTime = $timeObj->copy()->addMinutes($marginMinutes)->format('H:i');
-
-                // Gérer le cas où on passe minuit (ex: 23:59 > 00:01)
-                if ($minTime > $maxTime) {
-                    // Si minTime > maxTime, on cherche dans deux plages : de minTime à 23:59 et de 00:00 à maxTime
-                    $models->where(function ($query) use ($minTime, $maxTime) {
-                        $query->whereRaw("TO_CHAR(start_time, 'HH24:MI') >= ?", [$minTime])
-                              ->orWhereRaw("TO_CHAR(start_time, 'HH24:MI') <= ?", [$maxTime]);
-                    });
-                } else {
-                    $models->whereRaw("TO_CHAR(start_time, 'HH24:MI') >= ? AND TO_CHAR(start_time, 'HH24:MI') <= ?", [$minTime, $maxTime]);
-                }
-            } else {
-                // Recherche exacte
-                $models->whereRaw("TO_CHAR(start_time, 'HH24:MI') = ?", [$timeFormatted]);
-            }
+            $models->whereBetween('start_date', [
+                $minDateTime->toDateTimeString(),
+                $maxDateTime->toDateTimeString()
+            ]);
         } else {
-            // MySQL/MariaDB : utiliser TIME_FORMAT
-            if ($marginMinutes > 0) {
-                try {
-                    // Créer une plage de temps en utilisant une date complète pour Carbon
-                    $timeObj = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $date . ' ' . $timeFormatted . ':00');
-                    if (!$timeObj) {
-                        return [];
-                    }
-
-                    $minTime = $timeObj->copy()->subMinutes($marginMinutes)->format('H:i');
-                    $maxTime = $timeObj->copy()->addMinutes($marginMinutes)->format('H:i');
-
-                    // Gérer le cas où on passe minuit (ex: 23:59 > 00:01)
-                    if ($minTime > $maxTime) {
-                        // Si minTime > maxTime, on cherche dans deux plages : de minTime à 23:59 et de 00:00 à maxTime
-                        $models->where(function ($query) use ($minTime, $maxTime) {
-                            $query->whereRaw('TIME_FORMAT(start_time, "%H:%i") >= ?', [$minTime])
-                                  ->orWhereRaw('TIME_FORMAT(start_time, "%H:%i") <= ?', [$maxTime]);
-                        });
-                    } else {
-                        $models->whereRaw('TIME_FORMAT(start_time, "%H:%i") >= ? AND TIME_FORMAT(start_time, "%H:%i") <= ?', [$minTime, $maxTime]);
-                    }
-                } catch (\Exception $e) {
-                    // En cas d'erreur, fallback sur une recherche exacte
-                    $models->whereRaw('TIME_FORMAT(start_time, "%H:%i") = ?', [$timeFormatted]);
-                }
-            } else {
-                $models->whereRaw('TIME_FORMAT(start_time, "%H:%i") = ?', [$timeFormatted]);
-            }
+            // Recherche exacte à la minute près - utiliser whereYear, whereMonth, whereDay, whereHour, whereMinute
+            $models->whereYear('start_date', $targetDateTime->year)
+                   ->whereMonth('start_date', $targetDateTime->month)
+                   ->whereDay('start_date', $targetDateTime->day)
+                   ->whereHour('start_date', $targetDateTime->hour)
+                   ->whereMinute('start_date', $targetDateTime->minute);
         }
 
         $models = $models->get();

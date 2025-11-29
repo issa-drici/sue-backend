@@ -138,12 +138,23 @@ class NotificationRepository implements NotificationRepositoryInterface
      */
     public function hasReminderNotification(string $userId, string $sessionId, string $reminderType): bool
     {
-        // Utiliser JSON_EXTRACT pour une recherche plus efficace
-        return NotificationModel::where('user_id', $userId)
-            ->where('session_id', $sessionId)
-            ->where('type', 'reminder')
-            ->whereRaw('JSON_EXTRACT(push_data, "$.reminder_type") = ?', [json_encode($reminderType)])
-            ->exists();
+        $driver = \DB::connection()->getDriverName();
+        
+        if ($driver === 'pgsql') {
+            // PostgreSQL : utiliser l'opérateur ->> pour extraire la valeur JSON comme texte
+            return NotificationModel::where('user_id', $userId)
+                ->where('session_id', $sessionId)
+                ->where('type', 'reminder')
+                ->whereRaw("push_data->>'reminder_type' = ?", [$reminderType])
+                ->exists();
+        } else {
+            // MySQL : utiliser JSON_EXTRACT
+            return NotificationModel::where('user_id', $userId)
+                ->where('session_id', $sessionId)
+                ->where('type', 'reminder')
+                ->whereRaw('JSON_EXTRACT(push_data, "$.reminder_type") = ?', [json_encode($reminderType)])
+                ->exists();
+        }
     }
 
     private function mapToEntity(NotificationModel $model): Notification

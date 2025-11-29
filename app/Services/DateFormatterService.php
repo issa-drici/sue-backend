@@ -87,7 +87,10 @@ class DateFormatterService
     public static function formatTime(string $time): string
     {
         // Supprimer les secondes si présentes (format HH:mm:ss -> HH:mm)
-        $time = preg_replace('/:(\d{2})$/', '', $time);
+        // On garde seulement les 5 premiers caractères (HH:MM) si le format est H:i:s
+        $time = preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $time) 
+            ? substr($time, 0, 5) 
+            : $time;
         // Remplacer les deux points restants par "h"
         return str_replace(':', 'h', $time);
     }
@@ -216,7 +219,7 @@ class DateFormatterService
 
     /**
      * Génère un message de notification pour un rappel 24h avant
-     * Exemple: "Votre session de Tennis commence demain mardi 5 août à 10h30"
+     * Exemple: "Votre session de Tennis commence demain dimanche 30 novembre de 17h à 19h"
      */
     public static function generateReminder24hMessage(string $sport, string $date, string $startTime, ?string $endTime = null): string
     {
@@ -224,11 +227,24 @@ class DateFormatterService
         $formattedDate = self::formatDate($date);
         $formattedStartTime = self::formatTime($startTime);
 
+        // Vérifier si c'est vraiment demain
+        $sessionDate = new DateTime($date);
+        $tomorrow = new DateTime('tomorrow');
+        $isTomorrow = $sessionDate->format('Y-m-d') === $tomorrow->format('Y-m-d');
+
         if ($endTime) {
             $formattedEndTime = self::formatTime($endTime);
-            return "Votre session de {$sportName} commence demain {$formattedDate} de {$formattedStartTime} à {$formattedEndTime}";
+            if ($isTomorrow) {
+                return "Votre session de {$sportName} commence demain {$formattedDate} de {$formattedStartTime} à {$formattedEndTime}";
+            } else {
+                return "Votre session de {$sportName} commence {$formattedDate} de {$formattedStartTime} à {$formattedEndTime}";
+            }
         } else {
-            return "Votre session de {$sportName} commence demain {$formattedDate} à {$formattedStartTime}";
+            if ($isTomorrow) {
+                return "Votre session de {$sportName} commence demain {$formattedDate} à {$formattedStartTime}";
+            } else {
+                return "Votre session de {$sportName} commence {$formattedDate} à {$formattedStartTime}";
+            }
         }
     }
 
@@ -244,7 +260,7 @@ class DateFormatterService
 
     /**
      * Génère un message de notification pour un rappel 1h avant
-     * Exemple: "Votre session de Tennis commence dans 1 heure à 10h30"
+     * Exemple: "Votre session de Football commence dans 1 heure de 18h à 20h"
      */
     public static function generateReminder1hMessage(string $sport, string $date, string $startTime, ?string $endTime = null): string
     {
@@ -271,7 +287,7 @@ class DateFormatterService
 
     /**
      * Génère un message de notification pour un rappel au démarrage
-     * Exemple: "Votre session de Tennis commence maintenant !"
+     * Exemple: "Votre session de Basketball commence maintenant !"
      */
     public static function generateReminderStartMessage(string $sport): string
     {
