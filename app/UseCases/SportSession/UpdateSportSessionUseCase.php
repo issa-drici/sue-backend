@@ -41,6 +41,9 @@ class UpdateSportSessionUseCase
         // Validation des données
         $this->validateUpdateData($data);
 
+        // Sauvegarder l'ancienne session pour comparer les changements
+        $oldSession = $session;
+
         // Mettre à jour la session
         $updatedSession = $this->sportSessionRepository->update($sessionId, $data);
 
@@ -48,11 +51,17 @@ class UpdateSportSessionUseCase
             throw new Exception('Erreur lors de la mise à jour de la session');
         }
 
+        // Récupérer la session mise à jour complète
+        $updatedSession = $this->sportSessionRepository->findById($sessionId);
+
+        // Détecter les changements
+        $changes = $this->detectChanges($oldSession, $updatedSession, $data);
+
         // Créer une notification pour les participants
-        $this->createSessionUpdatedNotification($updatedSession);
+        $this->createSessionUpdatedNotification($oldSession, $updatedSession, $changes);
 
         // Envoyer des notifications push
-        $this->sendPushNotifications($updatedSession);
+        $this->sendPushNotifications($oldSession, $updatedSession, $changes);
 
         return $updatedSession;
     }
@@ -118,50 +127,162 @@ class UpdateSportSessionUseCase
         return $dateTime && $dateTime->format('H:i') === $time;
     }
 
-    private function createSessionUpdatedNotification(SportSession $session): void
+    private function detectChanges(SportSession $oldSession, SportSession $newSession, array $data): array
     {
-        $organizerName = $session->getOrganizer()->getFirstname() . ' ' . $session->getOrganizer()->getLastname();
+        $changes = [];
 
-        foreach ($session->getParticipants() as $participant) {
+        // Comparer chaque champ modifié
+        if (isset($data['sport']) && $oldSession->getSport() !== $newSession->getSport()) {
+            $changes['sport'] = [
+                'old' => $oldSession->getSport(),
+                'new' => $newSession->getSport()
+            ];
+        }
+
+        if (isset($data['date']) && $oldSession->getDate() !== $newSession->getDate()) {
+            $changes['date'] = [
+                'old' => $oldSession->getDate(),
+                'new' => $newSession->getDate()
+            ];
+        }
+
+        if (isset($data['startTime']) && $oldSession->getStartTime() !== $newSession->getStartTime()) {
+            $changes['startTime'] = [
+                'old' => $oldSession->getStartTime(),
+                'new' => $newSession->getStartTime()
+            ];
+        }
+
+        if (isset($data['endTime']) && $oldSession->getEndTime() !== $newSession->getEndTime()) {
+            $changes['endTime'] = [
+                'old' => $oldSession->getEndTime(),
+                'new' => $newSession->getEndTime()
+            ];
+        }
+
+        if (isset($data['location']) && $oldSession->getLocation() !== $newSession->getLocation()) {
+            $changes['location'] = [
+                'old' => $oldSession->getLocation(),
+                'new' => $newSession->getLocation()
+            ];
+        }
+
+        if (isset($data['maxParticipants'])) {
+            $oldMax = $oldSession->getMaxParticipants();
+            $newMax = $newSession->getMaxParticipants();
+            if ($oldMax !== $newMax) {
+                $changes['maxParticipants'] = [
+                    'old' => $oldMax,
+                    'new' => $newMax
+                ];
+            }
+        }
+
+        if (isset($data['pricePerPerson'])) {
+            $oldPrice = $oldSession->getPricePerPerson();
+            $newPrice = $newSession->getPricePerPerson();
+            if ($oldPrice != $newPrice) {
+                $changes['pricePerPerson'] = [
+                    'old' => $oldPrice,
+                    'new' => $newPrice
+                ];
+            }
+        }
+
+        return $changes;
+    }
+
+    private function formatChangesMessage(array $changes): string
+    {
+        if (empty($changes)) {
+            return '';
+        }
+
+        $messages = [];
+        $fieldLabels = [
+            'sport' => 'Sport',
+            'date' => 'Date',
+            'startTime' => 'Heure de début',
+            'endTime' => 'Heure de fin',
+            'location' => 'Lieu',
+            'maxParticipants' => 'Nombre maximum de participants',
+            'pricePerPerson' => 'Prix par personne'
+        ];
+
+        foreach ($changes as $field => $values) {
+            $label = $fieldLabels[$field] ?? $field;
+            $oldValue = $values['old'];
+            $newValue = $values['new'];
+
+            // Formatage spécial pour certains champs
+            if ($field === 'pricePerPerson') {
+                $oldValue = $oldValue !== null ? number_format($oldValue, 2, ',', ' ') . ' €' : 'Gratuit';
+                $newValue = $newValue !== null ? number_format($newValue, 2, ',', ' ') . ' €' : 'Gratuit';
+            } elseif ($field === 'maxParticipants') {
+                $oldValue = $oldValue !== null ? (string)$oldValue : 'Illimité';
+                $newValue = $newValue !== null ? (string)$newValue : 'Illimité';
+            } elseif ($field === 'sport') {
+                $oldValue = \App\Services\SportService::getFormattedSportName($oldValue);
+                $newValue = \App\Services\SportService::getFormattedSportName($newValue);
+            } elseif ($field === 'date') {
+                // Formater la date en français
+                $oldValue = \App\Services\DateFormatterService::formatDate($oldValue);
+                $newValue = \App\Services\DateFormatterService::formatDate($newValue);
+            } elseif ($field === 'startTime' || $field === 'endTime') {
+                // Formater l'heure
+                $oldValue = \App\Services\DateFormatterService::formatTime($oldValue);
+                $newValue = \App\Services\DateFormatterService::formatTime($newValue);
+            }
+
+            $messages[] = "{$label} : {$oldValue} → {$newValue}";
+        }
+
+        return implode("\n", $messages);
+    }
+
+    private function createSessionUpdatedNotification(SportSession $oldSession, SportSession $newSession, array $changes): void
+    {
+        $organizerName = $newSession->getOrganizer()->getFirstname() . ' ' . $newSession->getOrganizer()->getLastname();
+        $changesMessage = $this->formatChangesMessage($changes);
+
+        foreach ($oldSession->getParticipants() as $participant) {
             // Ne pas notifier l'organisateur lui-même
-            if ($participant['id'] === $session->getOrganizer()->getId()) {
+            if ($participant['id'] === $oldSession->getOrganizer()->getId()) {
                 continue;
             }
 
             // Notifier les participants qui ont accepté ou sont en attente
             if ($participant['status'] === 'accepted' || $participant['status'] === 'pending') {
+                $message = "{$organizerName} a modifié sa session de {$oldSession->getSport()}";
+                if (!empty($changesMessage)) {
+                    $message .= "\n\n" . $changesMessage;
+                }
+
                 $this->notificationRepository->create([
                     'user_id' => $participant['id'],
                     'type' => 'session_update',
                     'title' => 'Session modifiée',
-                    'message' => "{$organizerName} a modifié sa session de {$session->getSport()}",
-                    'session_id' => $session->getId(),
+                    'message' => $message,
+                    'session_id' => $newSession->getId(),
                     'push_data' => [
                         'type' => 'session_update',
-                        'session_id' => $session->getId(),
-                        'organizer_id' => $session->getOrganizer()->getId(),
-                        'changes' => [
-                            'sport' => $session->getSport(),
-                            'date' => $session->getDate(),
-                            'startTime' => $session->getStartTime(),
-                            'endTime' => $session->getEndTime(),
-                            'location' => $session->getLocation(),
-                            'maxParticipants' => $session->getMaxParticipants(),
-                            'pricePerPerson' => $session->getPricePerPerson(),
-                        ],
+                        'session_id' => $newSession->getId(),
+                        'organizer_id' => $newSession->getOrganizer()->getId(),
+                        'changes' => $changes,
                     ],
                 ]);
             }
         }
     }
 
-    private function sendPushNotifications(SportSession $session): void
+    private function sendPushNotifications(SportSession $oldSession, SportSession $newSession, array $changes): void
     {
-        $organizerName = $session->getOrganizer()->getFirstname() . ' ' . $session->getOrganizer()->getLastname();
+        $organizerName = $newSession->getOrganizer()->getFirstname() . ' ' . $newSession->getOrganizer()->getLastname();
+        $changesMessage = $this->formatChangesMessage($changes);
 
-        foreach ($session->getParticipants() as $participant) {
+        foreach ($oldSession->getParticipants() as $participant) {
             // Ne pas notifier l'organisateur lui-même
-            if ($participant['id'] === $session->getOrganizer()->getId()) {
+            if ($participant['id'] === $oldSession->getOrganizer()->getId()) {
                 continue;
             }
 
@@ -171,21 +292,20 @@ class UpdateSportSessionUseCase
                 $pushTokens = $this->pushTokenRepository->getTokensForUser($participant['id']);
                 
                 if (!empty($pushTokens)) {
+                    $message = "{$organizerName} a modifié sa session de {$oldSession->getSport()}";
+                    if (!empty($changesMessage)) {
+                        $message .= "\n\n" . $changesMessage;
+                    }
+
                     $this->pushNotificationService->sendNotification(
                         $pushTokens,
                         'Session modifiée',
-                        "{$organizerName} a modifié sa session de {$session->getSport()}",
+                        $message,
                         [
                             'type' => 'session_update',
-                            'session_id' => $session->getId(),
-                            'organizer_id' => $session->getOrganizer()->getId(),
-                            'sport' => $session->getSport(),
-                            'date' => $session->getDate(),
-                            'startTime' => $session->getStartTime(),
-                            'endTime' => $session->getEndTime(),
-                            'location' => $session->getLocation(),
-                            'maxParticipants' => $session->getMaxParticipants(),
-                            'pricePerPerson' => $session->getPricePerPerson(),
+                            'session_id' => $newSession->getId(),
+                            'organizer_id' => $newSession->getOrganizer()->getId(),
+                            'changes' => $changes,
                         ]
                     );
                 }
