@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Log;
-
 class ExpoPushNotificationService
 {
     private const EXPO_API_URL = 'https://exp.host/--/api/v2/push/send';
@@ -42,13 +40,6 @@ class ExpoPushNotificationService
 
             $result = $this->sendToExpo($messages);
             $results[] = $result;
-
-            // Log des réponses de tickets Expo
-            if (!empty($result['response'])) {
-                Log::info('Expo response', [
-                    'response' => $result['response']
-                ]);
-            }
         }
 
         return $this->aggregateResults($results);
@@ -100,11 +91,6 @@ class ExpoPushNotificationService
             curl_close($ch);
 
             if ($error) {
-                Log::error('Expo Push Notification cURL Error', [
-                    'error' => $error,
-                    'messages_count' => count($messages)
-                ]);
-
                 return [
                     'success' => false,
                     'error' => 'cURL Error: ' . $error,
@@ -115,12 +101,6 @@ class ExpoPushNotificationService
             $responseData = json_decode($response, true);
 
             if ($httpCode !== 200) {
-                Log::error('Expo Push Notification API Error', [
-                    'http_code' => $httpCode,
-                    'response' => $responseData,
-                    'messages_count' => count($messages)
-                ]);
-
                 return [
                     'success' => false,
                     'error' => 'API Error: HTTP ' . $httpCode,
@@ -184,29 +164,9 @@ class ExpoPushNotificationService
                 $result['errors'] = $errors;
             }
 
-            // Log des résultats
-            if ($errorCount > 0) {
-                Log::warning('Expo Push Notification Partial Success', [
-                    'success_count' => $successCount,
-                    'error_count' => $errorCount,
-                    'errors' => $errors
-                ]);
-            } else {
-                Log::info('Expo Push Notification Success', [
-                    'success_count' => $successCount,
-                    'total_sent' => count($messages)
-                ]);
-            }
-
             return $result;
 
         } catch (\Exception $e) {
-            Log::error('Expo Push Notification Exception', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'messages_count' => count($messages)
-            ]);
-
             return [
                 'success' => false,
                 'error' => 'Exception: ' . $e->getMessage(),
