@@ -5,6 +5,8 @@ namespace App\UseCases\SportSession;
 use App\Entities\SportSession;
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
 use App\Repositories\Notification\NotificationRepositoryInterface;
+use App\Repositories\PushToken\PushTokenRepositoryInterface;
+use App\Services\ExpoPushNotificationService;
 use App\Services\SportService;
 use Exception;
 
@@ -12,7 +14,9 @@ class UpdateSportSessionUseCase
 {
     public function __construct(
         private SportSessionRepositoryInterface $sportSessionRepository,
-        private NotificationRepositoryInterface $notificationRepository
+        private NotificationRepositoryInterface $notificationRepository,
+        private PushTokenRepositoryInterface $pushTokenRepository,
+        private ExpoPushNotificationService $pushNotificationService
     ) {}
 
     public function execute(string $sessionId, array $data, string $userId): SportSession
@@ -46,6 +50,9 @@ class UpdateSportSessionUseCase
 
         // Créer une notification pour les participants
         $this->createSessionUpdatedNotification($updatedSession);
+
+        // Envoyer des notifications push
+        $this->sendPushNotifications($updatedSession);
 
         return $updatedSession;
     }
@@ -144,6 +151,44 @@ class UpdateSportSessionUseCase
                         ],
                     ],
                 ]);
+            }
+        }
+    }
+
+    private function sendPushNotifications(SportSession $session): void
+    {
+        $organizerName = $session->getOrganizer()->getFirstname() . ' ' . $session->getOrganizer()->getLastname();
+
+        foreach ($session->getParticipants() as $participant) {
+            // Ne pas notifier l'organisateur lui-même
+            if ($participant['id'] === $session->getOrganizer()->getId()) {
+                continue;
+            }
+
+            // Envoyer seulement aux participants qui ont accepté ou sont en attente
+            if ($participant['status'] === 'accepted' || $participant['status'] === 'pending') {
+                // Récupérer les tokens push de l'utilisateur
+                $pushTokens = $this->pushTokenRepository->getTokensForUser($participant['id']);
+                
+                if (!empty($pushTokens)) {
+                    $this->pushNotificationService->sendNotification(
+                        $pushTokens,
+                        'Session modifiée',
+                        "{$organizerName} a modifié sa session de {$session->getSport()}",
+                        [
+                            'type' => 'session_update',
+                            'session_id' => $session->getId(),
+                            'organizer_id' => $session->getOrganizer()->getId(),
+                            'sport' => $session->getSport(),
+                            'date' => $session->getDate(),
+                            'startTime' => $session->getStartTime(),
+                            'endTime' => $session->getEndTime(),
+                            'location' => $session->getLocation(),
+                            'maxParticipants' => $session->getMaxParticipants(),
+                            'pricePerPerson' => $session->getPricePerPerson(),
+                        ]
+                    );
+                }
             }
         }
     }

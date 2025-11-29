@@ -6,6 +6,7 @@ use App\Entities\SportSession;
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
 use App\Repositories\Notification\NotificationRepositoryInterface;
+use App\Repositories\PushToken\PushTokenRepositoryInterface;
 use App\Services\ExpoPushNotificationService;
 use Exception;
 
@@ -15,6 +16,7 @@ class ChangeSessionOrganizerUseCase
         private SportSessionRepositoryInterface $sportSessionRepository,
         private UserRepositoryInterface $userRepository,
         private NotificationRepositoryInterface $notificationRepository,
+        private PushTokenRepositoryInterface $pushTokenRepository,
         private ExpoPushNotificationService $pushNotificationService
     ) {}
 
@@ -81,26 +83,111 @@ class ChangeSessionOrganizerUseCase
         $oldOrganizerName = $oldSession->getOrganizer()->getFirstname() . ' ' . $oldSession->getOrganizer()->getLastname();
         $newOrganizerName = $newOrganizer->getFirstname() . ' ' . $newOrganizer->getLastname();
 
-        // Notifier tous les participants (y compris l'ancien organizer)
-        $allParticipants = array_merge(
-            [$oldSession->getOrganizer()->getId()],
-            array_column($oldSession->getParticipants(), 'id')
-        );
-        $allParticipants = array_unique($allParticipants);
-
-        foreach ($allParticipants as $participantId) {
-            // Ne pas notifier le nouvel organisateur lui-même
-            if ($participantId === $newOrganizer->getId()) {
+        // Notifier les participants (accepted et pending) d'une modification de session
+        foreach ($oldSession->getParticipants() as $participant) {
+            // Ne pas notifier le nouvel organisateur ni l'ancien organisateur
+            if ($participant['id'] === $newOrganizer->getId() ||
+                $participant['id'] === $oldSession->getOrganizer()->getId()) {
                 continue;
             }
 
-            $this->notificationRepository->create([
-                'user_id' => $participantId,
-                'type' => 'session_update',
-                'title' => 'Organisateur changé',
-                'message' => "{$newOrganizerName} est maintenant l'organisateur de la session de {$newSession->getSport()}",
+            // Notifier les participants qui ont accepté ou sont en attente
+            if ($participant['status'] === 'accepted' || $participant['status'] === 'pending') {
+                $this->notificationRepository->create([
+                    'user_id' => $participant['id'],
+                    'type' => 'session_update',
+                    'title' => 'Session modifiée',
+                    'message' => "{$oldOrganizerName} a modifié sa session de {$newSession->getSport()}",
+                    'session_id' => $newSession->getId(),
+                    'push_data' => [
+                        'type' => 'session_update',
+                        'session_id' => $newSession->getId(),
+                        'organizer_id' => $newSession->getOrganizer()->getId(),
+                        'changes' => [
+                            'sport' => $newSession->getSport(),
+                            'date' => $newSession->getDate(),
+                            'startTime' => $newSession->getStartTime(),
+                            'endTime' => $newSession->getEndTime(),
+                            'location' => $newSession->getLocation(),
+                            'maxParticipants' => $newSession->getMaxParticipants(),
+                            'pricePerPerson' => $newSession->getPricePerPerson(),
+                        ],
+                    ],
+                ]);
+            }
+        }
+
+        // Notifier le nouvel organisateur qu'il est maintenant l'organisateur
+        $this->notificationRepository->create([
+            'user_id' => $newOrganizer->getId(),
+            'type' => 'session_update',
+            'title' => 'Vous êtes maintenant l\'organisateur',
+            'message' => "Vous êtes maintenant l'organisateur de la session de {$newSession->getSport()}",
+            'session_id' => $newSession->getId(),
+            'push_data' => [
+                'type' => 'session_organizer_changed',
                 'session_id' => $newSession->getId(),
-                'push_data' => [
+                'old_organizer_id' => $oldSession->getOrganizer()->getId(),
+                'new_organizer_id' => $newOrganizer->getId(),
+                'sport' => $newSession->getSport(),
+                'date' => $newSession->getDate(),
+                'startTime' => $newSession->getStartTime(),
+                'endTime' => $newSession->getEndTime(),
+            ],
+        ]);
+    }
+
+    private function sendPushNotifications(
+        SportSession $oldSession,
+        SportSession $newSession,
+        \App\Entities\User $newOrganizer
+    ): void {
+        $oldOrganizerName = $oldSession->getOrganizer()->getFirstname() . ' ' . $oldSession->getOrganizer()->getLastname();
+
+        // Envoyer une notification de modification de session aux participants (accepted et pending)
+        foreach ($oldSession->getParticipants() as $participant) {
+            // Ne pas notifier le nouvel organisateur ni l'ancien organisateur
+            if ($participant['id'] === $newOrganizer->getId() ||
+                $participant['id'] === $oldSession->getOrganizer()->getId()) {
+                continue;
+            }
+
+            // Envoyer aux participants qui ont accepté ou sont en attente
+            if ($participant['status'] === 'accepted' || $participant['status'] === 'pending') {
+                // Récupérer les tokens push de l'utilisateur
+                $pushTokens = $this->pushTokenRepository->getTokensForUser($participant['id']);
+
+                if (!empty($pushTokens)) {
+                    $this->pushNotificationService->sendNotification(
+                        $pushTokens,
+                        'Session modifiée',
+                        "{$oldOrganizerName} a modifié sa session de {$newSession->getSport()}",
+                        [
+                            'type' => 'session_update',
+                            'session_id' => $newSession->getId(),
+                            'organizer_id' => $newSession->getOrganizer()->getId(),
+                            'sport' => $newSession->getSport(),
+                            'date' => $newSession->getDate(),
+                            'startTime' => $newSession->getStartTime(),
+                            'endTime' => $newSession->getEndTime(),
+                            'location' => $newSession->getLocation(),
+                            'maxParticipants' => $newSession->getMaxParticipants(),
+                            'pricePerPerson' => $newSession->getPricePerPerson(),
+                        ]
+                    );
+                }
+            }
+        }
+
+        // Envoyer une notification spécifique au nouvel organisateur
+        $pushTokens = $this->pushTokenRepository->getTokensForUser($newOrganizer->getId());
+
+        if (!empty($pushTokens)) {
+            $this->pushNotificationService->sendNotification(
+                $pushTokens,
+                'Vous êtes maintenant l\'organisateur',
+                "Vous êtes maintenant l'organisateur de la session de {$newSession->getSport()}",
+                [
                     'type' => 'session_organizer_changed',
                     'session_id' => $newSession->getId(),
                     'old_organizer_id' => $oldSession->getOrganizer()->getId(),
@@ -109,61 +196,8 @@ class ChangeSessionOrganizerUseCase
                     'date' => $newSession->getDate(),
                     'startTime' => $newSession->getStartTime(),
                     'endTime' => $newSession->getEndTime(),
-                ],
-            ]);
-        }
-    }
-
-    private function sendPushNotifications(
-        SportSession $oldSession,
-        SportSession $newSession,
-        \App\Entities\User $newOrganizer
-    ): void {
-        $newOrganizerName = $newOrganizer->getFirstname() . ' ' . $newOrganizer->getLastname();
-
-        // Notifier tous les participants (y compris l'ancien organizer)
-        $allParticipants = array_merge(
-            [$oldSession->getOrganizer()->getId()],
-            array_column($oldSession->getParticipants(), 'id')
-        );
-        $allParticipants = array_unique($allParticipants);
-
-        foreach ($allParticipants as $participantId) {
-            // Ne pas notifier le nouvel organisateur lui-même
-            if ($participantId === $newOrganizer->getId()) {
-                continue;
-            }
-
-            // Envoyer seulement aux participants qui ont accepté (ou à l'ancien organizer)
-            $isAccepted = false;
-            if ($participantId === $oldSession->getOrganizer()->getId()) {
-                $isAccepted = true;
-            } else {
-                foreach ($oldSession->getParticipants() as $participant) {
-                    if ($participant['id'] === $participantId && $participant['status'] === 'accepted') {
-                        $isAccepted = true;
-                        break;
-                    }
-                }
-            }
-
-            if ($isAccepted) {
-                $this->pushNotificationService->sendToUser(
-                    $participantId,
-                    'Organisateur changé',
-                    "{$newOrganizerName} est maintenant l'organisateur de la session de {$newSession->getSport()}",
-                    [
-                        'type' => 'session_organizer_changed',
-                        'session_id' => $newSession->getId(),
-                        'old_organizer_id' => $oldSession->getOrganizer()->getId(),
-                        'new_organizer_id' => $newOrganizer->getId(),
-                        'sport' => $newSession->getSport(),
-                        'date' => $newSession->getDate(),
-                        'startTime' => $newSession->getStartTime(),
-                        'endTime' => $newSession->getEndTime(),
-                    ]
-                );
-            }
+                ]
+            );
         }
     }
 }
