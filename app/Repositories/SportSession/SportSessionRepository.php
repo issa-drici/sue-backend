@@ -70,15 +70,15 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         if (isset($filters['past_sessions']) && $filters['past_sessions']) {
             // Pour l'historique : inclure les sessions passées ET les sessions annulées (même futures)
             $query->where(function ($q) {
-                $q->where('start_date', '<', now())
+                $q->where('end_date', '<', now())
                   ->orWhere('status', 'cancelled');
             });
             // Pour l'historique : tri par date décroissante (plus récent en premier)
-            $paginator = $query->orderBy('start_date', 'desc')->paginate($limit, ['*'], 'page', $page);
+            $paginator = $query->orderBy('end_date', 'desc')->paginate($limit, ['*'], 'page', $page);
         } else {
             // Pour les sessions futures/actuelles : exclure les sessions passées et les sessions annulées
             $query->where('status', 'active')
-                  ->where('start_date', '>=', now());
+                  ->where('end_date', '>=', now());
             $paginator = $query->orderBy('start_date', 'asc')->paginate($limit, ['*'], 'page', $page);
         }
 
