@@ -110,7 +110,7 @@ class CancelSportSessionUseCase
                     'title' => 'Session annulée',
                     'message' => "{$organizerName} a annulé sa session de {$session->getSport()}",
                     'session_id' => $session->getId(),
-                    'data' => json_encode([
+                    'push_data' => [
                         'type' => 'session_cancelled',
                         'session_id' => $session->getId(),
                         'organizer_id' => $session->getOrganizer()->getId(),
@@ -118,7 +118,7 @@ class CancelSportSessionUseCase
                         'date' => $session->getDate(),
                         'startTime' => $session->getStartTime(),
                         'endTime' => $session->getEndTime(),
-                    ]),
+                    ],
                 ]);
             }
         }

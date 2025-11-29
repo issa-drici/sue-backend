@@ -129,7 +129,7 @@ class UpdateSportSessionUseCase
                     'title' => 'Session modifiée',
                     'message' => "{$organizerName} a modifié sa session de {$session->getSport()}",
                     'session_id' => $session->getId(),
-                    'data' => json_encode([
+                    'push_data' => [
                         'type' => 'session_update',
                         'session_id' => $session->getId(),
                         'organizer_id' => $session->getOrganizer()->getId(),
@@ -142,7 +142,7 @@ class UpdateSportSessionUseCase
                             'maxParticipants' => $session->getMaxParticipants(),
                             'pricePerPerson' => $session->getPricePerPerson(),
                         ],
-                    ]),
+                    ],
                 ]);
             }
         }

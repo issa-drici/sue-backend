@@ -43,6 +43,7 @@ class NotificationRepository implements NotificationRepositoryInterface
             'message' => $data['message'],
             'session_id' => $data['session_id'] ?? null,
             'read' => false,
+            'push_data' => isset($data['data']) ? json_decode($data['data'], true) : ($data['push_data'] ?? null),
         ]);
 
         return $this->mapToEntity($model);

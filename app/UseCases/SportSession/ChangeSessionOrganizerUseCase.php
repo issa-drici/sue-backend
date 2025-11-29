@@ -96,11 +96,11 @@ class ChangeSessionOrganizerUseCase
 
             $this->notificationRepository->create([
                 'user_id' => $participantId,
-                'type' => 'session_organizer_changed',
+                'type' => 'session_update',
                 'title' => 'Organisateur changé',
                 'message' => "{$newOrganizerName} est maintenant l'organisateur de la session de {$newSession->getSport()}",
                 'session_id' => $newSession->getId(),
-                'data' => json_encode([
+                'push_data' => [
                     'type' => 'session_organizer_changed',
                     'session_id' => $newSession->getId(),
                     'old_organizer_id' => $oldSession->getOrganizer()->getId(),
@@ -109,7 +109,7 @@ class ChangeSessionOrganizerUseCase
                     'date' => $newSession->getDate(),
                     'startTime' => $newSession->getStartTime(),
                     'endTime' => $newSession->getEndTime(),
-                ]),
+                ],
             ]);
         }
     }
