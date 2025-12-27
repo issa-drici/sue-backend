@@ -56,6 +56,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Password Reset URL
+    |--------------------------------------------------------------------------
+    |
+    | This URL is used specifically for password reset links in emails.
+    | This allows you to use a different URL for password reset pages
+    | (e.g., a different subdomain or path).
+    |
+    */
+
+    'password_reset_url' => env('PASSWORD_RESET_URL'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

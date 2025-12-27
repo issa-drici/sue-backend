@@ -329,3 +329,6 @@ async function createSession(sessionData) {
 
 **Solution :** Utiliser exactement les valeurs de la liste (minuscules, avec accents et tirets).
 
+
+
+
