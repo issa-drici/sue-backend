@@ -29,7 +29,12 @@ class RegisteredUserController extends Controller
                 'password' => ['required', 'string', Rules\Password::defaults()],
                 'firstname' => ['required', 'string', 'max:100'],
                 'lastname' => ['required', 'string', 'max:100'],
+                'phone' => ['required', 'string', 'max:20', 'unique:users', 'regex:/^\+?[1-9]\d{1,14}$/'],
                 'device_name' => ['required', 'string'],
+            ], [
+                'phone.required' => 'Le numéro de téléphone est obligatoire.',
+                'phone.unique' => 'Ce numéro de téléphone est déjà utilisé.',
+                'phone.regex' => 'Le format du numéro de téléphone est invalide.',
             ]);
 
             $user = UserModel::create([
@@ -37,6 +42,7 @@ class RegisteredUserController extends Controller
                 'password' => Hash::make($request->password),
                 'firstname' => $request->firstname,
                 'lastname' => $request->lastname,
+                'phone' => $request->phone,
                 'role' => 'player',
             ]);
 

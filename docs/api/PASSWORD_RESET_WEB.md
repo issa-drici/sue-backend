@@ -4,10 +4,6 @@
 
 Ce guide explique comment utiliser l'endpoint de réinitialisation de mot de passe pour un site web. Cet endpoint permet à l'utilisateur de définir un nouveau mot de passe après avoir reçu un lien de réinitialisation par email.
 
-## Base URL
-```
-https://api.alarrache.com/api
-```
 
 ## Endpoint
 
