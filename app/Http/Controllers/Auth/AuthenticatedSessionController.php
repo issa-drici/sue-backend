@@ -34,7 +34,7 @@ class AuthenticatedSessionController extends Controller
             return response()->json([
                 'message' => 'Connexion réussie',
                 'token' => $token,
-                'user' => $user->only('id', 'email', 'firstname', 'lastname', 'role'),
+                'user' => $user->only('id', 'email', 'firstname', 'lastname', 'phone', 'role'),
             ], 200);
 
         } catch (\Exception $e) {

@@ -37,6 +37,7 @@ class FriendRequestRepository implements FriendRequestRepositoryInterface
                     'firstname' => $model->sender->firstname,
                     'lastname' => $model->sender->lastname,
                     'email' => $model->sender->email,
+                    'phone' => $model->sender->phone,
                     'avatar' => null
                 ],
                 'status' => $model->status,

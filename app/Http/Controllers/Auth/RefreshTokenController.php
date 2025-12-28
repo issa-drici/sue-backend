@@ -35,6 +35,7 @@ class RefreshTokenController extends Controller
                     'firstname' => $user->firstname,
                     'lastname' => $user->lastname,
                     'email' => $user->email,
+                    'phone' => $user->phone,
                     'avatar' => null
                 ]
             ],

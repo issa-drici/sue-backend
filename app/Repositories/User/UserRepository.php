@@ -240,4 +240,66 @@ class UserRepository implements UserRepositoryInterface
             return false;
         }
     }
+
+    public function findByPhoneNumbers(array $phoneNumbers): array
+    {
+        if (empty($phoneNumbers)) {
+            return [];
+        }
+
+        // Normaliser les numéros de téléphone pour la recherche
+        $normalizedPhones = array_map([$this, 'normalizePhoneNumber'], $phoneNumbers);
+
+        // Rechercher les utilisateurs avec ces numéros
+        // On doit normaliser aussi les numéros en base pour la comparaison
+        $users = UserModel::all()->filter(function ($userModel) use ($normalizedPhones) {
+            $userNormalizedPhone = $this->normalizePhoneNumber($userModel->phone);
+            return in_array($userNormalizedPhone, $normalizedPhones);
+        });
+
+        // Créer un mapping phone => User pour faciliter la recherche
+        $result = [];
+        foreach ($users as $userModel) {
+            $normalizedPhone = $this->normalizePhoneNumber($userModel->phone);
+            $result[$normalizedPhone] = new User(
+                $userModel->id,
+                $userModel->firstname,
+                $userModel->lastname,
+                $userModel->email,
+                $userModel->phone,
+                $userModel->role,
+                $userModel->sports_preferences
+            );
+        }
+
+        return $result;
+    }
+
+    /**
+     * Normalise un numéro de téléphone pour la comparaison
+     * Supprime les espaces, tirets et autres caractères de formatage
+     * Gère les formats internationaux et nationaux
+     */
+    private function normalizePhoneNumber(string $phone): string
+    {
+        // Supprimer tous les caractères non numériques sauf le +
+        $phone = preg_replace('/[^\d+]/', '', $phone);
+
+        // Si le numéro commence par 0 et n'a pas de préfixe international, le remplacer par +33
+        if (preg_match('/^0(\d{9})$/', $phone, $matches)) {
+            $phone = '+33' . $matches[1];
+        }
+
+        // S'assurer que le numéro commence par +
+        if (!str_starts_with($phone, '+')) {
+            // Si c'est un numéro français sans préfixe, ajouter +33
+            if (preg_match('/^33(\d{9})$/', $phone, $matches)) {
+                $phone = '+33' . $matches[1];
+            } elseif (preg_match('/^(\d{9})$/', $phone)) {
+                $phone = '+33' . $phone;
+            }
+        }
+
+        return $phone;
+    }
 }

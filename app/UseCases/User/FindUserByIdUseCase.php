@@ -40,6 +40,7 @@ class FindUserByIdUseCase
             'firstname' => $user->getFirstname(),
             'lastname' => $user->getLastname(),
             'email' => $user->getEmail(),
+            'phone' => $user->getPhone(),
             'avatar' => $userProfile ? $userProfile->getAvatar() : null,
             'sports_preferences' => $user->getSportsPreferences() ?? [],
             'stats' => $stats,

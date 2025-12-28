@@ -34,6 +34,7 @@ class FriendRepository implements FriendRepositoryInterface
                 'firstname' => $model->friend->firstname,
                 'lastname' => $model->friend->lastname,
                 'email' => $model->friend->email,
+                'phone' => $model->friend->phone,
                 'avatar' => null, // avatar null pour l'instant
                 'status' => 'offline', // status par défaut
                 'lastSeen' => null, // lastSeen null pour l'instant

@@ -31,4 +31,6 @@ interface UserRepositoryInterface
     public function verifyPassword(string $userId, string $password): bool;
 
     public function emailExists(string $email, ?string $excludeUserId = null): bool;
+
+    public function findByPhoneNumbers(array $phoneNumbers): array;
 }
