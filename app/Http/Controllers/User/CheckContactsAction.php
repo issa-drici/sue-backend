@@ -18,7 +18,7 @@ class CheckContactsAction extends Controller
     {
         try {
             $request->validate([
-                'phoneNumbers' => ['required', 'array', 'min:1', 'max:100'],
+                'phoneNumbers' => ['required', 'array', 'min:1', 'max:2000'],
                 'phoneNumbers.*' => ['required', 'string', 'max:20'],
             ], [
                 'phoneNumbers.required' => 'Le champ phoneNumbers est obligatoire.',
@@ -53,4 +53,3 @@ class CheckContactsAction extends Controller
         }
     }
 }
-
