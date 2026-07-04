@@ -14,6 +14,7 @@ class SportSession
     private ?int $maxParticipants;
     private ?float $pricePerPerson;
     private string $status;
+    private ?string $shareToken;
     private User $organizer;
     private array $participants;
     private array $comments;
@@ -29,7 +30,8 @@ class SportSession
         string $status,
         User $organizer,
         array $participants = [],
-        array $comments = []
+        array $comments = [],
+        ?string $shareToken = null
     ) {
         $this->id = $id;
         $this->sport = $sport;
@@ -39,6 +41,7 @@ class SportSession
         $this->maxParticipants = $maxParticipants;
         $this->pricePerPerson = $pricePerPerson;
         $this->status = $status;
+        $this->shareToken = $shareToken;
         $this->organizer = $organizer;
         $this->participants = $participants;
         $this->comments = $comments;
@@ -117,6 +120,38 @@ class SportSession
         return $this->status;
     }
 
+    public function getShareToken(): ?string
+    {
+        return $this->shareToken;
+    }
+
+    /**
+     * Le lien de partage est-il encore valide ?
+     * Un lien expire à la fin de la session (end_date) ou si la session est annulée.
+     */
+    public function isShareLinkActive(): bool
+    {
+        if ($this->status === 'cancelled') {
+            return false;
+        }
+
+        return $this->endDate >= new DateTime('now');
+    }
+
+    /**
+     * Nombre de participants ayant accepté (organisateur inclus).
+     */
+    public function getAcceptedParticipantsCount(): int
+    {
+        $count = 0;
+        foreach ($this->participants as $participant) {
+            if (($participant['status'] ?? null) === 'accepted') {
+                $count++;
+            }
+        }
+        return $count;
+    }
+
     public function getOrganizer(): User
     {
         return $this->organizer;
@@ -186,12 +221,37 @@ class SportSession
             'maxParticipants' => $this->maxParticipants,
             'pricePerPerson' => $this->pricePerPerson,
             'status' => $this->status,
+            'shareToken' => $this->shareToken,
             'organizer' => [
                 'id' => $this->organizer->getId(),
                 'fullName' => $this->organizer->getFirstname() . ' ' . $this->organizer->getLastname()
             ],
             'participants' => $this->participants,
             'comments' => $this->comments
+        ];
+    }
+
+    /**
+     * Représentation publique et minimale pour l'aperçu du lien de partage
+     * (landing web + écran de preview de l'app). N'expose aucune donnée
+     * personnelle des participants, ni l'id interne de la session.
+     */
+    public function toPublicPreview(): array
+    {
+        return [
+            'sport' => $this->sport,
+            'sportName' => \App\Services\DateFormatterService::getSportName($this->sport),
+            'date' => $this->getDate(),
+            'startTime' => $this->getStartTime(),
+            'endTime' => $this->getEndTime(),
+            'startDate' => $this->startDate->format('c'),
+            'endDate' => $this->endDate->format('c'),
+            'location' => $this->location,
+            'maxParticipants' => $this->maxParticipants,
+            'participantsCount' => $this->getAcceptedParticipantsCount(),
+            'organizer' => [
+                'fullName' => $this->organizer->getFirstname() . ' ' . $this->organizer->getLastname()
+            ],
         ];
     }
 

@@ -31,6 +31,8 @@ use App\Http\Controllers\SportSession\FindMyCreatedSessionsAction;
 use App\Http\Controllers\SportSession\FindMyParticipationsAction;
 use App\Http\Controllers\SportSession\FindMyHistoryAction;
 use App\Http\Controllers\SportSession\ChangeSessionOrganizerAction;
+use App\Http\Controllers\SportSession\ResolveSessionByShareTokenAction;
+use App\Http\Controllers\SportSession\JoinSessionByShareTokenAction;
 
 // Comment Controllers
 use App\Http\Controllers\SportSession\CreateCommentAction;
@@ -102,6 +104,10 @@ Route::post('/reset-password', [NewPasswordController::class, 'store']);
 // Version (publique)
 Route::get('/version', VersionCheckAction::class);
 
+// Partage de session (Universal Links) — aperçu public, rate-limité
+Route::get('/join/{token}', ResolveSessionByShareTokenAction::class)
+    ->middleware('throttle:30,1');
+
 // Protected routes
 Route::middleware(['auth:sanctum'])->group(function () {
     // Auth
@@ -134,6 +140,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/sessions/{id}', UpdateSportSessionAction::class);
     Route::delete('/sessions/{id}', DeleteSportSessionAction::class);
     Route::post('/sessions/{id}/invite', InviteUsersToSessionAction::class);
+    Route::post('/join/{token}', JoinSessionByShareTokenAction::class);
     Route::patch('/sessions/{id}/respond', RespondToSessionInvitationAction::class);
     Route::patch('/sessions/{id}/cancel-participation', CancelParticipationAction::class);
     Route::patch('/sessions/{id}/cancel', CancelSportSessionAction::class);

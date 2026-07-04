@@ -41,7 +41,7 @@ class RegisteredUserController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'firstname' => $request->firstname,
-                'lastname' => $request->lastname,
+                'lastname' => $this->formatLastName($request->lastname),
                 'phone' => $request->phone,
                 'role' => 'player',
             ]);
@@ -64,5 +64,16 @@ class RegisteredUserController extends Controller
                 'error' => config('app.debug') ? $e->getMessage() : null
             ], 500);
         }
+    }
+
+    private function formatLastName(string $lastname): string
+    {
+        $lastname = mb_strtolower(trim($lastname), 'UTF-8');
+
+        return preg_replace_callback(
+            '/(^|[\s\-\'])(\p{L})/u',
+            fn (array $matches) => $matches[1].mb_strtoupper($matches[2], 'UTF-8'),
+            $lastname
+        );
     }
 }

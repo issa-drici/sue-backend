@@ -24,6 +24,19 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         return $this->mapToEntity($model);
     }
 
+    public function findByShareToken(string $shareToken): ?SportSession
+    {
+        $model = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])
+            ->where('share_token', $shareToken)
+            ->first();
+
+        if (!$model) {
+            return null;
+        }
+
+        return $this->mapToEntity($model);
+    }
+
     public function findAll(array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator
     {
         $query = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])
@@ -106,6 +119,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             'price_per_person' => $data['pricePerPerson'] ?? null,
             'organizer_id' => $data['organizer_id'],
             'status' => 'active',
+            'share_token' => $this->generateUniqueShareToken(),
         ]);
 
         // Ajouter automatiquement l'organisateur comme participant
@@ -335,6 +349,18 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         return $this->addParticipant($sessionId, $userId, 'pending');
     }
 
+    /**
+     * Génère un token de partage opaque, unique et non énumérable.
+     */
+    private function generateUniqueShareToken(): string
+    {
+        do {
+            $token = Str::random(40);
+        } while (SportSessionModel::where('share_token', $token)->exists());
+
+        return $token;
+    }
+
     private function mapToEntity(SportSessionModel $model): SportSession
     {
         $organizer = new User(
@@ -402,7 +428,8 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $model->status ?? 'active',
             $organizer,
             $participants,
-            $comments
+            $comments,
+            $model->share_token
         );
     }
 

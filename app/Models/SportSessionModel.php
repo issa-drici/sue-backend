@@ -26,6 +26,7 @@ class SportSessionModel extends Model
         'price_per_person',
         'organizer_id',
         'status',
+        'share_token',
     ];
 
     protected $casts = [

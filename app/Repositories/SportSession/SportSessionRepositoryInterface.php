@@ -9,6 +9,8 @@ interface SportSessionRepositoryInterface
 {
     public function findById(string $id): ?SportSession;
 
+    public function findByShareToken(string $shareToken): ?SportSession;
+
     public function findAll(array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator;
 
     public function create(array $data): SportSession;
