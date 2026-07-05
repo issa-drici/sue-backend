@@ -7,7 +7,7 @@ class User
     private ?string $id;
     private string $firstname;
     private string $lastname;
-    private string $email;
+    private ?string $email;
     private ?string $phone;
     private string $role;
     private ?array $sportsPreferences;
@@ -16,7 +16,7 @@ class User
         ?string $id,
         string $firstname,
         string $lastname,
-        string $email,
+        ?string $email,
         ?string $phone,
         string $role = 'player',
         ?array $sportsPreferences = null,
@@ -60,12 +60,12 @@ class User
         $this->lastname = $lastname;
     }
 
-    public function getEmail(): string
+    public function getEmail(): ?string
     {
         return $this->email;
     }
 
-    public function setEmail(string $email): void
+    public function setEmail(?string $email): void
     {
         $this->email = $email;
     }
@@ -119,7 +119,7 @@ class User
             id: $data['id'] ?? null,
             firstname: $data['firstname'],
             lastname: $data['lastname'],
-            email: $data['email'],
+            email: $data['email'] ?? null,
             phone: $data['phone'] ?? null,
             role: $data['role'] ?? 'player',
             sportsPreferences: $data['sports_preferences'] ?? null,

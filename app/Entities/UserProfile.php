@@ -7,7 +7,7 @@ class UserProfile
     private string $id;
     private string $firstname;
     private string $lastname;
-    private string $email;
+    private ?string $email;
     private ?string $avatar;
     private array $stats;
     private ?array $sportsPreferences;
@@ -16,7 +16,7 @@ class UserProfile
         string $id,
         string $firstname,
         string $lastname,
-        string $email,
+        ?string $email,
         ?string $avatar = null,
         array $stats = [],
         ?array $sportsPreferences = null
@@ -45,7 +45,7 @@ class UserProfile
         return $this->lastname;
     }
 
-    public function getEmail(): string
+    public function getEmail(): ?string
     {
         return $this->email;
     }
@@ -94,7 +94,7 @@ class UserProfile
             id: $data['id'],
             firstname: $data['firstname'],
             lastname: $data['lastname'],
-            email: $data['email'],
+            email: $data['email'] ?? null,
             avatar: $data['avatar'] ?? null,
             stats: $data['stats'] ?? [],
             sportsPreferences: $data['sports_preferences'] ?? null

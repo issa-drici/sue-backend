@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'twilio' => [
+        'sid' => env('TWILIO_ACCOUNT_SID'),
+        'token' => env('TWILIO_AUTH_TOKEN'),
+        // Numéro expéditeur E.164 (ex: +33756123456) OU un Messaging Service SID (MG...).
+        'from' => env('TWILIO_FROM'),
+    ],
+
 ];

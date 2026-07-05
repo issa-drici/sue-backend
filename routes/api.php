@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\RefreshTokenController;
+use App\Http\Controllers\Auth\PhoneAuthController;
 use App\Http\Controllers\Example\FindAllExamplesAction;
 use App\Http\Controllers\Profile\FindUserProfileAction;
 use App\Http\Controllers\Profile\UpdateUserAvatarAction;
@@ -100,6 +101,13 @@ Route::post('/register', [RegisteredUserController::class, 'store']);
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 Route::post('/forgot-password', [PasswordResetLinkController::class, 'store']);
 Route::post('/reset-password', [NewPasswordController::class, 'store']);
+
+// Auth par téléphone + OTP SMS (publiques, rate-limitées)
+Route::prefix('auth/phone')->group(function () {
+    Route::post('/send-otp', [PhoneAuthController::class, 'sendOtp'])->middleware('throttle:5,1');
+    Route::post('/verify', [PhoneAuthController::class, 'verify'])->middleware('throttle:10,1');
+    Route::post('/register', [PhoneAuthController::class, 'register'])->middleware('throttle:10,1');
+});
 
 // Version (publique)
 Route::get('/version', VersionCheckAction::class);
