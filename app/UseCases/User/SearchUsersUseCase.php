@@ -35,10 +35,16 @@ class SearchUsersUseCase
         // Récupérer tous les comptes d'amis en commun en une requête
         $mutualFriendsCounts = $this->getMutualFriendsCounts($currentUserId, $userIds);
 
+        // Récupérer toutes les URLs d'avatar en une requête
+        $avatars = $this->userRepository->getAvatarUrls($userIds);
+
         // Enrichir les résultats avec les informations d'amitié
-        $paginator->getCollection()->transform(function ($user) use ($currentUserId, $friendships, $friendRequests, $mutualFriendsCounts) {
+        $paginator->getCollection()->transform(function ($user) use ($currentUserId, $friendships, $friendRequests, $mutualFriendsCounts, $avatars) {
             $userData = $user->toArray();
             $userId = $user->id;
+
+            // Avatar (résolu depuis user_profiles.avatar_file_id -> files.url)
+            $userData['avatar'] = $avatars[$userId] ?? null;
 
             // Récupérer les données pré-calculées
             $isFriend = $friendships[$userId] ?? false;

@@ -129,6 +129,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Profile
     Route::get('/profile', GetUserProfileAction::class);
+    // POST + PUT : le multipart n'est fiablement parsé qu'en POST par PHP (upload depuis mobile)
+    Route::post('/profile/avatar', UpdateUserAvatarAction::class);
     Route::put('/profile/avatar', UpdateUserAvatarAction::class);
 
     // Support

@@ -5,6 +5,7 @@ namespace App\Repositories\User;
 use App\Entities\User;
 use App\Entities\UserProfile;
 use App\Models\UserModel;
+use App\Models\UserProfileModel;
 use App\Models\FileModel;
 use App\Models\SupportRequestModel;
 use Illuminate\Support\Facades\DB;
@@ -94,12 +95,19 @@ class UserRepository implements UserRepositoryInterface
             return null;
         }
 
+        // Résoudre l'URL de l'avatar (user_profiles.avatar_file_id -> files.url)
+        $avatarUrl = null;
+        $profile = \App\Models\UserProfileModel::where('user_id', $userId)->first();
+        if ($profile && $profile->avatar_file_id) {
+            $avatarUrl = FileModel::find($profile->avatar_file_id)?->url;
+        }
+
         return new UserProfile(
             $userModel->id,
             $userModel->firstname,
             $userModel->lastname,
             $userModel->email,
-            $userModel->avatar ?? null,
+            $avatarUrl,
             [],
             $userModel->sports_preferences
         );
@@ -208,6 +216,25 @@ class UserRepository implements UserRepositoryInterface
         }
 
         return Hash::check($password, $userModel->password);
+    }
+
+    /**
+     * Résout les URLs d'avatar pour un lot d'utilisateurs en une seule requête.
+     * Retourne un tableau [userId => url] (uniquement ceux qui ont un avatar).
+     */
+    public function getAvatarUrls(array $userIds): array
+    {
+        if (empty($userIds)) {
+            return [];
+        }
+
+        return UserProfileModel::whereIn('user_id', $userIds)
+            ->whereNotNull('avatar_file_id')
+            ->with('avatarFile')
+            ->get()
+            ->mapWithKeys(fn ($profile) => [$profile->user_id => $profile->avatarFile?->url])
+            ->filter()
+            ->toArray();
     }
 
     public function emailExists(string $email, ?string $excludeUserId = null): bool

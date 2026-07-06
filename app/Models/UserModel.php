@@ -39,6 +39,11 @@ class UserModel extends Authenticatable
         'sports_preferences' => 'array',
     ];
 
+    public function profile(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(UserProfileModel::class, 'user_id');
+    }
+
     public function toEntity(): User
     {
         return new User(

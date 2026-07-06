@@ -15,7 +15,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 {
     public function findById(string $id): ?SportSession
     {
-        $model = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])->find($id);
+        $model = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])->find($id);
 
         if (!$model) {
             return null;
@@ -26,7 +26,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findByShareToken(string $shareToken): ?SportSession
     {
-        $model = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])
+        $model = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])
             ->where('share_token', $shareToken)
             ->first();
 
@@ -39,7 +39,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findAll(array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator
     {
-        $query = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])
             ->where('status', 'active'); // Exclure les sessions annulées
 
         if (isset($filters['sport'])) {
@@ -65,7 +65,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findMySessions(string $userId, array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator
     {
-        $query = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])
             ->whereHas('participants', function ($q) use ($userId) {
                 $q->where('user_id', $userId)
                   ->whereNotIn('status', ['declined']); // Exclure complètement les sessions refusées
@@ -183,7 +183,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findByOrganizer(string $organizerId, array $filters = []): array
     {
-        $query = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])
             ->where('status', 'active') // Exclure les sessions annulées
             ->byOrganizer($organizerId);
 
@@ -198,7 +198,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findByParticipant(string $userId, array $filters = []): array
     {
-        $query = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])
             ->where('status', 'active') // Exclure les sessions annulées
             ->whereHas('participants', function ($q) use ($userId) {
                 $q->where('user_id', $userId);
@@ -215,7 +215,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findByParticipantPaginated(string $userId, array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator
     {
-        $query = SportSessionModel::with(['organizer', 'participants.user', 'comments.user'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])
             ->where('status', 'active') // Exclure les sessions annulées
             ->whereHas('participants', function ($q) use ($userId) {
                 $q->where('user_id', $userId)
@@ -374,10 +374,14 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
         // Récupérer les participants existants et les trier par statut
         $participants = $model->participants->map(function ($participant) {
+            $profile = $participant->user->profile;
+            $avatarUrl = $profile && $profile->avatarFile ? $profile->avatarFile->url : null;
+
             return [
                 'id' => $participant->user->id,
                 'fullName' => $participant->user->firstname . ' ' . $participant->user->lastname,
                 'status' => $participant->status,
+                'avatarUrl' => $avatarUrl,
                 'created_at' => $participant->created_at, // Pour le tri secondaire
             ];
         })->sortBy(function ($participant) {
@@ -399,11 +403,15 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         $organizerAlreadyInParticipants = collect($participants)->contains('id', $model->organizer->id);
 
         if (!$organizerAlreadyInParticipants) {
+            $orgProfile = $model->organizer->profile;
+            $orgAvatarUrl = $orgProfile && $orgProfile->avatarFile ? $orgProfile->avatarFile->url : null;
+
             // Ajouter l'organisateur au début de la liste (statut accepted)
             array_unshift($participants, [
                 'id' => $model->organizer->id,
                 'fullName' => $model->organizer->firstname . ' ' . $model->organizer->lastname,
                 'status' => 'accepted', // L'organisateur est automatiquement accepté
+                'avatarUrl' => $orgAvatarUrl,
             ]);
         }
 
@@ -481,7 +489,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             return [];
         }
 
-        $models = SportSessionModel::with(['organizer', 'participants.user'])
+        $models = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile'])
             ->where('status', 'active');
 
         if ($marginMinutes > 0) {

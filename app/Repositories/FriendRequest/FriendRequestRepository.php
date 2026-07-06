@@ -23,7 +23,7 @@ class FriendRequestRepository implements FriendRequestRepositoryInterface
 
     public function getUserFriendRequests(string $userId, int $page = 1, int $limit = 20): LengthAwarePaginator
     {
-        $paginator = FriendRequestModel::with('sender')
+        $paginator = FriendRequestModel::with('sender.profile.avatarFile')
             ->byReceiver($userId)
             ->pending()
             ->orderBy('created_at', 'desc')
@@ -38,7 +38,7 @@ class FriendRequestRepository implements FriendRequestRepositoryInterface
                     'lastname' => $model->sender->lastname,
                     'email' => $model->sender->email,
                     'phone' => $model->sender->phone,
-                    'avatar' => null
+                    'avatar' => $model->sender->profile?->avatarFile?->url,
                 ],
                 'status' => $model->status,
                 'created_at' => $model->created_at->toISOString(),

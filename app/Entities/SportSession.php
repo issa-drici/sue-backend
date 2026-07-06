@@ -157,6 +157,20 @@ class SportSession
         return $this->organizer;
     }
 
+    /**
+     * URL d'avatar de l'organisateur, récupérée depuis la liste des participants
+     * (l'organisateur y figure toujours).
+     */
+    private function findOrganizerAvatarUrl(): ?string
+    {
+        foreach ($this->participants as $participant) {
+            if (($participant['id'] ?? null) === $this->organizer->getId()) {
+                return $participant['avatarUrl'] ?? null;
+            }
+        }
+        return null;
+    }
+
     public function getParticipants(): array
     {
         return $this->participants;
@@ -224,7 +238,8 @@ class SportSession
             'shareToken' => $this->shareToken,
             'organizer' => [
                 'id' => $this->organizer->getId(),
-                'fullName' => $this->organizer->getFirstname() . ' ' . $this->organizer->getLastname()
+                'fullName' => $this->organizer->getFirstname() . ' ' . $this->organizer->getLastname(),
+                'avatarUrl' => $this->findOrganizerAvatarUrl(),
             ],
             'participants' => $this->participants,
             'comments' => $this->comments
@@ -238,6 +253,20 @@ class SportSession
      */
     public function toPublicPreview(): array
     {
+        $organizerAvatarUrl = $this->findOrganizerAvatarUrl();
+
+        // Endpoint PUBLIC : on n'expose jamais les id utilisateur (ni organisateur ni participants).
+        // On expose seulement un flag isOrganizer pour permettre à la landing de dédupliquer.
+        $organizerId = $this->organizer->getId();
+        $publicParticipants = array_map(function ($p) use ($organizerId) {
+            return [
+                'fullName' => $p['fullName'] ?? '',
+                'status' => $p['status'] ?? null,
+                'avatarUrl' => $p['avatarUrl'] ?? null,
+                'isOrganizer' => ($p['id'] ?? null) === $organizerId,
+            ];
+        }, $this->participants);
+
         return [
             'sport' => $this->sport,
             'sportName' => \App\Services\DateFormatterService::getSportName($this->sport),
@@ -250,8 +279,10 @@ class SportSession
             'maxParticipants' => $this->maxParticipants,
             'participantsCount' => $this->getAcceptedParticipantsCount(),
             'organizer' => [
-                'fullName' => $this->organizer->getFirstname() . ' ' . $this->organizer->getLastname()
+                'fullName' => $this->organizer->getFirstname() . ' ' . $this->organizer->getLastname(),
+                'avatarUrl' => $organizerAvatarUrl,
             ],
+            'participants' => $publicParticipants,
         ];
     }
 

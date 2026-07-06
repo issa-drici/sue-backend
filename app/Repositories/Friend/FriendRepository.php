@@ -23,7 +23,7 @@ class FriendRepository implements FriendRepositoryInterface
 
     public function getUserFriends(string $userId, int $page = 1, int $limit = 20): LengthAwarePaginator
     {
-        $paginator = FriendModel::with('friend')
+        $paginator = FriendModel::with('friend.profile.avatarFile')
             ->byUser($userId)
             ->orderBy('created_at', 'desc')
             ->paginate($limit, ['*'], 'page', $page);
@@ -35,7 +35,7 @@ class FriendRepository implements FriendRepositoryInterface
                 'lastname' => $model->friend->lastname,
                 'email' => $model->friend->email,
                 'phone' => $model->friend->phone,
-                'avatar' => null, // avatar null pour l'instant
+                'avatar' => $model->friend->profile?->avatarFile?->url,
                 'status' => 'offline', // status par défaut
                 'lastSeen' => null, // lastSeen null pour l'instant
                 'friendship_id' => $model->id,

@@ -32,5 +32,10 @@ interface UserRepositoryInterface
 
     public function emailExists(string $email, ?string $excludeUserId = null): bool;
 
+    /**
+     * Résout les URLs d'avatar pour un lot d'utilisateurs [userId => url].
+     */
+    public function getAvatarUrls(array $userIds): array;
+
     public function findByPhoneNumbers(array $phoneNumbers): array;
 }
