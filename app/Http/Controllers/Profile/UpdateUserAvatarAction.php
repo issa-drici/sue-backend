@@ -46,6 +46,11 @@ class UpdateUserAvatarAction extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Échec mise à jour avatar', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+            ]);
+
             return response()->json([
                 'message' => 'Une erreur est survenue',
                 'error' => config('app.debug') ? $e->getMessage() : null
