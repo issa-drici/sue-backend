@@ -24,7 +24,7 @@ class PhoneOtpService
     private const VERIFIED_WINDOW_MINUTES = 10;
 
     public function __construct(
-        private TextbeltSmsService $sms
+        private ClickSendSmsService $sms
     ) {}
 
     /**
@@ -45,6 +45,10 @@ class PhoneOtpService
 
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
+        // On envoie d'abord : si l'envoi échoue, aucun code n'est stocké et le cooldown
+        // ne se déclenche pas (l'utilisateur peut réessayer immédiatement).
+        $this->sms->send($phone, "Votre code de vérification SUE est : {$code}");
+
         PhoneVerificationCodeModel::updateOrCreate(
             ['phone' => $phone],
             [
@@ -55,8 +59,6 @@ class PhoneOtpService
                 'last_sent_at' => now(),
             ]
         );
-
-        $this->sms->send($phone, "Votre code de vérification SUE est : {$code}");
     }
 
     /**

@@ -35,9 +35,11 @@ return [
         ],
     ],
 
-    'textbelt' => [
-        // Clé API Textbelt (dashboard). Utiliser 'textbelt' pour 1 SMS gratuit/jour en test.
-        'key' => env('TEXTBELT_KEY'),
+    'clicksend' => [
+        'username' => env('CLICKSEND_USERNAME'),
+        'key' => env('CLICKSEND_API_KEY'),
+        // Optionnel : sender ID alphanumérique (ex: "SUE") ou numéro expéditeur dédié.
+        'from' => env('CLICKSEND_FROM'),
     ],
 
 ];
