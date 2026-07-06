@@ -24,7 +24,7 @@ class PhoneOtpService
     private const VERIFIED_WINDOW_MINUTES = 10;
 
     public function __construct(
-        private TwilioSmsService $sms
+        private TextbeltSmsService $sms
     ) {}
 
     /**
