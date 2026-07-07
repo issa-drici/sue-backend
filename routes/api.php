@@ -34,6 +34,8 @@ use App\Http\Controllers\SportSession\FindMyHistoryAction;
 use App\Http\Controllers\SportSession\ChangeSessionOrganizerAction;
 use App\Http\Controllers\SportSession\ResolveSessionByShareTokenAction;
 use App\Http\Controllers\SportSession\JoinSessionByShareTokenAction;
+use App\Http\Controllers\Sport\GetSportsAction;
+use App\Http\Controllers\Sport\GetMyPlayedSportsAction;
 
 // Comment Controllers
 use App\Http\Controllers\SportSession\CreateCommentAction;
@@ -139,6 +141,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // User
     Route::delete('/users/data', DeleteUserDataAction::class);
+
+    // Sports
+    Route::get('/sports', GetSportsAction::class);
+    Route::get('/users/played-sports', GetMyPlayedSportsAction::class);
 
     // Sport Sessions
     Route::get('/sessions', FindAllSportSessionsAction::class);
