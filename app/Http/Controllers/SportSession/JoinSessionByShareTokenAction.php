@@ -25,8 +25,10 @@ class JoinSessionByShareTokenAction extends Controller
     {
         try {
             $userId = $request->user()->id;
+            // Identité de celui qui a partagé le lien (facultatif) → devient l'ami créé
+            $from = $request->input('from');
 
-            $session = $this->joinSessionByShareTokenUseCase->execute($token, $userId);
+            $session = $this->joinSessionByShareTokenUseCase->execute($token, $userId, $from);
 
             return response()->json([
                 'success' => true,

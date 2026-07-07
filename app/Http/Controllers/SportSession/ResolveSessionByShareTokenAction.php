@@ -29,9 +29,21 @@ class ResolveSessionByShareTokenAction extends Controller
         try {
             $session = $this->resolveSessionByShareTokenUseCase->execute($token);
 
+            $preview = $session->toPublicPreview();
+
+            // Si le lien porte ?from={userId} et que cet utilisateur est bien un
+            // participant de la session, on expose "l'inviteur" (celui qui a partagé).
+            $from = $request->query('from');
+            if ($from) {
+                $inviter = $session->findParticipantPublicInfo($from);
+                if ($inviter) {
+                    $preview['inviter'] = $inviter;
+                }
+            }
+
             return response()->json([
                 'success' => true,
-                'data' => $session->toPublicPreview(),
+                'data' => $preview,
             ]);
 
         } catch (InvalidShareLinkException $e) {

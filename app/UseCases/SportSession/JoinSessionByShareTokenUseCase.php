@@ -10,6 +10,8 @@ use App\Repositories\Notification\NotificationRepositoryInterface;
 use App\Repositories\PushToken\PushTokenRepositoryInterface;
 use App\Repositories\SportSessionComment\SportSessionCommentRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
+use App\Repositories\Friend\FriendRepositoryInterface;
+use App\Repositories\FriendRequest\FriendRequestRepositoryInterface;
 use App\Services\ExpoPushNotificationService;
 use App\Services\DateFormatterService;
 use App\UseCases\User\UpdateSportsPreferencesUseCase;
@@ -31,10 +33,12 @@ class JoinSessionByShareTokenUseCase
         private UserRepositoryInterface $userRepository,
         private PushTokenRepositoryInterface $pushTokenRepository,
         private ExpoPushNotificationService $expoService,
-        private UpdateSportsPreferencesUseCase $updateSportsPreferencesUseCase
+        private UpdateSportsPreferencesUseCase $updateSportsPreferencesUseCase,
+        private FriendRepositoryInterface $friendRepository,
+        private FriendRequestRepositoryInterface $friendRequestRepository
     ) {}
 
-    public function execute(string $shareToken, string $userId): SportSession
+    public function execute(string $shareToken, string $userId, ?string $from = null): SportSession
     {
         // Résoudre le token (mêmes règles d'expiration que l'aperçu public)
         $session = $this->sportSessionRepository->findByShareToken($shareToken);
@@ -77,6 +81,10 @@ class JoinSessionByShareTokenUseCase
         $this->createJoinNotification($session, $userId);
         $this->createSystemComment($session, $userId);
 
+        // Le participant devient automatiquement ami avec la personne qui a partagé le lien
+        // (paramètre "from"), ou à défaut avec l'organisateur.
+        $this->addInviterAsFriend($session, $userId, $from);
+
         $updatedSession = $this->sportSessionRepository->findById($sessionId);
 
         if (!$updatedSession) {
@@ -84,6 +92,40 @@ class JoinSessionByShareTokenUseCase
         }
 
         return $updatedSession;
+    }
+
+    /**
+     * L'utilisateur qui rejoint via le lien devient automatiquement ami avec la
+     * personne qui a partagé le lien ($from) si elle est participante de la session ;
+     * sinon avec l'organisateur (repli). Non bloquant : un échec ne casse pas le join.
+     */
+    private function addInviterAsFriend(SportSession $session, string $userId, ?string $from): void
+    {
+        try {
+            // Cible prioritaire : le partageur, s'il est bien participant de la session
+            $targetId = null;
+            if ($from && $from !== $userId && $session->isParticipant($from)) {
+                $targetId = $from;
+            } elseif ($session->getOrganizer()->getId() !== $userId) {
+                // Repli : l'organisateur
+                $targetId = $session->getOrganizer()->getId();
+            }
+
+            if ($targetId
+                && $targetId !== $userId
+                && !$this->friendRepository->areFriends($userId, $targetId)
+            ) {
+                $this->friendRepository->addFriend($userId, $targetId);
+                // Nettoyer une éventuelle demande d'ami en attente entre les deux
+                $this->friendRequestRepository->deletePendingRequestsBetween($userId, $targetId);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Échec de l\'ajout ami automatique (join par lien)', [
+                'sessionId' => $session->getId(),
+                'userId' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function validateParticipantLimit(SportSession $session): void

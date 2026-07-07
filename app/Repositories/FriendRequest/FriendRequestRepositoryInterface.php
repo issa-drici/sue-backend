@@ -28,5 +28,7 @@ interface FriendRequestRepositoryInterface
 
     public function deleteRequest(string $requestId): bool;
 
+    public function deletePendingRequestsBetween(string $userA, string $userB): void;
+
     public function cancelRequest(string $requestId): bool;
 }

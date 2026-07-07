@@ -209,6 +209,20 @@ class FriendRequestRepository implements FriendRequestRepositoryInterface
         return $model->delete();
     }
 
+    /**
+     * Supprime toute demande d'ami "pending" (dans les deux sens) entre deux
+     * utilisateurs — utilisé quand ils deviennent amis automatiquement.
+     */
+    public function deletePendingRequestsBetween(string $userA, string $userB): void
+    {
+        FriendRequestModel::where('status', 'pending')
+            ->where(function ($query) use ($userA, $userB) {
+                $query->where(fn ($q) => $q->where('sender_id', $userA)->where('receiver_id', $userB))
+                      ->orWhere(fn ($q) => $q->where('sender_id', $userB)->where('receiver_id', $userA));
+            })
+            ->delete();
+    }
+
     public function findEntityById(string $id): ?FriendRequestEntity
     {
         $model = FriendRequestModel::find($id);

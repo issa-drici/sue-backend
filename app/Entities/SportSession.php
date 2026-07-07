@@ -171,6 +171,24 @@ class SportSession
         return null;
     }
 
+    /**
+     * Infos publiques (nom + avatar) d'un utilisateur SEULEMENT s'il est participant
+     * de la session. Sert à afficher "X t'invite" à partir du paramètre ?from de
+     * façon sûre (on n'expose jamais un utilisateur qui n'est pas dans la session).
+     */
+    public function findParticipantPublicInfo(string $userId): ?array
+    {
+        foreach ($this->participants as $participant) {
+            if (($participant['id'] ?? null) === $userId) {
+                return [
+                    'fullName' => $participant['fullName'] ?? '',
+                    'avatarUrl' => $participant['avatarUrl'] ?? null,
+                ];
+            }
+        }
+        return null;
+    }
+
     public function getParticipants(): array
     {
         return $this->participants;
