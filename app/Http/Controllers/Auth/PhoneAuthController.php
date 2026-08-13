@@ -100,6 +100,10 @@ class PhoneAuthController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (InvalidOtpException $e) {
+            Log::info('Échec vérification OTP', [
+                'phone' => $phone ?? null,
+                'reason' => $e->reason,
+            ]);
             return response()->json([
                 'message' => 'Code invalide ou expiré.',
             ], 400);
