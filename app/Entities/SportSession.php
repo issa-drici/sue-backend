@@ -229,6 +229,16 @@ class SportSession
         return false;
     }
 
+    public function isAcceptedParticipant(string $userId): bool
+    {
+        foreach ($this->participants as $participant) {
+            if ($participant['id'] === $userId && ($participant['status'] ?? null) === 'accepted') {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public function isOrganizer(string $userId): bool
     {
         return $this->organizer->getId() === $userId;

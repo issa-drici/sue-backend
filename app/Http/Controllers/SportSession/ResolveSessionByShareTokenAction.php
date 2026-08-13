@@ -7,6 +7,7 @@ use App\Exceptions\InvalidShareLinkException;
 use App\UseCases\SportSession\ResolveSessionByShareTokenUseCase;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -38,6 +39,22 @@ class ResolveSessionByShareTokenAction extends Controller
                 $inviter = $session->findParticipantPublicInfo($from);
                 if ($inviter) {
                     $preview['inviter'] = $inviter;
+                }
+            }
+
+            // Route publique (pas de middleware auth:sanctum), mais si un token Bearer
+            // valide est tout de même présent, on résout le viewer manuellement pour
+            // permettre à l'app d'ignorer l'écran d'aperçu quand il est déjà organisateur
+            // ou participant accepté (redirection directe vers la session côté mobile).
+            $viewer = Auth::guard('sanctum')->user();
+            if ($viewer) {
+                $viewerId = (string) $viewer->getAuthIdentifier();
+                if ($session->isOrganizer($viewerId)) {
+                    $preview['sessionId'] = $session->getId();
+                    $preview['viewerRelationship'] = 'organizer';
+                } elseif ($session->isAcceptedParticipant($viewerId)) {
+                    $preview['sessionId'] = $session->getId();
+                    $preview['viewerRelationship'] = 'participant';
                 }
             }
 
