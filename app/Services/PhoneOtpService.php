@@ -24,7 +24,10 @@ class PhoneOtpService
     private const VERIFIED_WINDOW_MINUTES = 10;
 
     public function __construct(
-        private ClickSendSmsService $sms
+        // Gardé injecté (inutilisé) pour pouvoir réactiver ClickSend en 1 ligne,
+        // cf. sendCode() ci-dessous.
+        private ClickSendSmsService $clickSend,
+        private InfiniReachSmsService $sms
     ) {}
 
     /**
@@ -44,10 +47,20 @@ class PhoneOtpService
         }
 
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $message = "Votre code de vérification SUE est : {$code}";
 
-        // On envoie d'abord : si l'envoi échoue, aucun code n'est stocké et le cooldown
-        // ne se déclenche pas (l'utilisateur peut réessayer immédiatement).
-        $this->sms->send($phone, "Votre code de vérification SUE est : {$code}");
+        // On envoie d'abord (synchrone) : si l'envoi échoue, aucun code n'est stocké
+        // et le cooldown ne se déclenche pas (l'utilisateur peut réessayer tout de
+        // suite). Pas de queue ici volontairement : la latence d'un OTP compte plus
+        // que le découplage, et ça évite de dépendre d'un worker en prod (cf.
+        // SendSmsJob, gardé de côté pour un futur besoin moins sensible à la latence).
+
+        // --- ClickSend (désactivé) --- Pour réactiver : décommenter la ligne
+        // suivante et commenter l'appel InfiniReach juste en dessous.
+        // $this->clickSend->send($phone, $message);
+
+        // --- InfiniReach (actif) ---
+        $this->sms->send($phone, $message);
 
         PhoneVerificationCodeModel::updateOrCreate(
             ['phone' => $phone],

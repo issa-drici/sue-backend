@@ -42,4 +42,11 @@ return [
         'from' => env('CLICKSEND_FROM'),
     ],
 
+    // Fournisseur SMS actif (cf. App\Services\PhoneOtpService).
+    // ClickSend ci-dessus reste configuré/inchangé pour une réactivation rapide.
+    'infinireach' => [
+        'api_key' => env('INFINIREACH_API_KEY'),
+        'from' => env('INFINIREACH_FROM'),
+    ],
+
 ];
