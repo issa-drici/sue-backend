@@ -18,7 +18,9 @@ use Illuminate\Support\Facades\Log;
 class JoinSessionByShareTokenAction extends Controller
 {
     public function __construct(
-        private JoinSessionByShareTokenUseCase $joinSessionByShareTokenUseCase
+        private JoinSessionByShareTokenUseCase $joinSessionByShareTokenUseCase,
+        private \App\UseCases\SportSession\RespondToSessionInvitationUseCase $respondToSessionInvitationUseCase,
+        private \App\Repositories\SportSession\SportSessionRepositoryInterface $sportSessionRepository
     ) {}
 
     public function __invoke(Request $request, string $token): JsonResponse
@@ -27,6 +29,17 @@ class JoinSessionByShareTokenAction extends Controller
             $userId = $request->user()->id;
             // Identité de celui qui a partagé le lien (facultatif) → devient l'ami créé
             $from = $request->input('from');
+
+            // "decline" : réponse "Je ne peux pas" depuis la page web (sans l'app)
+            if ($request->input('response') === 'decline') {
+                $session = $this->declineByShareToken($token, $userId);
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $session->toArray(),
+                    'message' => 'Réponse enregistrée',
+                ]);
+            }
 
             $session = $this->joinSessionByShareTokenUseCase->execute($token, $userId, $from);
 
@@ -68,5 +81,24 @@ class JoinSessionByShareTokenAction extends Controller
                 ],
             ], 500);
         }
+    }
+
+    /**
+     * Ajoute l'utilisateur comme invité s'il ne l'est pas, puis décline (notification à l'organisateur
+     * et message système, comme depuis l'app).
+     */
+    private function declineByShareToken(string $token, string $userId): \App\Entities\SportSession
+    {
+        $session = $this->sportSessionRepository->findByShareToken($token);
+        if (!$session || !$session->isShareLinkActive()) {
+            throw new InvalidShareLinkException('token_not_found');
+        }
+        if ($session->isOrganizer($userId)) {
+            return $session;
+        }
+        if (!$session->isParticipant($userId)) {
+            $this->sportSessionRepository->addParticipant($session->getId(), $userId, 'pending');
+        }
+        return $this->respondToSessionInvitationUseCase->execute($session->getId(), $userId, 'decline');
     }
 }

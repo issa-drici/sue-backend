@@ -141,6 +141,22 @@ class SportSession
         return $this->scheduling !== 'finding_slot';
     }
 
+    /**
+     * Statut d'un utilisateur dans la session (organizer | accepted | pending | declined), null s'il n'y est pas.
+     */
+    public function getUserStatus(string $userId): ?string
+    {
+        if ($this->isOrganizer($userId)) {
+            return 'organizer';
+        }
+        foreach ($this->participants as $participant) {
+            if (($participant['id'] ?? null) === $userId) {
+                return $participant['status'] ?? 'pending';
+            }
+        }
+        return null;
+    }
+
     public function getSlotProposals(): array
     {
         return $this->slotProposals;
@@ -363,6 +379,7 @@ class SportSession
             'location' => $this->location,
             'scheduling' => $this->scheduling,
             'slotProposals' => array_map(fn ($slot) => [
+                'id' => $slot['id'],
                 'date' => $slot['date'],
                 'startTime' => $slot['startTime'],
                 'endTime' => $slot['endTime'],

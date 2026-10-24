@@ -49,6 +49,12 @@ class ResolveSessionByShareTokenAction extends Controller
             $viewer = Auth::guard('sanctum')->user();
             if ($viewer) {
                 $viewerId = (string) $viewer->getAuthIdentifier();
+                // Réponse déjà donnée par le viewer (page web : réponse sans l'app)
+                $preview['viewerStatus'] = $session->getUserStatus($viewerId);
+                $preview['viewerSlotIds'] = array_values(array_map(
+                    fn ($slot) => $slot['id'],
+                    array_filter($session->getSlotProposals(), fn ($slot) => in_array($viewerId, $slot['availableUserIds'] ?? [], true))
+                ));
                 if ($session->isOrganizer($viewerId)) {
                     $preview['sessionId'] = $session->getId();
                     $preview['viewerRelationship'] = 'organizer';
