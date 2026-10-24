@@ -35,7 +35,8 @@ class JoinSessionByShareTokenUseCase
         private ExpoPushNotificationService $expoService,
         private UpdateSportsPreferencesUseCase $updateSportsPreferencesUseCase,
         private FriendRepositoryInterface $friendRepository,
-        private FriendRequestRepositoryInterface $friendRequestRepository
+        private FriendRequestRepositoryInterface $friendRequestRepository,
+        private \App\Services\BadgeService $badgeService
     ) {}
 
     public function execute(string $shareToken, string $userId, ?string $from = null): SportSession
@@ -119,6 +120,12 @@ class JoinSessionByShareTokenUseCase
             } elseif ($session->getOrganizer()->getId() !== $userId) {
                 // Repli : l'organisateur
                 $targetId = $session->getOrganizer()->getId();
+            }
+
+            // Badge Recruteur : un compte tout neuf arrivé par ce lien compte pour celui qui l'a partagé
+            $joiner = \App\Models\UserModel::find($userId);
+            if ($targetId && $joiner && $joiner->created_at && $joiner->created_at->gt(now()->subDay())) {
+                $this->badgeService->recordReferral($targetId, $userId, $session->getId());
             }
 
             if ($targetId

@@ -29,6 +29,8 @@ use App\Http\Controllers\SportSession\RespondToSessionInvitationAction;
 use App\Http\Controllers\SportSession\SetSlotAvailabilityAction;
 use App\Http\Controllers\SportSession\ConfirmSessionSlotAction;
 use App\Http\Controllers\SportSession\UpdateSessionSlotsAction;
+use App\Http\Controllers\Badge\GetUserBadgesAction;
+use App\Http\Controllers\Badge\MarkBadgesSeenAction;
 use App\Http\Controllers\SportSession\AddSessionCommentAction;
 use App\Http\Controllers\SportSession\InviteUsersToSessionAction;
 use App\Http\Controllers\SportSession\FindMyCreatedSessionsAction;
@@ -206,6 +208,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/users/update-email', UpdateUserEmailAction::class);
     Route::post('/users/update-password', UpdateUserPasswordAction::class);
     Route::delete('/users', DeleteUserAction::class);
+    // Badges (avant /users/{id} pour ne pas être capturé)
+    Route::get('/badges', GetUserBadgesAction::class);
+    Route::post('/badges/seen', MarkBadgesSeenAction::class);
+    Route::get('/users/{id}/badges', GetUserBadgesAction::class);
     Route::get('/users/{id}', FindUserByIdAction::class);
 
     // Push Tokens
