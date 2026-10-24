@@ -2,10 +2,10 @@
 # runtime (nginx + php-fpm + 12 workers queue:work sous supervisor), mais sur
 # l'image officielle php:*-fpm, que l'on peut rebuild dès qu'un correctif
 # PHP/Debian est publié sans attendre Nixpacks.
-# Version exacte (pas "8.3") : un tag flottant peut être servi depuis un vieux
-# cache Docker. 8.3.36 = premier patch corrigeant PHP2Shell
+# Version exacte (pas "8.4") : un tag flottant peut être servi depuis un vieux
+# cache Docker. 8.4.27 = premier patch 8.4 corrigeant PHP2Shell
 # (CVE-2026-109618 / CVE-2026-109619). Ne pas descendre en dessous.
-ARG PHP_VERSION=8.3.36
+ARG PHP_VERSION=8.4.27
 
 FROM composer:2 AS vendor
 WORKDIR /app
