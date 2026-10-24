@@ -54,21 +54,15 @@ class CreateSportSessionUseCase
             throw new Exception('Sport invalide');
         }
 
-        if (!isset($data['date']) || !$this->isValidDate($data['date'])) {
-            throw new Exception('Date invalide');
-        }
+        if (($data['scheduling'] ?? 'scheduled') === 'finding_slot') {
+            $this->validateSlotProposals($data['slotProposals'] ?? []);
+        } else {
+            $this->validateTimeRange($data);
 
-        if (!isset($data['startTime']) || !$this->isValidTime($data['startTime'])) {
-            throw new Exception('Heure de début invalide');
-        }
-
-        if (!isset($data['endTime']) || !$this->isValidTime($data['endTime'])) {
-            throw new Exception('Heure de fin invalide');
-        }
-
-        // Vérifier que l'heure de fin est après l'heure de début
-        if (strtotime($data['endTime']) <= strtotime($data['startTime'])) {
-            throw new Exception('L\'heure de fin doit être après l\'heure de début');
+            // Vérifier que la date n'est pas dans le passé
+            if (strtotime($data['date']) < strtotime(date('Y-m-d'))) {
+                throw new Exception('La date ne peut pas être dans le passé');
+            }
         }
 
         if (!isset($data['location']) || empty(trim($data['location']))) {
@@ -94,10 +88,49 @@ class CreateSportSessionUseCase
         if (!$organizer) {
             throw new Exception('Organisateur non trouvé');
         }
+    }
 
-        // Vérifier que la date n'est pas dans le passé
-        if (strtotime($data['date']) < strtotime(date('Y-m-d'))) {
-            throw new Exception('La date ne peut pas être dans le passé');
+    private function validateTimeRange(array $range): void
+    {
+        if (!isset($range['date']) || !$this->isValidDate($range['date'])) {
+            throw new Exception('Date invalide');
+        }
+
+        if (!isset($range['startTime']) || !$this->isValidTime($range['startTime'])) {
+            throw new Exception('Heure de début invalide');
+        }
+
+        if (!isset($range['endTime']) || !$this->isValidTime($range['endTime'])) {
+            throw new Exception('Heure de fin invalide');
+        }
+
+        // Vérifier que l'heure de fin est après l'heure de début
+        if (strtotime($range['endTime']) <= strtotime($range['startTime'])) {
+            throw new Exception('L\'heure de fin doit être après l\'heure de début');
+        }
+    }
+
+    private function validateSlotProposals(array $slots): void
+    {
+        if (empty($slots)) {
+            throw new Exception('Au moins un créneau doit être proposé');
+        }
+
+        $seen = [];
+        $now = new \DateTime('now', new \DateTimeZone('Europe/Paris'));
+        foreach ($slots as $slot) {
+            $this->validateTimeRange($slot);
+
+            $start = new \DateTime($slot['date'] . ' ' . $slot['startTime'], new \DateTimeZone('Europe/Paris'));
+            if ($start < $now) {
+                throw new Exception('Un créneau proposé est déjà passé');
+            }
+
+            $key = $slot['date'] . ' ' . $slot['startTime'] . ' ' . $slot['endTime'];
+            if (isset($seen[$key])) {
+                throw new Exception('Le même créneau est proposé deux fois');
+            }
+            $seen[$key] = true;
         }
     }
 

@@ -15,7 +15,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 {
     public function findById(string $id): ?SportSession
     {
-        $model = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])->find($id);
+        $model = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])->find($id);
 
         if (!$model) {
             return null;
@@ -26,7 +26,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findByShareToken(string $shareToken): ?SportSession
     {
-        $model = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])
+        $model = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])
             ->where('share_token', $shareToken)
             ->first();
 
@@ -39,7 +39,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findAll(array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator
     {
-        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])
             ->where('status', 'active'); // Exclure les sessions annulées
 
         if (isset($filters['sport'])) {
@@ -65,7 +65,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findMySessions(string $userId, array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator
     {
-        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])
             ->whereHas('participants', function ($q) use ($userId) {
                 $q->where('user_id', $userId)
                   ->whereNotIn('status', ['declined']); // Exclure complètement les sessions refusées
@@ -104,10 +104,22 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function create(array $data): SportSession
     {
-        // Les dates/heures fournies sont en heure locale (Europe/Paris)
-        // On les crée en Europe/Paris puis on les convertit en UTC pour le stockage
-        $startDate = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['startTime'] . ':00', 'Europe/Paris')->utc();
-        $endDate = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['endTime'] . ':00', 'Europe/Paris')->utc();
+        $scheduling = $data['scheduling'] ?? 'scheduled';
+
+        if ($scheduling === 'finding_slot') {
+            // Créneau à définir : start/end couvrent la plage des créneaux proposés
+            $slots = array_map(fn ($slot) => [
+                'start_date' => $this->parseParisDateTime($slot['date'], $slot['startTime']),
+                'end_date' => $this->parseParisDateTime($slot['date'], $slot['endTime']),
+            ], $data['slotProposals']);
+            $startDate = min(array_column($slots, 'start_date'));
+            $endDate = max(array_column($slots, 'end_date'));
+        } else {
+            // Les dates/heures fournies sont en heure locale (Europe/Paris)
+            // On les crée en Europe/Paris puis on les convertit en UTC pour le stockage
+            $startDate = $this->parseParisDateTime($data['date'], $data['startTime']);
+            $endDate = $this->parseParisDateTime($data['date'], $data['endTime']);
+        }
 
         $model = SportSessionModel::create([
             'id' => Str::uuid(),
@@ -119,8 +131,15 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             'price_per_person' => $data['pricePerPerson'] ?? null,
             'organizer_id' => $data['organizer_id'],
             'status' => 'active',
+            'scheduling' => $scheduling,
             'share_token' => $this->generateUniqueShareToken(),
         ]);
+
+        if ($scheduling === 'finding_slot') {
+            foreach ($slots as $slot) {
+                $model->slotProposals()->create(['id' => Str::uuid()] + $slot);
+            }
+        }
 
         // Ajouter automatiquement l'organisateur comme participant
         $this->addParticipant($model->id, $data['organizer_id'], 'accepted');
@@ -183,7 +202,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findByOrganizer(string $organizerId, array $filters = []): array
     {
-        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])
             ->where('status', 'active') // Exclure les sessions annulées
             ->byOrganizer($organizerId);
 
@@ -198,7 +217,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findByParticipant(string $userId, array $filters = []): array
     {
-        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])
             ->where('status', 'active') // Exclure les sessions annulées
             ->whereHas('participants', function ($q) use ($userId) {
                 $q->where('user_id', $userId);
@@ -215,7 +234,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findByParticipantPaginated(string $userId, array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator
     {
-        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])
             ->where('status', 'active') // Exclure les sessions annulées
             ->whereHas('participants', function ($q) use ($userId) {
                 $q->where('user_id', $userId)
@@ -437,8 +456,39 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $organizer,
             $participants,
             $comments,
-            $model->share_token
+            $model->share_token,
+            $model->scheduling ?? 'scheduled',
+            $this->mapSlotProposals($model)
         );
+    }
+
+    private function mapSlotProposals(SportSessionModel $model): array
+    {
+        if (($model->scheduling ?? 'scheduled') !== 'finding_slot') {
+            return [];
+        }
+
+        return $model->slotProposals->map(function ($slot) {
+            $start = $slot->start_date->copy()->setTimezone('Europe/Paris');
+            $end = $slot->end_date->copy()->setTimezone('Europe/Paris');
+            $availableUserIds = $slot->availabilities->pluck('user_id')->values()->toArray();
+
+            return [
+                'id' => $slot->id,
+                'date' => $start->format('Y-m-d'),
+                'startTime' => $start->format('H:i'),
+                'endTime' => $end->format('H:i'),
+                'startDate' => $slot->start_date->format('c'),
+                'endDate' => $slot->end_date->format('c'),
+                'availableUserIds' => $availableUserIds,
+                'availabilityCount' => count($availableUserIds),
+            ];
+        })->values()->toArray();
+    }
+
+    private function parseParisDateTime(string $date, string $time): \Carbon\Carbon
+    {
+        return \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $date . ' ' . $time . ':00', 'Europe/Paris')->utc();
     }
 
     /**
@@ -490,7 +540,8 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         }
 
         $models = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile'])
-            ->where('status', 'active');
+            ->where('status', 'active')
+            ->where('scheduling', 'scheduled'); // Pas de rappel tant que le créneau n'est pas choisi
 
         if ($marginMinutes > 0) {
             $minDateTime = $targetDateTime->copy()->subMinutes($marginMinutes);

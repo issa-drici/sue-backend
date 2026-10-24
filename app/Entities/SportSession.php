@@ -15,6 +15,9 @@ class SportSession
     private ?float $pricePerPerson;
     private string $status;
     private ?string $shareToken;
+    // 'scheduled' (date fixée) ou 'finding_slot' (créneau à définir parmi $slotProposals)
+    private string $scheduling;
+    private array $slotProposals;
     private User $organizer;
     private array $participants;
     private array $comments;
@@ -31,7 +34,9 @@ class SportSession
         User $organizer,
         array $participants = [],
         array $comments = [],
-        ?string $shareToken = null
+        ?string $shareToken = null,
+        string $scheduling = 'scheduled',
+        array $slotProposals = []
     ) {
         $this->id = $id;
         $this->sport = $sport;
@@ -45,6 +50,8 @@ class SportSession
         $this->organizer = $organizer;
         $this->participants = $participants;
         $this->comments = $comments;
+        $this->scheduling = $scheduling;
+        $this->slotProposals = $slotProposals;
     }
 
     public function getId(): string
@@ -118,6 +125,25 @@ class SportSession
     public function getStatus(): string
     {
         return $this->status;
+    }
+
+    public function getScheduling(): string
+    {
+        return $this->scheduling;
+    }
+
+    /**
+     * Faux tant que la session attend que l'organisateur choisisse un créneau :
+     * start_date / end_date ne sont alors qu'une plage (premier / dernier créneau proposé).
+     */
+    public function isScheduled(): bool
+    {
+        return $this->scheduling !== 'finding_slot';
+    }
+
+    public function getSlotProposals(): array
+    {
+        return $this->slotProposals;
     }
 
     public function getShareToken(): ?string
@@ -263,6 +289,8 @@ class SportSession
             'maxParticipants' => $this->maxParticipants,
             'pricePerPerson' => $this->pricePerPerson,
             'status' => $this->status,
+            'scheduling' => $this->scheduling,
+            'slotProposals' => $this->slotProposals,
             'shareToken' => $this->shareToken,
             'organizer' => [
                 'id' => $this->organizer->getId(),
@@ -304,6 +332,12 @@ class SportSession
             'startDate' => $this->startDate->format('c'),
             'endDate' => $this->endDate->format('c'),
             'location' => $this->location,
+            'scheduling' => $this->scheduling,
+            'slotProposals' => array_map(fn ($slot) => [
+                'date' => $slot['date'],
+                'startTime' => $slot['startTime'],
+                'endTime' => $slot['endTime'],
+            ], $this->slotProposals),
             'maxParticipants' => $this->maxParticipants,
             'participantsCount' => $this->getAcceptedParticipantsCount(),
             'organizer' => [

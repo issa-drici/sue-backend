@@ -26,6 +26,7 @@ class SportSessionModel extends Model
         'price_per_person',
         'organizer_id',
         'status',
+        'scheduling',
         'share_token',
     ];
 
@@ -49,6 +50,11 @@ class SportSessionModel extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(SportSessionCommentModel::class, 'session_id');
+    }
+
+    public function slotProposals(): HasMany
+    {
+        return $this->hasMany(SessionSlotProposalModel::class, 'session_id')->orderBy('start_date');
     }
 
     public function notifications(): HasMany

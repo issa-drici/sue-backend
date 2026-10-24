@@ -111,6 +111,21 @@ class DateFormatterService
      * Génère un message de notification pour une invitation
      * Exemple: "Vous avez été invité à une session de Tennis mardi 5 août de 10h30 à 12h30"
      */
+    /**
+     * Message d'invitation adapté à la session : date fixée, ou créneau encore à définir.
+     */
+    public static function generateSessionInvitationMessage(\App\Entities\SportSession $session): string
+    {
+        if (!$session->isScheduled()) {
+            $sportName = self::getSportName($session->getSport());
+            $count = count($session->getSlotProposals());
+            $slots = $count > 1 ? "{$count} créneaux proposés" : '1 créneau proposé';
+            return "Vous avez été invité à une session de {$sportName}, date à définir ({$slots}) : indiquez vos disponibilités";
+        }
+
+        return self::generateInvitationMessage($session->getSport(), $session->getDate(), $session->getStartTime(), $session->getEndTime());
+    }
+
     public static function generateInvitationMessage(string $sport, string $date, string $startTime, ?string $endTime = null): string
     {
         $sportName = self::getSportName($sport);
