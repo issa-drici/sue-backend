@@ -64,6 +64,16 @@ class JoinSessionByShareTokenUseCase
             return $session;
         }
 
+        // Créneau à définir : on rejoint comme invité, pour donner ses disponibilités
+        if (!$session->isScheduled()) {
+            if ($participant) {
+                return $session;
+            }
+            $this->sportSessionRepository->addParticipant($sessionId, $userId, 'pending');
+            $this->addInviterAsFriend($session, $userId, $from);
+            return $this->sportSessionRepository->findById($sessionId);
+        }
+
         // Vérifier la limite de participants avant d'ajouter
         $this->validateParticipantLimit($session);
 

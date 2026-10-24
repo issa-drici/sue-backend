@@ -38,6 +38,11 @@ class UpdateSportSessionUseCase
             throw new Exception('Impossible de modifier une session passée');
         }
 
+        // Créneau à définir : la date se fixe en confirmant un des créneaux proposés
+        if (!$session->isScheduled() && (isset($data['date']) || isset($data['startTime']) || isset($data['endTime']))) {
+            throw new Exception('Confirme un des créneaux proposés pour fixer la date');
+        }
+
         // Validation des données
         $this->validateUpdateData($data);
 

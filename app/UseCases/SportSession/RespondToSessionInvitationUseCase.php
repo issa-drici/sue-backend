@@ -45,6 +45,11 @@ class RespondToSessionInvitationUseCase
             throw new Exception('Réponse invalide. Utilisez \'accept\' ou \'decline\'');
         }
 
+        // Créneau pas encore choisi : on donne ses disponibilités au lieu d'accepter
+        if ($response === 'accept' && !$session->isScheduled()) {
+            throw new Exception('Réponse invalide : indiquez plutôt vos disponibilités');
+        }
+
         // Si l'utilisateur veut accepter, vérifier la limite de participants
         if ($response === 'accept') {
             $this->validateParticipantLimit($session);

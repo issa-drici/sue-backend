@@ -8,6 +8,8 @@ use App\Models\SportSessionModel;
 use App\Models\SportSessionParticipantModel;
 use App\Models\SportSessionCommentModel;
 use App\Models\UserModel;
+use App\Models\SessionSlotProposalModel;
+use App\Models\SessionSlotAvailabilityModel;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 
@@ -401,6 +403,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
                 'fullName' => $participant->user->firstname . ' ' . $participant->user->lastname,
                 'status' => $participant->status,
                 'avatarUrl' => $avatarUrl,
+                'hasGivenAvailability' => $participant->slot_responded_at !== null,
                 'created_at' => $participant->created_at, // Pour le tri secondaire
             ];
         })->sortBy(function ($participant) {
@@ -460,6 +463,40 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $model->scheduling ?? 'scheduled',
             $this->mapSlotProposals($model)
         );
+    }
+
+    public function setSlotAvailabilities(string $sessionId, string $userId, array $slotIds): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($sessionId, $userId, $slotIds) {
+            $sessionSlotIds = SessionSlotProposalModel::where('session_id', $sessionId)->pluck('id');
+
+            SessionSlotAvailabilityModel::whereIn('slot_id', $sessionSlotIds)
+                ->where('user_id', $userId)
+                ->delete();
+
+            foreach (array_unique($slotIds) as $slotId) {
+                SessionSlotAvailabilityModel::create([
+                    'id' => Str::uuid(),
+                    'slot_id' => $slotId,
+                    'user_id' => $userId,
+                ]);
+            }
+
+            SportSessionParticipantModel::where('session_id', $sessionId)
+                ->where('user_id', $userId)
+                ->update(['slot_responded_at' => now()]);
+        });
+    }
+
+    public function confirmSlot(string $sessionId, string $slotId): void
+    {
+        $slot = SessionSlotProposalModel::where('session_id', $sessionId)->findOrFail($slotId);
+
+        SportSessionModel::where('id', $sessionId)->update([
+            'start_date' => $slot->start_date,
+            'end_date' => $slot->end_date,
+            'scheduling' => 'scheduled',
+        ]);
     }
 
     private function mapSlotProposals(SportSessionModel $model): array

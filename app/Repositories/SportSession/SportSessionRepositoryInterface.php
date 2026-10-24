@@ -46,6 +46,17 @@ interface SportSessionRepositoryInterface
     public function inviteUser(string $sessionId, string $userId): bool;
 
     /**
+     * "Trouver un créneau" : remplace les disponibilités de l'utilisateur sur les créneaux de la session
+     * et marque qu'il a répondu (même sans créneau).
+     */
+    public function setSlotAvailabilities(string $sessionId, string $userId, array $slotIds): void;
+
+    /**
+     * "Trouver un créneau" : fixe la session sur le créneau choisi (dates recopiées, scheduling = scheduled).
+     */
+    public function confirmSlot(string $sessionId, string $slotId): void;
+
+    /**
      * Trouve les sessions actives qui commencent à une date et heure précises
      */
     public function findByDateAndTime(string $date, string $time): array;

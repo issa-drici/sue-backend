@@ -17,11 +17,13 @@ class SportSessionParticipantModel extends Model
         'session_id',
         'user_id',
         'status',
+        'slot_responded_at',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'slot_responded_at' => 'datetime',
     ];
 
     public function session(): BelongsTo

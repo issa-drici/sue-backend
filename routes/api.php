@@ -26,6 +26,8 @@ use App\Http\Controllers\SportSession\FindSportSessionByIdAction;
 use App\Http\Controllers\SportSession\UpdateSportSessionAction;
 use App\Http\Controllers\SportSession\DeleteSportSessionAction;
 use App\Http\Controllers\SportSession\RespondToSessionInvitationAction;
+use App\Http\Controllers\SportSession\SetSlotAvailabilityAction;
+use App\Http\Controllers\SportSession\ConfirmSessionSlotAction;
 use App\Http\Controllers\SportSession\AddSessionCommentAction;
 use App\Http\Controllers\SportSession\InviteUsersToSessionAction;
 use App\Http\Controllers\SportSession\FindMyCreatedSessionsAction;
@@ -158,6 +160,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/sessions/{id}/invite', InviteUsersToSessionAction::class);
     Route::post('/join/{token}', JoinSessionByShareTokenAction::class);
     Route::patch('/sessions/{id}/respond', RespondToSessionInvitationAction::class);
+    // Trouver un créneau
+    Route::put('/sessions/{id}/availability', SetSlotAvailabilityAction::class);
+    Route::post('/sessions/{id}/confirm-slot', ConfirmSessionSlotAction::class);
     Route::patch('/sessions/{id}/cancel-participation', CancelParticipationAction::class);
     Route::patch('/sessions/{id}/cancel', CancelSportSessionAction::class);
     Route::patch('/sessions/{id}/change-organizer', ChangeSessionOrganizerAction::class);
