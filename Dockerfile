@@ -35,8 +35,12 @@ WORKDIR /app
 COPY --from=vendor /app/vendor ./vendor
 COPY . .
 
+# laravel.log est créé ici, au nom de www-data : la tâche Coolify schedule:run
+# s'exécute en root via docker exec, et si elle créait ce fichier en premier,
+# php-fpm (www-data) ne pourrait plus y écrire.
 RUN composer dump-autoload --optimize --no-dev \
     && php artisan package:discover --ansi \
+    && touch storage/logs/laravel.log \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R ug+rwX storage bootstrap/cache
 
