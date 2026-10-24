@@ -13,3 +13,8 @@ Schedule::command('sessions:send-reminders')
     ->everyMinute()
     ->withoutOverlapping();
     // ->runInBackground();
+
+// "Trouver un créneau" : rappel aux organisateurs pour confirmer un créneau
+Schedule::command('sessions:send-slot-reminders')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();

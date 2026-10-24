@@ -62,9 +62,15 @@ class SetSlotAvailabilityUseCase
             $this->sportSessionRepository->updateParticipantStatus($sessionId, $userId, 'pending');
         }
 
-        $this->notifyOrganizer($session, $userId, count(array_unique($slotIds)), $isUpdate);
+        $updatedSession = $this->sportSessionRepository->findById($sessionId);
 
-        return $this->sportSessionRepository->findById($sessionId);
+        if (!$isUpdate && $this->everyoneResponded($updatedSession)) {
+            $this->notifyEveryoneResponded($updatedSession);
+        } else {
+            $this->notifyOrganizer($session, $userId, count(array_unique($slotIds)), $isUpdate);
+        }
+
+        return $updatedSession;
     }
 
     private function hasAlreadyResponded(SportSession $session, string $userId): bool
@@ -75,6 +81,34 @@ class SetSlotAvailabilityUseCase
             }
         }
         return false;
+    }
+
+    private function everyoneResponded(SportSession $session): bool
+    {
+        $invitees = $session->getSlotInvitees();
+        foreach ($invitees as $invitee) {
+            if (empty($invitee['hasGivenAvailability'])) {
+                return false;
+            }
+        }
+        return count($invitees) > 0;
+    }
+
+    private function notifyEveryoneResponded(SportSession $session): void
+    {
+        $best = $session->getBestSlotProposal();
+        $count = $best['availabilityCount'] ?? 0;
+        $message = $count > 0
+            ? ucfirst(\App\Services\DateFormatterService::formatSlotLabel($best)) . " arrange le plus de monde ({$count} dispo" . ($count > 1 ? 's' : '') . ') : tu peux confirmer'
+            : 'Aucun créneau ne convient à tes invités : propose-en d\'autres';
+
+        $this->sessionNotificationService->notify(
+            $session->getOrganizer()->getId(),
+            $session->getId(),
+            'Tout le monde a répondu',
+            $message,
+            'slot_availability'
+        );
     }
 
     private function notifyOrganizer(SportSession $session, string $userId, int $availableCount, bool $isUpdate): void

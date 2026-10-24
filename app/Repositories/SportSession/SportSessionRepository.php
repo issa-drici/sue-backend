@@ -393,8 +393,14 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $model->organizer->role
         );
 
+        // "Trouver un créneau" : date du dernier créneau ajouté, pour repérer les invités
+        // qui ont répondu avant (ils doivent revoir leurs dispos)
+        $latestSlotAddedAt = ($model->scheduling ?? 'scheduled') === 'finding_slot'
+            ? $model->slotProposals->max('created_at')
+            : null;
+
         // Récupérer les participants existants et les trier par statut
-        $participants = $model->participants->map(function ($participant) {
+        $participants = $model->participants->map(function ($participant) use ($latestSlotAddedAt) {
             $profile = $participant->user->profile;
             $avatarUrl = $profile && $profile->avatarFile ? $profile->avatarFile->url : null;
 
@@ -404,6 +410,9 @@ class SportSessionRepository implements SportSessionRepositoryInterface
                 'status' => $participant->status,
                 'avatarUrl' => $avatarUrl,
                 'hasGivenAvailability' => $participant->slot_responded_at !== null,
+                'hasNewSlots' => $participant->slot_responded_at !== null
+                    && $latestSlotAddedAt !== null
+                    && $participant->slot_responded_at->lte($latestSlotAddedAt),
                 'created_at' => $participant->created_at, // Pour le tri secondaire
             ];
         })->sortBy(function ($participant) {
@@ -488,6 +497,56 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         });
     }
 
+    public function updateSlotProposals(string $sessionId, array $removedSlotIds, array $newSlots): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($sessionId, $removedSlotIds, $newSlots) {
+            SessionSlotProposalModel::where('session_id', $sessionId)->whereIn('id', $removedSlotIds)->delete();
+
+            foreach ($newSlots as $slot) {
+                SessionSlotProposalModel::create([
+                    'id' => Str::uuid(),
+                    'session_id' => $sessionId,
+                    'start_date' => $this->parseParisDateTime($slot['date'], $slot['startTime']),
+                    'end_date' => $this->parseParisDateTime($slot['date'], $slot['endTime']),
+                ]);
+            }
+
+            $upcoming = SessionSlotProposalModel::where('session_id', $sessionId)->where('start_date', '>', now());
+            $range = [
+                'start_date' => (clone $upcoming)->min('start_date'),
+                'end_date' => (clone $upcoming)->max('end_date'),
+            ];
+
+            SportSessionModel::where('id', $sessionId)->update(array_filter($range) + [
+                // De nouveaux créneaux : l'organisateur pourra être prévenu à nouveau s'ils passent tous
+                'slot_expired_notified_at' => null,
+            ]);
+        });
+    }
+
+    public function findSessionsAwaitingSlot(): array
+    {
+        return SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'slotProposals.availabilities'])
+            ->where('status', 'active')
+            ->where('scheduling', 'finding_slot')
+            ->get()
+            ->map(fn ($model) => [
+                'session' => $this->mapToEntity($model),
+                'createdAt' => $model->created_at,
+                'reminderSentAt' => $model->slot_reminder_sent_at,
+                'expiredNotifiedAt' => $model->slot_expired_notified_at,
+            ])
+            ->all();
+    }
+
+    public function markSlotNotificationSent(string $sessionId, string $column): void
+    {
+        if (!in_array($column, ['slot_reminder_sent_at', 'slot_expired_notified_at'], true)) {
+            throw new \InvalidArgumentException("Colonne inconnue : {$column}");
+        }
+        SportSessionModel::where('id', $sessionId)->update([$column => now()]);
+    }
+
     public function confirmSlot(string $sessionId, string $slotId): void
     {
         $slot = SessionSlotProposalModel::where('session_id', $sessionId)->findOrFail($slotId);
@@ -505,7 +564,8 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             return [];
         }
 
-        return $model->slotProposals->map(function ($slot) {
+        // Un créneau déjà commencé ne peut plus être choisi : on ne garde que ceux à venir
+        return $model->slotProposals->filter(fn ($slot) => $slot->start_date->isFuture())->map(function ($slot) {
             $start = $slot->start_date->copy()->setTimezone('Europe/Paris');
             $end = $slot->end_date->copy()->setTimezone('Europe/Paris');
             $availableUserIds = $slot->availabilities->pluck('user_id')->values()->toArray();

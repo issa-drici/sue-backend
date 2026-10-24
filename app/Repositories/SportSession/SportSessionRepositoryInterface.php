@@ -57,6 +57,23 @@ interface SportSessionRepositoryInterface
     public function confirmSlot(string $sessionId, string $slotId): void;
 
     /**
+     * "Trouver un créneau" : retire des créneaux et en ajoute de nouveaux ([{date, startTime, endTime}],
+     * heure de Paris), puis recale la plage start_date / end_date sur les créneaux à venir.
+     */
+    public function updateSlotProposals(string $sessionId, array $removedSlotIds, array $newSlots): void;
+
+    /**
+     * "Trouver un créneau" : sessions actives en attente de créneau, avec les infos utiles aux rappels
+     * ([session, createdAt, reminderSentAt, expiredNotifiedAt]).
+     */
+    public function findSessionsAwaitingSlot(): array;
+
+    /**
+     * Marque une notification "Trouver un créneau" comme envoyée (slot_reminder_sent_at | slot_expired_notified_at).
+     */
+    public function markSlotNotificationSent(string $sessionId, string $column): void;
+
+    /**
      * Trouve les sessions actives qui commencent à une date et heure précises
      */
     public function findByDateAndTime(string $date, string $time): array;

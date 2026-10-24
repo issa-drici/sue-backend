@@ -146,6 +146,35 @@ class SportSession
         return $this->slotProposals;
     }
 
+    /**
+     * Créneau qui arrange le plus de monde (à égalité, le plus tôt). Null s'il n'y a plus de créneau à venir.
+     */
+    public function getBestSlotProposal(): ?array
+    {
+        $best = null;
+        foreach ($this->slotProposals as $slot) {
+            if ($best === null
+                || $slot['availabilityCount'] > $best['availabilityCount']
+                || ($slot['availabilityCount'] === $best['availabilityCount'] && $slot['startDate'] < $best['startDate'])
+            ) {
+                $best = $slot;
+            }
+        }
+        return $best;
+    }
+
+    /**
+     * Invités qui doivent donner leurs dispos (ni organisateur, ni ayant décliné).
+     */
+    public function getSlotInvitees(): array
+    {
+        $organizerId = $this->organizer->getId();
+        return array_values(array_filter(
+            $this->participants,
+            fn ($p) => ($p['id'] ?? null) !== $organizerId && ($p['status'] ?? null) !== 'declined'
+        ));
+    }
+
     public function getShareToken(): ?string
     {
         return $this->shareToken;

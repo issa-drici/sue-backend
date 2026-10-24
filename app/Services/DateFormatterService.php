@@ -112,6 +112,14 @@ class DateFormatterService
      * Exemple: "Vous avez été invité à une session de Tennis mardi 5 août de 10h30 à 12h30"
      */
     /**
+     * Libellé d'un créneau proposé : "mardi 27 octobre à 19h00"
+     */
+    public static function formatSlotLabel(array $slot): string
+    {
+        return self::formatDate($slot['date']) . ' à ' . self::formatTime($slot['startTime']);
+    }
+
+    /**
      * Message d'invitation adapté à la session : date fixée, ou créneau encore à définir.
      */
     public static function generateSessionInvitationMessage(\App\Entities\SportSession $session): string

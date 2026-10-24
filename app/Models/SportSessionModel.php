@@ -27,12 +27,16 @@ class SportSessionModel extends Model
         'organizer_id',
         'status',
         'scheduling',
+        'slot_reminder_sent_at',
+        'slot_expired_notified_at',
         'share_token',
     ];
 
     protected $casts = [
         'start_date' => 'datetime',
         'end_date' => 'datetime',
+        'slot_reminder_sent_at' => 'datetime',
+        'slot_expired_notified_at' => 'datetime',
         'max_participants' => 'integer',
         'price_per_person' => 'decimal:2',
     ];
