@@ -57,8 +57,9 @@ interface SportSessionRepositoryInterface
     public function confirmSlot(string $sessionId, string $slotId): void;
 
     /**
-     * "Trouver un créneau" : retire des créneaux et en ajoute de nouveaux ([{date, startTime, endTime}],
-     * heure de Paris), puis recale la plage start_date / end_date sur les créneaux à venir.
+     * "Trouver un créneau" : retire des créneaux et en ajoute de nouveaux ([{date, startTime, endTime,
+     * proposedBy?}], heure de Paris), puis recale la plage start_date / end_date sur les créneaux à venir.
+     * Un créneau proposé par un invité (proposedBy) le compte d'office comme dispo.
      */
     public function updateSlotProposals(string $sessionId, array $removedSlotIds, array $newSlots): void;
 

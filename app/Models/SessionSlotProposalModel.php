@@ -16,6 +16,7 @@ class SessionSlotProposalModel extends Model
     protected $fillable = [
         'id',
         'session_id',
+        'proposed_by',
         'start_date',
         'end_date',
     ];

@@ -395,14 +395,16 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $model->organizer->role
         );
 
-        // "Trouver un créneau" : date du dernier créneau ajouté, pour repérer les invités
-        // qui ont répondu avant (ils doivent revoir leurs dispos)
-        $latestSlotAddedAt = ($model->scheduling ?? 'scheduled') === 'finding_slot'
-            ? $model->slotProposals->max('created_at')
+        // "Trouver un créneau" : date du dernier créneau ajouté (hors ceux proposés par l'invité
+        // lui-même), pour repérer les invités qui ont répondu avant (ils doivent revoir leurs dispos)
+        $isFindingSlot = ($model->scheduling ?? 'scheduled') === 'finding_slot';
+        $latestSlotAddedAt = fn (string $userId) => $isFindingSlot
+            ? $model->slotProposals->where('proposed_by', '!==', $userId)->max('created_at')
             : null;
 
         // Récupérer les participants existants et les trier par statut
         $participants = $model->participants->map(function ($participant) use ($latestSlotAddedAt) {
+            $slotAddedAt = $latestSlotAddedAt($participant->user->id);
             $profile = $participant->user->profile;
             $avatarUrl = $profile && $profile->avatarFile ? $profile->avatarFile->url : null;
 
@@ -413,8 +415,8 @@ class SportSessionRepository implements SportSessionRepositoryInterface
                 'avatarUrl' => $avatarUrl,
                 'hasGivenAvailability' => $participant->slot_responded_at !== null,
                 'hasNewSlots' => $participant->slot_responded_at !== null
-                    && $latestSlotAddedAt !== null
-                    && $participant->slot_responded_at->lte($latestSlotAddedAt),
+                    && $slotAddedAt !== null
+                    && $participant->slot_responded_at->lte($slotAddedAt),
                 'created_at' => $participant->created_at, // Pour le tri secondaire
             ];
         })->sortBy(function ($participant) {
@@ -505,12 +507,25 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             SessionSlotProposalModel::where('session_id', $sessionId)->whereIn('id', $removedSlotIds)->delete();
 
             foreach ($newSlots as $slot) {
-                SessionSlotProposalModel::create([
+                $created = SessionSlotProposalModel::create([
                     'id' => Str::uuid(),
                     'session_id' => $sessionId,
+                    'proposed_by' => $slot['proposedBy'] ?? null,
                     'start_date' => $this->parseParisDateTime($slot['date'], $slot['startTime']),
                     'end_date' => $this->parseParisEndDateTime($slot['date'], $slot['startTime'], $slot['endTime']),
                 ]);
+
+                // Celui qui propose un créneau y est forcément dispo : ça compte comme une réponse
+                if (isset($slot['proposedBy'])) {
+                    SessionSlotAvailabilityModel::create([
+                        'id' => Str::uuid(),
+                        'slot_id' => $created->id,
+                        'user_id' => $slot['proposedBy'],
+                    ]);
+                    SportSessionParticipantModel::where('session_id', $sessionId)
+                        ->where('user_id', $slot['proposedBy'])
+                        ->update(['slot_responded_at' => now()]);
+                }
             }
 
             $upcoming = SessionSlotProposalModel::where('session_id', $sessionId)->where('start_date', '>', now());
@@ -579,6 +594,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
                 'endTime' => $end->format('H:i'),
                 'startDate' => $slot->start_date->format('c'),
                 'endDate' => $slot->end_date->format('c'),
+                'proposedBy' => $slot->proposed_by,
                 'availableUserIds' => $availableUserIds,
                 'availabilityCount' => count($availableUserIds),
             ];

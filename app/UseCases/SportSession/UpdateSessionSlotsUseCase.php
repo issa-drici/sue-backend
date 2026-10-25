@@ -6,6 +6,7 @@ use App\Entities\SportSession;
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
 use App\Services\DateFormatterService;
 use App\Services\SessionNotificationService;
+use App\Services\SlotProposalValidator;
 use Exception;
 
 /**
@@ -61,9 +62,9 @@ class UpdateSessionSlotsUseCase
         $newSlots = [];
         $seen = [];
         foreach ($slots as $slot) {
-            $key = "{$slot['date']} {$slot['startTime']} {$slot['endTime']}";
+            $key = SlotProposalValidator::startKey($slot);
             if (isset($seen[$key])) {
-                throw new Exception('Le même créneau est proposé deux fois');
+                throw new Exception('Deux créneaux commencent à la même heure');
             }
             $seen[$key] = true;
 
@@ -77,7 +78,7 @@ class UpdateSessionSlotsUseCase
                 continue;
             }
 
-            $this->validateNewSlot($slot);
+            SlotProposalValidator::validate($slot);
             $newSlots[] = ['date' => $slot['date'], 'startTime' => $slot['startTime'], 'endTime' => $slot['endTime']];
         }
 
@@ -93,25 +94,6 @@ class UpdateSessionSlotsUseCase
         $this->notifyRemovedSlots($session, $removed);
 
         return $this->sportSessionRepository->findById($sessionId);
-    }
-
-    private function validateNewSlot(array $slot): void
-    {
-        $date = \DateTime::createFromFormat('Y-m-d', $slot['date'] ?? '');
-        $start = \DateTime::createFromFormat('H:i', $slot['startTime'] ?? '');
-        $end = \DateTime::createFromFormat('H:i', $slot['endTime'] ?? '');
-        if (!$date || !$start || !$end) {
-            throw new Exception('Créneau invalide');
-        }
-
-        if ($slot['endTime'] === $slot['startTime']) {
-            throw new Exception('L\'heure de fin doit être différente de l\'heure de début');
-        }
-
-        $startAt = new \DateTime($slot['date'] . ' ' . $slot['startTime'], new \DateTimeZone('Europe/Paris'));
-        if ($startAt <= new \DateTime('now', new \DateTimeZone('Europe/Paris'))) {
-            throw new Exception('Un créneau proposé est déjà passé');
-        }
     }
 
     private function notifyAddedSlots(SportSession $session, array $newSlots): void
