@@ -36,17 +36,17 @@ class CreateSportSessionAction extends Controller
                 'participantIds.*' => 'required|string|uuid'
             ]);
 
-            // Validation personnalisée pour s'assurer que endTime > startTime
+            // Une fin avant le début tombe le lendemain : seule une durée nulle est refusée
             $timeRanges = $findingSlot ? $data['slotProposals'] : [$data];
             foreach ($timeRanges as $range) {
-                if (strtotime($range['endTime']) <= strtotime($range['startTime'])) {
+                if ($range['endTime'] === $range['startTime']) {
                     return response()->json([
                         'success' => false,
                         'error' => [
                             'code' => 'VALIDATION_ERROR',
                             'message' => 'Données invalides',
                             'details' => [
-                                'endTime' => ['L\'heure de fin doit être après l\'heure de début']
+                                'endTime' => ['L\'heure de fin doit être différente de l\'heure de début']
                             ],
                         ],
                     ], 400);

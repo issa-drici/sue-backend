@@ -26,14 +26,14 @@ class UpdateSportSessionAction extends Controller
                 'pricePerPerson' => 'sometimes|nullable|numeric|min:0',
             ]);
 
-            // Validation personnalisée pour s'assurer que endTime > startTime si les deux sont fournis
+            // Une fin avant le début tombe le lendemain : seule une durée nulle est refusée
             if (isset($data['startTime']) && isset($data['endTime'])) {
-                if (strtotime($data['endTime']) <= strtotime($data['startTime'])) {
+                if ($data['endTime'] === $data['startTime']) {
                     return response()->json([
                         'success' => false,
                         'error' => [
                             'code' => 'VALIDATION_ERROR',
-                            'message' => 'L\'heure de fin doit être après l\'heure de début',
+                            'message' => 'L\'heure de fin doit être différente de l\'heure de début',
                         ],
                     ], 400);
                 }

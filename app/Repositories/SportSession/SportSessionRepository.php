@@ -112,7 +112,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             // Créneau à définir : start/end couvrent la plage des créneaux proposés
             $slots = array_map(fn ($slot) => [
                 'start_date' => $this->parseParisDateTime($slot['date'], $slot['startTime']),
-                'end_date' => $this->parseParisDateTime($slot['date'], $slot['endTime']),
+                'end_date' => $this->parseParisEndDateTime($slot['date'], $slot['startTime'], $slot['endTime']),
             ], $data['slotProposals']);
             $startDate = min(array_column($slots, 'start_date'));
             $endDate = max(array_column($slots, 'end_date'));
@@ -120,7 +120,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             // Les dates/heures fournies sont en heure locale (Europe/Paris)
             // On les crée en Europe/Paris puis on les convertit en UTC pour le stockage
             $startDate = $this->parseParisDateTime($data['date'], $data['startTime']);
-            $endDate = $this->parseParisDateTime($data['date'], $data['endTime']);
+            $endDate = $this->parseParisEndDateTime($data['date'], $data['startTime'], $data['endTime']);
         }
 
         $model = SportSessionModel::create([
@@ -168,7 +168,9 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $mappedData['start_date'] = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['startTime'] . ':00', 'Europe/Paris')->utc();
         }
         if (isset($data['date']) && isset($data['endTime'])) {
-            $mappedData['end_date'] = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $data['date'] . ' ' . $data['endTime'] . ':00', 'Europe/Paris')->utc();
+            // Fin avant le début : la session se termine le lendemain (ex. 23:00 → 00:30)
+            $startTime = $data['startTime'] ?? $model->start_date->copy()->timezone('Europe/Paris')->format('H:i');
+            $mappedData['end_date'] = $this->parseParisEndDateTime($data['date'], $startTime, $data['endTime']);
         }
         if (array_key_exists('maxParticipants', $data)) {
             $mappedData['max_participants'] = $data['maxParticipants'];
@@ -507,7 +509,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
                     'id' => Str::uuid(),
                     'session_id' => $sessionId,
                     'start_date' => $this->parseParisDateTime($slot['date'], $slot['startTime']),
-                    'end_date' => $this->parseParisDateTime($slot['date'], $slot['endTime']),
+                    'end_date' => $this->parseParisEndDateTime($slot['date'], $slot['startTime'], $slot['endTime']),
                 ]);
             }
 
@@ -586,6 +588,16 @@ class SportSessionRepository implements SportSessionRepositoryInterface
     private function parseParisDateTime(string $date, string $time): \Carbon\Carbon
     {
         return \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $date . ' ' . $time . ':00', 'Europe/Paris')->utc();
+    }
+
+    /**
+     * Heure de fin d'un créneau : une fin avant le début tombe le lendemain (ex. 23:00 → 00:30)
+     */
+    private function parseParisEndDateTime(string $date, string $startTime, string $endTime): \Carbon\Carbon
+    {
+        // Le jour est ajouté en heure de Paris : en UTC, le changement d'heure décalerait la fin d'une heure
+        $endDate = $endTime <= $startTime ? \Carbon\Carbon::parse($date)->addDay()->format('Y-m-d') : $date;
+        return $this->parseParisDateTime($endDate, $endTime);
     }
 
     /**

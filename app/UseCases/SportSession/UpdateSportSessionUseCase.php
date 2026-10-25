@@ -86,10 +86,10 @@ class UpdateSportSessionUseCase
             throw new Exception('Heure de fin invalide');
         }
 
-        // Vérifier que l'heure de fin est après l'heure de début si les deux sont fournis
+        // Une fin avant le début tombe le lendemain : seule une durée nulle est refusée
         if (isset($data['startTime']) && isset($data['endTime'])) {
-            if (strtotime($data['endTime']) <= strtotime($data['startTime'])) {
-                throw new Exception('L\'heure de fin doit être après l\'heure de début');
+            if ($data['endTime'] === $data['startTime']) {
+                throw new Exception('L\'heure de fin doit être différente de l\'heure de début');
             }
         }
 

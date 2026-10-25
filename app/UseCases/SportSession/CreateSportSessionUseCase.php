@@ -104,9 +104,9 @@ class CreateSportSessionUseCase
             throw new Exception('Heure de fin invalide');
         }
 
-        // Vérifier que l'heure de fin est après l'heure de début
-        if (strtotime($range['endTime']) <= strtotime($range['startTime'])) {
-            throw new Exception('L\'heure de fin doit être après l\'heure de début');
+        // Une fin avant le début tombe le lendemain : seule une durée nulle est refusée
+        if ($range['endTime'] === $range['startTime']) {
+            throw new Exception('L\'heure de fin doit être différente de l\'heure de début');
         }
     }
 

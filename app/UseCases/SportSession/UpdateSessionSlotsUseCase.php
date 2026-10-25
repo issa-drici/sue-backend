@@ -104,8 +104,8 @@ class UpdateSessionSlotsUseCase
             throw new Exception('Créneau invalide');
         }
 
-        if ($slot['endTime'] <= $slot['startTime']) {
-            throw new Exception('L\'heure de fin doit être après l\'heure de début');
+        if ($slot['endTime'] === $slot['startTime']) {
+            throw new Exception('L\'heure de fin doit être différente de l\'heure de début');
         }
 
         $startAt = new \DateTime($slot['date'] . ' ' . $slot['startTime'], new \DateTimeZone('Europe/Paris'));
