@@ -49,19 +49,11 @@ class PhoneOtpService
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $message = "Votre code de vérification SUE est : {$code}";
 
-        // On envoie d'abord (synchrone) : si l'envoi échoue, aucun code n'est stocké
-        // et le cooldown ne se déclenche pas (l'utilisateur peut réessayer tout de
-        // suite). Pas de queue ici volontairement : la latence d'un OTP compte plus
-        // que le découplage, et ça évite de dépendre d'un worker en prod (cf.
-        // SendSmsJob, gardé de côté pour un futur besoin moins sensible à la latence).
-
-        // --- ClickSend (désactivé) --- Pour réactiver : décommenter la ligne
-        // suivante et commenter l'appel InfiniReach juste en dessous.
-        // $this->clickSend->send($phone, $message);
-
-        // --- InfiniReach (actif) ---
-        $this->sms->send($phone, $message);
-
+        // Le code est enregistré AVANT l'envoi : le SMS peut arriver (et iOS le remplir et le
+        // valider tout seul) avant que l'API SMS ait répondu. Enregistré après, la première
+        // vérification tombait sur l'ancien code ou sur aucun code : "code invalide", puis OK en
+        // le retapant. Pas de queue ici volontairement : la latence d'un OTP compte plus que le
+        // découplage (cf. SendSmsJob, gardé de côté pour un besoin moins sensible à la latence).
         PhoneVerificationCodeModel::updateOrCreate(
             ['phone' => $phone],
             [
@@ -72,6 +64,19 @@ class PhoneOtpService
                 'last_sent_at' => now(),
             ]
         );
+
+        try {
+            // --- ClickSend (désactivé) --- Pour réactiver : décommenter la ligne
+            // suivante et commenter l'appel InfiniReach juste en dessous.
+            // $this->clickSend->send($phone, $message);
+
+            // --- InfiniReach (actif) ---
+            $this->sms->send($phone, $message);
+        } catch (\Throwable $e) {
+            // Envoi raté : aucun code valide et pas de cooldown, l'utilisateur peut réessayer tout de suite
+            PhoneVerificationCodeModel::where('phone', $phone)->delete();
+            throw $e;
+        }
     }
 
     /**
