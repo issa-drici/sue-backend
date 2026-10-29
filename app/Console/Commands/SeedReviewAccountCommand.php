@@ -19,9 +19,9 @@ use Illuminate\Support\Str;
  * Remplit le compte de démo des équipes de review (App Store, Google Play) : quelques amis et
  * sessions à venir, une session à voter, une invitation à confirmer, une session passée.
  *
- * Relancé chaque nuit (routes/console.php) : les dates restent à venir quel que soit le jour de la
- * review. Le compte de démo lui-même n'est jamais supprimé (son jeton de connexion reste valide),
- * seules les sessions de démo sont recréées. Les amis de démo ont des numéros de la plage réservée
+ * Lancé à chaque demande de code pour le numéro de démo (PhoneOtpService::sendCode) : les dates
+ * restent à venir quel que soit le jour de la review. Le compte de démo lui-même n'est jamais
+ * supprimé, seules les sessions de démo sont recréées. Les amis de démo ont des numéros de la plage réservée
  * à la fiction (06 39 98 xx xx) et aucun jeton push : personne de réel n'est notifié.
  */
 class SeedReviewAccountCommand extends Command

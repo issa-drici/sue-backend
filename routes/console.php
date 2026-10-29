@@ -18,9 +18,3 @@ Schedule::command('sessions:send-reminders')
 Schedule::command('sessions:send-slot-reminders')
     ->everyFiveMinutes()
     ->withoutOverlapping();
-
-// Compte de démo des équipes de review : dates toujours à venir (sans effet si REVIEW_PHONE est vide)
-Schedule::command('demo:review-account')
-    ->dailyAt('04:00')
-    ->timezone('Europe/Paris')
-    ->withoutOverlapping();

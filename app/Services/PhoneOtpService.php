@@ -39,6 +39,13 @@ class PhoneOtpService
     {
         if ($this->isReviewPhone($phone)) {
             $this->storeCode($phone, (string) config('services.review_account.code'));
+            // Compte de démo remis à neuf à chaque demande de code : des dates à venir le jour
+            // de la review, quelle qu'elle soit
+            try {
+                \Illuminate\Support\Facades\Artisan::call('demo:review-account');
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Remplissage du compte de démo impossible', ['error' => $e->getMessage()]);
+            }
             return;
         }
 
