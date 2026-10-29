@@ -44,6 +44,13 @@ return [
 
     // Fournisseur SMS actif (cf. App\Services\PhoneOtpService).
     // ClickSend ci-dessus reste configuré/inchangé pour une réactivation rapide.
+    // Compte de démo pour les équipes de review (App Store, Google Play) : pour ce numéro seul,
+    // aucun SMS n'est envoyé et le code attendu est REVIEW_OTP_CODE. Vide = désactivé.
+    'review_account' => [
+        'phone' => env('REVIEW_PHONE'),
+        'code' => env('REVIEW_OTP_CODE'),
+    ],
+
     'infinireach' => [
         'api_key' => env('INFINIREACH_API_KEY'),
         'from' => env('INFINIREACH_FROM'),

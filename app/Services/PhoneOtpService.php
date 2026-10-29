@@ -37,6 +37,11 @@ class PhoneOtpService
      */
     public function sendCode(string $phone): void
     {
+        if ($this->isReviewPhone($phone)) {
+            $this->storeCode($phone, (string) config('services.review_account.code'));
+            return;
+        }
+
         $record = PhoneVerificationCodeModel::where('phone', $phone)->first();
 
         if ($record && $record->last_sent_at) {
@@ -54,16 +59,7 @@ class PhoneOtpService
         // vérification tombait sur l'ancien code ou sur aucun code : "code invalide", puis OK en
         // le retapant. Pas de queue ici volontairement : la latence d'un OTP compte plus que le
         // découplage (cf. SendSmsJob, gardé de côté pour un besoin moins sensible à la latence).
-        PhoneVerificationCodeModel::updateOrCreate(
-            ['phone' => $phone],
-            [
-                'code_hash' => Hash::make($code),
-                'expires_at' => now()->addMinutes(self::CODE_TTL_MINUTES),
-                'attempts' => 0,
-                'verified_at' => null,
-                'last_sent_at' => now(),
-            ]
-        );
+        $this->storeCode($phone, $code);
 
         try {
             // --- ClickSend (désactivé) --- Pour réactiver : décommenter la ligne
@@ -77,6 +73,31 @@ class PhoneOtpService
             PhoneVerificationCodeModel::where('phone', $phone)->delete();
             throw $e;
         }
+    }
+
+    private function storeCode(string $phone, string $code): void
+    {
+        PhoneVerificationCodeModel::updateOrCreate(
+            ['phone' => $phone],
+            [
+                'code_hash' => Hash::make($code),
+                'expires_at' => now()->addMinutes(self::CODE_TTL_MINUTES),
+                'attempts' => 0,
+                'verified_at' => null,
+                'last_sent_at' => now(),
+            ]
+        );
+    }
+
+    /**
+     * Numéro de démo des équipes de review : actif seulement si le numéro ET un code de 6 chiffres
+     * sont configurés (REVIEW_PHONE, REVIEW_OTP_CODE).
+     */
+    private function isReviewPhone(string $phone): bool
+    {
+        $reviewPhone = config('services.review_account.phone');
+        $reviewCode = (string) config('services.review_account.code');
+        return $reviewPhone && preg_match('/^\d{6}$/', $reviewCode) && hash_equals($reviewPhone, $phone);
     }
 
     /**
