@@ -32,7 +32,8 @@ class GetUserProfileUseCase
             $userProfile->getEmail(),
             $userProfile->getAvatar(),
             $stats,
-            $userProfile->getSportsPreferences()
+            $userProfile->getSportsPreferences(),
+            $userProfile->getPhone()
         );
     }
 

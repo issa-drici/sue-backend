@@ -82,6 +82,7 @@ use App\Http\Controllers\User\SearchUsersAction;
 use App\Http\Controllers\User\CheckContactsAction;
 use App\Http\Controllers\User\UpdateUserEmailAction;
 use App\Http\Controllers\User\UpdateUserPasswordAction;
+use App\Http\Controllers\User\AccountVerificationController;
 use App\Http\Controllers\User\DeleteUserAction;
 use App\Http\Controllers\User\CancelFriendRequestAction;
 use App\Http\Controllers\User\RemoveFriendAction;
@@ -212,6 +213,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/users/update-email', UpdateUserEmailAction::class);
     Route::post('/users/update-password', UpdateUserPasswordAction::class);
     Route::delete('/users', DeleteUserAction::class);
+    // Changer de numéro (code sur l'actuel puis sur le nouveau) ; le premier envoi sert aussi à la suppression
+    Route::post('/users/phone/send-otp', [AccountVerificationController::class, 'sendCurrentCode'])->middleware('throttle:5,1');
+    Route::post('/users/phone/verify-current', [AccountVerificationController::class, 'verifyCurrent'])->middleware('throttle:10,1');
+    Route::post('/users/phone/new/send-otp', [AccountVerificationController::class, 'sendNewCode'])->middleware('throttle:5,1');
+    Route::post('/users/phone/new/verify', [AccountVerificationController::class, 'confirmNew'])->middleware('throttle:10,1');
     // Badges (avant /users/{id} pour ne pas être capturé)
     Route::get('/badges', GetUserBadgesAction::class);
     Route::post('/badges/seen', MarkBadgesSeenAction::class);

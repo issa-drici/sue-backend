@@ -109,7 +109,8 @@ class UserRepository implements UserRepositoryInterface
             $userModel->email,
             $avatarUrl,
             [],
-            $userModel->sports_preferences
+            $userModel->sports_preferences,
+            $userModel->phone
         );
     }
 

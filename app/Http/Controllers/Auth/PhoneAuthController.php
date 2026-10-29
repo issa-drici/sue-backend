@@ -7,6 +7,7 @@ use App\Exceptions\OtpResendTooSoonException;
 use App\Exceptions\PhoneNotVerifiedException;
 use App\Http\Controllers\Controller;
 use App\Models\UserModel;
+use App\Services\PhoneNumber;
 use App\Services\PhoneOtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -171,27 +172,9 @@ class PhoneAuthController extends Controller
         }
     }
 
-    /**
-     * Normalise un numéro français vers le format E.164 (+33XXXXXXXXX).
-     */
     private function normalizePhone(string $phone): string
     {
-        $phone = preg_replace('/[^\d+]/', '', trim($phone));
-
-        // 0XXXXXXXXX → +33XXXXXXXXX
-        if (preg_match('/^0(\d{9})$/', $phone, $m)) {
-            return '+33' . $m[1];
-        }
-        // 33XXXXXXXXX → +33XXXXXXXXX
-        if (preg_match('/^33(\d{9})$/', $phone, $m)) {
-            return '+33' . $m[1];
-        }
-        // XXXXXXXXX (9 chiffres, commence par 6/7) → +33XXXXXXXXX
-        if (preg_match('/^([67]\d{8})$/', $phone, $m)) {
-            return '+33' . $m[1];
-        }
-
-        return $phone;
+        return PhoneNumber::normalize($phone);
     }
 
     /**
@@ -199,7 +182,7 @@ class PhoneAuthController extends Controller
      */
     private function assertValidPhone(string $phone): void
     {
-        if (!preg_match('/^\+[1-9]\d{7,14}$/', $phone)) {
+        if (!PhoneNumber::isValid($phone)) {
             throw ValidationException::withMessages([
                 'phone' => ['Le format du numéro de téléphone est invalide.'],
             ]);

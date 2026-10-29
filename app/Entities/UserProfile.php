@@ -11,6 +11,7 @@ class UserProfile
     private ?string $avatar;
     private array $stats;
     private ?array $sportsPreferences;
+    private ?string $phone;
 
     public function __construct(
         string $id,
@@ -19,7 +20,8 @@ class UserProfile
         ?string $email,
         ?string $avatar = null,
         array $stats = [],
-        ?array $sportsPreferences = null
+        ?array $sportsPreferences = null,
+        ?string $phone = null
     ) {
         $this->id = $id;
         $this->firstname = $firstname;
@@ -28,6 +30,7 @@ class UserProfile
         $this->avatar = $avatar;
         $this->stats = $stats;
         $this->sportsPreferences = $sportsPreferences;
+        $this->phone = $phone;
     }
 
     public function getId(): string
@@ -48,6 +51,11 @@ class UserProfile
     public function getEmail(): ?string
     {
         return $this->email;
+    }
+
+    public function getPhone(): ?string
+    {
+        return $this->phone;
     }
 
     public function getAvatar(): ?string
@@ -82,6 +90,7 @@ class UserProfile
             'firstname' => $this->firstname,
             'lastname' => $this->lastname,
             'email' => $this->email,
+            'phone' => $this->phone,
             'avatar' => $this->avatar,
             'stats' => $this->stats,
             'sports_preferences' => $this->sportsPreferences,
@@ -97,7 +106,8 @@ class UserProfile
             email: $data['email'] ?? null,
             avatar: $data['avatar'] ?? null,
             stats: $data['stats'] ?? [],
-            sportsPreferences: $data['sports_preferences'] ?? null
+            sportsPreferences: $data['sports_preferences'] ?? null,
+            phone: $data['phone'] ?? null
         );
     }
 }
