@@ -206,7 +206,7 @@ class CancelParticipationTest extends TestCase
         $this->assertDatabaseHas('notifications', [
             'user_id' => $this->organizer->id,
             'type' => 'update',
-            'title' => 'Participation annulée',
+            'title' => 'Marie ne vient plus',
             'session_id' => $this->session->id,
         ]);
 
@@ -214,7 +214,7 @@ class CancelParticipationTest extends TestCase
         $this->assertDatabaseHas('notifications', [
             'user_id' => $anotherParticipant->id,
             'type' => 'update',
-            'title' => 'Participation annulée',
+            'title' => 'Marie ne vient plus',
             'session_id' => $this->session->id,
         ]);
 
@@ -222,7 +222,7 @@ class CancelParticipationTest extends TestCase
         $this->assertDatabaseMissing('notifications', [
             'user_id' => $this->participant->id,
             'type' => 'update',
-            'title' => 'Participation annulée',
+            'title' => 'Marie ne vient plus',
             'session_id' => $this->session->id,
         ]);
     }

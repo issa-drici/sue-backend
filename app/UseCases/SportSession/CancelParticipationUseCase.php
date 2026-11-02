@@ -4,21 +4,18 @@ namespace App\UseCases\SportSession;
 
 use App\Entities\SportSession;
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
-use App\Repositories\Notification\NotificationRepositoryInterface;
 use App\Repositories\User\UserRepositoryInterface;
-use App\Repositories\PushToken\PushTokenRepositoryInterface;
-use App\Services\ExpoPushNotificationService;
-use Exception;
+use App\Services\DateFormatterService;
+use App\Services\SessionNotificationService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class CancelParticipationUseCase
 {
     public function __construct(
         private SportSessionRepositoryInterface $sportSessionRepository,
-        private NotificationRepositoryInterface $notificationRepository,
         private UserRepositoryInterface $userRepository,
-        private PushTokenRepositoryInterface $pushTokenRepository,
-        private ExpoPushNotificationService $expoPushService
+        private SessionNotificationService $sessionNotificationService
     ) {}
 
     public function execute(string $sessionId, string $userId): array
@@ -68,9 +65,7 @@ class CancelParticipationUseCase
         }
 
         // Vérifier que la session n'est pas terminée
-        $sessionDate = new \DateTime($session->getDate());
-        $today = new \DateTime();
-        if ($sessionDate < $today) {
+        if ($session->getEndDate() < now()) {
             return [
                 'success' => false,
                 'error' => [
@@ -116,11 +111,8 @@ class CancelParticipationUseCase
             ];
         }
 
-        // Créer des notifications pour tous les participants actifs
-        $this->createCancellationNotifications($session, $userId);
-
-        // Envoyer des notifications push à tous les participants actifs
-        $this->sendPushNotifications($session, $userId);
+        // $session est lue avant le désistement : elle dit si la session était complète
+        $this->notifyCancellation($session, $userId);
 
         // Ajouter un commentaire système pour informer de l'annulation
         $this->createCancellationComment($session, $userId);
@@ -147,55 +139,52 @@ class CancelParticipationUseCase
         ];
     }
 
-    private function createCancellationNotifications(SportSession $session, string $userId): void
+    /**
+     * Prévient les joueurs confirmés et l'organisateur, et les invités en attente si une place
+     * vient de se libérer dans une session complète (sinon ils pouvaient déjà répondre : pas de
+     * relance à chaque désistement). Les joueurs qui ont refusé ne sont pas relancés.
+     */
+    private function notifyCancellation(SportSession $session, string $userId): void
     {
         try {
             $user = $this->userRepository->findById($userId);
-            $userName = $user ? ($user->getFirstname() . ' ' . $user->getLastname()) : 'Un participant';
+            $firstname = $user ? $user->getFirstname() : 'Un joueur';
+            $sessionLabel = $this->sessionLabel($session);
 
-            // Récupérer tous les participants avec le statut 'accepted'
-            $participants = $this->sportSessionRepository->findById($session->getId())->getParticipants();
+            $max = $session->getMaxParticipants();
+            $acceptedBefore = $session->getAcceptedParticipantsCount();
+            $missing = $max !== null ? $max - ($acceptedBefore - 1) : 0;
+            $placeFreed = $session->isScheduled() && $max !== null && $acceptedBefore >= $max;
 
-            foreach ($participants as $participant) {
+            $confirmedMessage = $missing > 0
+                ? "{$sessionLabel} · il manque {$missing} joueur" . ($missing > 1 ? 's' : '')
+                : $sessionLabel;
+
+            foreach ($session->getParticipants() as $participant) {
                 $participantId = $participant['id'] ?? null;
-
-                // Exclure l'utilisateur qui annule sa participation
-                if ($participantId === $userId) {
+                if (!$participantId || $participantId === $userId) {
                     continue;
                 }
 
-                // Exclure les participants qui ont déjà décliné
-                if (($participant['status'] ?? '') !== 'accepted') {
-                    continue;
+                $status = $participant['status'] ?? '';
+                if ($status === 'accepted') {
+                    $this->sessionNotificationService->notify(
+                        $participantId,
+                        $session->getId(),
+                        "{$firstname} ne vient plus",
+                        $confirmedMessage
+                    );
+                } elseif ($status === 'pending' && $placeFreed) {
+                    $this->sessionNotificationService->notify(
+                        $participantId,
+                        $session->getId(),
+                        'Une place vient de se libérer',
+                        "{$sessionLabel}. Réponds vite pour la prendre."
+                    );
                 }
-
-                $notification = $this->notificationRepository->create([
-                    'user_id' => $participantId,
-                    'type' => 'update',
-                    'title' => 'Participation annulée',
-                    'message' => "{$userName} a annulé sa participation à la session de {$session->getSport()}",
-                    'session_id' => $session->getId(),
-                ]);
-
-                // Marquer la notification comme envoyée par push
-                $this->notificationRepository->markAsPushSent($notification->getId(), [
-                    'type' => 'session_update',
-                    'session_id' => $session->getId(),
-                    'user_id' => $userId,
-                    'action' => 'participation_cancelled',
-                    'previous_status' => 'accepted',
-                    'new_status' => 'declined',
-                ]);
-
-                \Illuminate\Support\Facades\Log::info("Notification créée pour participant", [
-                    'sessionId' => $session->getId(),
-                    'userId' => $userId,
-                    'recipientId' => $participantId,
-                ]);
             }
-
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Erreur lors de la création des notifications d\'annulation', [
+        } catch (\Throwable $e) {
+            Log::error("Erreur lors de l'envoi des notifications d'annulation", [
                 'sessionId' => $session->getId(),
                 'userId' => $userId,
                 'error' => $e->getMessage(),
@@ -203,91 +192,14 @@ class CancelParticipationUseCase
         }
     }
 
-    private function sendPushNotifications(SportSession $session, string $userId): void
+    /** "Football, jeudi 5 novembre à 19h00" ; sans date tant que le créneau n'est pas choisi */
+    private function sessionLabel(SportSession $session): string
     {
-        try {
-            $user = $this->userRepository->findById($userId);
-            $userName = $user ? ($user->getFirstname() . ' ' . $user->getLastname()) : 'Un participant';
+        $sportName = DateFormatterService::getSportName($session->getSport());
 
-            // Récupérer tous les participants avec le statut 'accepted'
-            $participants = $this->sportSessionRepository->findById($session->getId())->getParticipants();
-
-            foreach ($participants as $participant) {
-                $participantId = $participant['id'] ?? null;
-
-                // Exclure l'utilisateur qui annule sa participation
-                if ($participantId === $userId) {
-                    continue;
-                }
-
-                // Exclure les participants qui ont déjà décliné
-                if (($participant['status'] ?? '') !== 'accepted') {
-                    continue;
-                }
-
-                try {
-                    // Récupérer les tokens push du participant
-                    $pushTokens = $this->pushTokenRepository->getTokensForUser($participantId);
-
-                    if (empty($pushTokens)) {
-                        \Illuminate\Support\Facades\Log::info("Aucun token push trouvé pour le participant", [
-                            'participantId' => $participantId,
-                        ]);
-                        continue;
-                    }
-
-                    // Préparer le message de notification
-                    $title = '❌ Participation annulée';
-                    $body = "{$userName} a annulé sa participation à la session de {$session->getSport()}";
-
-                    // Données supplémentaires pour l'app mobile
-                    $data = [
-                        'type' => 'session_update',
-                        'session_id' => $session->getId(),
-                        'user_id' => $userId,
-                        'action' => 'participation_cancelled',
-                        'previous_status' => 'accepted',
-                        'new_status' => 'declined',
-                        'sport' => $session->getSport(),
-                        'date' => $session->getDate(),
-                        'startTime' => $session->getStartTime(),
-                        'endTime' => $session->getEndTime(),
-                        'location' => $session->getLocation(),
-                    ];
-
-                    // Envoyer la notification push
-                    $result = $this->expoPushService->sendNotification(
-                        $pushTokens,
-                        $title,
-                        $body,
-                        $data
-                    );
-
-                    \Illuminate\Support\Facades\Log::info("Notification push envoyée pour annulation de participation", [
-                        'participantId' => $participantId,
-                        'sessionId' => $session->getId(),
-                        'userId' => $userId,
-                        'tokensCount' => count($pushTokens),
-                        'result' => $result,
-                    ]);
-
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Erreur lors de l\'envoi de notification push pour annulation', [
-                        'sessionId' => $session->getId(),
-                        'userId' => $userId,
-                        'participantId' => $participantId,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Erreur lors de l\'envoi des notifications push pour annulation', [
-                'sessionId' => $session->getId(),
-                'userId' => $userId,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        return $session->isScheduled()
+            ? $sportName . ', ' . DateFormatterService::formatDateAndTime($session->getDate(), $session->getStartTime())
+            : $sportName;
     }
 
     private function createCancellationComment(SportSession $session, string $userId): void
