@@ -51,6 +51,13 @@ return [
         'code' => env('REVIEW_OTP_CODE'),
     ],
 
+    // SMS Gateway for Android, mode cloud (identifiants : app SMS Gateway, onglet Cloud)
+    'smsgate' => [
+        'url' => env('SMSGATE_URL', 'https://api.sms-gate.app'),
+        'username' => env('SMSGATE_USERNAME'),
+        'password' => env('SMSGATE_PASSWORD'),
+    ],
+
     'infinireach' => [
         'api_key' => env('INFINIREACH_API_KEY'),
         'from' => env('INFINIREACH_FROM'),

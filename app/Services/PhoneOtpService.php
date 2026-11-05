@@ -24,10 +24,11 @@ class PhoneOtpService
     private const VERIFIED_WINDOW_MINUTES = 10;
 
     public function __construct(
-        // Gardé injecté (inutilisé) pour pouvoir réactiver ClickSend en 1 ligne,
+        // Gardés injectés (inutilisés) pour pouvoir réactiver ClickSend ou InfiniReach en 1 ligne,
         // cf. sendCode() ci-dessous.
         private ClickSendSmsService $clickSend,
-        private InfiniReachSmsService $sms
+        private InfiniReachSmsService $infiniReach,
+        private SmsGateSmsService $sms
     ) {}
 
     /**
@@ -69,11 +70,12 @@ class PhoneOtpService
         $this->storeCode($phone, $code);
 
         try {
-            // --- ClickSend (désactivé) --- Pour réactiver : décommenter la ligne
-            // suivante et commenter l'appel InfiniReach juste en dessous.
+            // --- ClickSend / InfiniReach (désactivés) --- Pour réactiver l'un d'eux : décommenter
+            // sa ligne et commenter l'appel SMS Gateway juste en dessous.
             // $this->clickSend->send($phone, $message);
+            // $this->infiniReach->send($phone, $message);
 
-            // --- InfiniReach (actif) ---
+            // --- SMS Gateway for Android (actif) ---
             $this->sms->send($phone, $message);
         } catch (\Throwable $e) {
             // Envoi raté : aucun code valide et pas de cooldown, l'utilisateur peut réessayer tout de suite

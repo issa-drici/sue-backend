@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Services\InfiniReachSmsService;
+use App\Services\SmsGateSmsService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -32,7 +32,7 @@ class SendSmsJob implements ShouldQueue
         private readonly string $message
     ) {}
 
-    public function handle(InfiniReachSmsService $sms): void
+    public function handle(SmsGateSmsService $sms): void
     {
         $sms->send($this->to, $this->message);
     }
