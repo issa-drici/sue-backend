@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\UserModel;
 use App\Services\PhoneNumber;
 use App\Services\PhoneOtpService;
+use App\Services\TelegramAlertService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -24,7 +25,8 @@ use Illuminate\Validation\ValidationException;
 class PhoneAuthController extends Controller
 {
     public function __construct(
-        private PhoneOtpService $otpService
+        private PhoneOtpService $otpService,
+        private TelegramAlertService $alerts
     ) {}
 
     public function sendOtp(Request $request): JsonResponse
@@ -56,6 +58,7 @@ class PhoneAuthController extends Controller
             ], 429);
         } catch (\Throwable $e) {
             Log::error('Erreur envoi OTP', ['error' => $e->getMessage()]);
+            $this->alerts->send("🔴 Échec d'envoi du code SMS\n" . ($phone ?? $request->input('phone')) . "\n" . $e->getMessage());
             return response()->json([
                 'message' => 'Impossible d\'envoyer le code de vérification.',
             ], 500);
@@ -110,6 +113,7 @@ class PhoneAuthController extends Controller
             ], 400);
         } catch (\Throwable $e) {
             Log::error('Erreur vérification OTP', ['error' => $e->getMessage()]);
+            $this->alerts->send("🔴 Erreur à la vérification du code\n" . ($phone ?? $request->input('phone')) . "\n" . $e->getMessage());
             return response()->json([
                 'message' => 'Une erreur est survenue lors de la vérification.',
             ], 500);
@@ -146,6 +150,9 @@ class PhoneAuthController extends Controller
                     'password' => null,
                     'role' => 'player',
                 ]);
+
+                $this->alerts->send("🎉 Nouvel inscrit : {$user->firstname} {$user->lastname}\n{$phone}\n"
+                    . UserModel::count() . ' comptes au total');
             }
 
             $this->otpService->consume($phone);
@@ -166,6 +173,7 @@ class PhoneAuthController extends Controller
             ], 401);
         } catch (\Throwable $e) {
             Log::error('Erreur inscription téléphone', ['error' => $e->getMessage()]);
+            $this->alerts->send("🔴 Échec d'inscription\n" . ($phone ?? $request->input('phone')) . "\n" . $e->getMessage());
             return response()->json([
                 'message' => 'Une erreur est survenue lors de la création du profil.',
             ], 500);

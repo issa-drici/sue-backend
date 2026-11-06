@@ -51,6 +51,12 @@ return [
         'code' => env('REVIEW_OTP_CODE'),
     ],
 
+    // Alertes admin (inscriptions, erreurs), cf. App\Services\TelegramAlertService
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'chat_id' => env('TELEGRAM_CHAT_ID'),
+    ],
+
     // SMS Gateway for Android, mode cloud (identifiants : app SMS Gateway, onglet Cloud)
     'smsgate' => [
         'url' => env('SMSGATE_URL', 'https://api.sms-gate.app'),

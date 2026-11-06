@@ -24,5 +24,16 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Erreurs serveur non gérées → alerte Telegram (une fois par erreur et par 30 min)
+        $exceptions->report(function (\Throwable $e) {
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface && $e->getStatusCode() < 500) {
+                return;
+            }
+            $where = basename($e->getFile()) . ':' . $e->getLine();
+            $url = app()->runningInConsole() ? 'console' : request()->method() . ' ' . request()->path();
+            app(\App\Services\TelegramAlertService::class)->sendOnce(
+                'exception:' . md5(get_class($e) . $where),
+                "💥 Erreur serveur\n{$url}\n" . class_basename($e) . ': ' . \Illuminate\Support\Str::limit($e->getMessage(), 300) . "\n{$where}"
+            );
+        });
     })->create();

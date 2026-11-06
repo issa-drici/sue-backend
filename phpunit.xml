@@ -29,5 +29,9 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="SMSGATE_USERNAME" value=""/>
+        <env name="SMSGATE_PASSWORD" value=""/>
+        <env name="TELEGRAM_BOT_TOKEN" value=""/>
+        <env name="TELEGRAM_CHAT_ID" value=""/>
     </php>
 </phpunit>

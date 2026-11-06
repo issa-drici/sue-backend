@@ -14,6 +14,11 @@ Schedule::command('sessions:send-reminders')
     ->withoutOverlapping();
     // ->runInBackground();
 
+// Personnes bloquées à la connexion (code SMS non validé, SMS en échec) → alerte Telegram
+Schedule::command('alerts:check-signups')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
+
 // "Trouver un créneau" : rappel aux organisateurs pour confirmer un créneau
 Schedule::command('sessions:send-slot-reminders')
     ->everyFiveMinutes()
