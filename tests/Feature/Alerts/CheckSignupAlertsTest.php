@@ -60,7 +60,7 @@ class CheckSignupAlertsTest extends TestCase
 
         $this->code('+33611111111', 15);              // jamais validé → alerte
         $this->code('+33622222222', 20, true);        // validé, pas inscrit → alerte
-        $this->code('+33633333333', 3);               // trop récent → rien
+        $this->code('+33633333333', 1);               // trop récent → rien
         $this->code('+33644444444', 120);             // trop ancien → rien
 
         $this->artisan('alerts:check-signups')->assertSuccessful();

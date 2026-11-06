@@ -16,7 +16,7 @@ Schedule::command('sessions:send-reminders')
 
 // Personnes bloquées à la connexion (code SMS non validé, SMS en échec) → alerte Telegram
 Schedule::command('alerts:check-signups')
-    ->everyFiveMinutes()
+    ->everyMinute()
     ->withoutOverlapping();
 
 // "Trouver un créneau" : rappel aux organisateurs pour confirmer un créneau

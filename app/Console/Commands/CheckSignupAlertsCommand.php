@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Http;
  *  - code validé mais inscription (prénom/nom) jamais terminée ;
  *  - SMS refusés par le téléphone SMS Gateway (éteint, permission manquante...).
  *
- * Planifiée toutes les 5 minutes (routes/console.php). Chaque cas n'est signalé qu'une fois.
+ * Planifiée toutes les minutes (routes/console.php). Chaque cas n'est signalé qu'une fois.
  */
 class CheckSignupAlertsCommand extends Command
 {
@@ -22,8 +22,9 @@ class CheckSignupAlertsCommand extends Command
 
     protected $description = 'Alerte Telegram pour les codes SMS non validés et les SMS en échec';
 
-    // Délai laissé à la personne pour saisir son code avant de la considérer bloquée
-    private const STUCK_AFTER_MINUTES = 10;
+    // Délai laissé à la personne pour saisir son code avant de la considérer bloquée : avant
+    // l'expiration du code (5 min), pour pouvoir l'aider pendant qu'il est encore valable
+    private const STUCK_AFTER_MINUTES = 3;
 
     // Au-delà, le cas est trop ancien pour être signalé (évite de tout ressortir au premier lancement)
     private const LOOKBACK_MINUTES = 60;
@@ -67,8 +68,11 @@ class CheckSignupAlertsCommand extends Command
                 $text = "🟠 Inscription pas terminée\n{$record->phone} a validé son code à {$sentAt} mais n'a pas rempli prénom/nom.";
             } else {
                 $who = $existingUser ? 'Utilisateur existant' : 'Nouveau numéro';
-                $text = "🔴 Code SMS jamais validé\n{$record->phone} ({$who}) a demandé un code à {$sentAt}, sans le saisir. "
+                $text = "🔴 Code SMS pas encore validé\n{$record->phone} ({$who}) a demandé un code à {$sentAt}, sans le saisir. "
                     . "SMS pas reçu ou abandon : à recontacter.";
+                if ($record->expires_at->isFuture()) {
+                    $text .= "\nLe code expire à " . $record->expires_at->copy()->setTimezone('Europe/Paris')->format('H:i') . '.';
+                }
                 if ($record->attempts > 0) {
                     $text .= "\n{$record->attempts} code(s) faux saisi(s).";
                 }
