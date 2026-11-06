@@ -7,6 +7,9 @@ use App\Exceptions\OtpResendTooSoonException;
 use App\Exceptions\PhoneNotVerifiedException;
 use App\Models\PhoneVerificationCodeModel;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 /**
  * Logique de code de vérification par SMS (OTP) :
@@ -23,12 +26,17 @@ class PhoneOtpService
     private const RESEND_COOLDOWN_SECONDS = 45;
     private const VERIFIED_WINDOW_MINUTES = 10;
 
+    // Plafond global d'envois par heure, tous numéros confondus : borne le coût et protège la SIM
+    // de SMS Gateway (l'opérateur peut couper une ligne qui envoie en masse) en cas d'attaque
+    private const MAX_SMS_PER_HOUR = 30;
+
     public function __construct(
         // Gardés injectés (inutilisés) pour pouvoir réactiver ClickSend ou InfiniReach en 1 ligne,
         // cf. sendCode() ci-dessous.
         private ClickSendSmsService $clickSend,
         private InfiniReachSmsService $infiniReach,
-        private SmsGateSmsService $sms
+        private SmsGateSmsService $sms,
+        private TelegramAlertService $alerts
     ) {}
 
     /**
@@ -50,6 +58,17 @@ class PhoneOtpService
             return;
         }
 
+        if (!PhoneNumber::canReceiveOtp($phone)) {
+            $this->alerts->sendOnce(
+                'otp-foreign',
+                "🛡️ Demande de code bloquée pour un numéro hors mobiles français ({$phone}). "
+                    . "Si ça se répète, c'est un robot (SMS pumping). Alerte suivante dans 30 min au plus tôt."
+            );
+            throw ValidationException::withMessages([
+                'phone' => ['Sue fonctionne pour l\'instant uniquement avec un numéro de mobile français.'],
+            ]);
+        }
+
         $record = PhoneVerificationCodeModel::where('phone', $phone)->first();
 
         if ($record && $record->last_sent_at) {
@@ -58,6 +77,16 @@ class PhoneOtpService
                 throw new OtpResendTooSoonException(self::RESEND_COOLDOWN_SECONDS - $elapsed);
             }
         }
+
+        if (RateLimiter::tooManyAttempts('otp-sms-global', self::MAX_SMS_PER_HOUR)) {
+            $this->alerts->sendOnce(
+                'otp-global-cap',
+                '🚨 Plus de ' . self::MAX_SMS_PER_HOUR . " codes SMS envoyés en 1 h : envois suspendus jusqu'à la fin de l'heure. "
+                    . 'Attaque probable, regarde les dernières alertes.'
+            );
+            throw new RuntimeException('Plafond horaire d\'envoi de SMS atteint');
+        }
+        RateLimiter::hit('otp-sms-global', 3600);
 
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $message = "Votre code de vérification SUE est : {$code}";

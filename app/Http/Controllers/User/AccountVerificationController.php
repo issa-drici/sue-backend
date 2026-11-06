@@ -12,6 +12,7 @@ use App\Services\PhoneOtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Actions sensibles du compte, validées par un code SMS (le numéro est l'identifiant du compte).
@@ -113,6 +114,8 @@ class AccountVerificationController extends Controller
             $this->otpService->sendCode($phone);
         } catch (OtpResendTooSoonException $e) {
             return response()->json(['message' => $e->getMessage(), 'retry_after' => $e->secondsRemaining], 429);
+        } catch (ValidationException $e) {
+            return response()->json(['message' => $e->getMessage(), 'errors' => $e->errors()], 422);
         } catch (\Throwable $e) {
             Log::error('Erreur envoi OTP (compte)', ['error' => $e->getMessage()]);
             return response()->json(['message' => "Impossible d'envoyer le code de vérification."], 500);

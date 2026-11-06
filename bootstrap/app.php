@@ -12,6 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Derrière le proxy de Coolify : lire la vraie IP du client (X-Forwarded-For). Sans ça, toutes
+        // les requêtes semblent venir du proxy et les limites (throttle) sont partagées par tout le monde
+        $middleware->trustProxies(at: '*');
+
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);

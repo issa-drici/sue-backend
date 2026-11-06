@@ -30,6 +30,16 @@ final class PhoneNumber
         return $phone;
     }
 
+    /**
+     * Numéros autorisés à recevoir un code SMS : mobiles français uniquement (+336, +337).
+     * Bloque le « SMS pumping » : des robots demandent des codes vers des numéros étrangers
+     * ou surtaxés pour faire payer les SMS. Élargir ici pour ouvrir un pays (ex: Belgique +324).
+     */
+    public static function canReceiveOtp(string $phone): bool
+    {
+        return (bool) preg_match('/^\+33[67]\d{8}$/', $phone);
+    }
+
     public static function isValid(string $phone): bool
     {
         return (bool) preg_match('/^\+[1-9]\d{7,14}$/', $phone);
