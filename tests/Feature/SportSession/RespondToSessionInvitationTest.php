@@ -6,17 +6,13 @@ use App\Models\UserModel;
 use App\UseCases\SportSession\RespondToSessionInvitationUseCase;
 use App\UseCases\User\UpdateSportsPreferencesUseCase;
 use App\Repositories\SportSession\SportSessionRepository;
-use App\Repositories\User\UserRepository;
 use App\Repositories\Notification\NotificationRepository;
-use App\Repositories\SportSessionComment\SportSessionCommentRepository;
 use App\Repositories\PushToken\PushTokenRepository;
 use App\Services\ExpoPushNotificationService;
 
 beforeEach(function () {
     $this->sportSessionRepository = mock(SportSessionRepository::class);
-    $this->userRepository = mock(UserRepository::class);
     $this->notificationRepository = mock(NotificationRepository::class);
-    $this->commentRepository = mock(SportSessionCommentRepository::class);
     $this->pushTokenRepository = mock(PushTokenRepository::class);
     $this->expoPushService = mock(ExpoPushNotificationService::class);
     $this->updateSportsPreferencesUseCase = mock(UpdateSportsPreferencesUseCase::class);
@@ -24,8 +20,6 @@ beforeEach(function () {
     $this->useCase = new RespondToSessionInvitationUseCase(
         $this->sportSessionRepository,
         $this->notificationRepository,
-        $this->commentRepository,
-        $this->userRepository,
         $this->pushTokenRepository,
         $this->expoPushService,
         $this->updateSportsPreferencesUseCase
@@ -47,17 +41,14 @@ test('should accept invitation and add sport to user preferences', function () {
 
     $session = mock('App\Entities\SportSession');
     $session->shouldReceive('isParticipant')->with($userId)->andReturn(true);
+    $session->shouldReceive('isScheduled')->andReturn(true);
+    $session->shouldReceive('getStatus')->andReturn('scheduled');
+    $session->shouldReceive('getEndDate')->andReturn(now()->addDay());
     $session->shouldReceive('getMaxParticipants')->andReturn(null);
     $session->shouldReceive('getParticipants')->andReturn([]);
     $session->shouldReceive('getOrganizer')->andReturn($organizer);
     $session->shouldReceive('getId')->andReturn($sessionId);
     $session->shouldReceive('getSport')->andReturn($sport);
-
-    // Mock de l'utilisateur
-    $user = mock('App\Entities\User');
-    $user->shouldReceive('getId')->andReturn($userId);
-    $user->shouldReceive('getFirstname')->andReturn('Jane');
-    $user->shouldReceive('getLastname')->andReturn('Smith');
 
     // Mock des repositories
     $this->sportSessionRepository->shouldReceive('findById')
@@ -71,10 +62,6 @@ test('should accept invitation and add sport to user preferences', function () {
     $this->sportSessionRepository->shouldReceive('findById')
         ->with($sessionId)
         ->andReturn($session);
-
-    $this->userRepository->shouldReceive('findById')
-        ->with($userId)
-        ->andReturn($user);
 
     // Mock de l'ajout automatique du sport aux préférences
     $this->updateSportsPreferencesUseCase->shouldReceive('addSportToPreferences')
@@ -94,13 +81,6 @@ test('should accept invitation and add sport to user preferences', function () {
 
     $this->expoPushService->shouldReceive('sendNotification')
         ->andReturn(['success' => true]);
-
-    // Mock du commentaire
-    $comment = mock('App\Entities\SportSessionComment');
-    $comment->shouldReceive('getId')->andReturn('comment-123');
-
-    $this->commentRepository->shouldReceive('createComment')
-        ->andReturn($comment);
 
     // Act
     $result = $this->useCase->execute($sessionId, $userId, $response);
@@ -124,15 +104,12 @@ test('should decline invitation without adding sport to preferences', function (
 
     $session = mock('App\Entities\SportSession');
     $session->shouldReceive('isParticipant')->with($userId)->andReturn(true);
+    $session->shouldReceive('isScheduled')->andReturn(true);
+    $session->shouldReceive('getStatus')->andReturn('scheduled');
+    $session->shouldReceive('getEndDate')->andReturn(now()->addDay());
     $session->shouldReceive('getOrganizer')->andReturn($organizer);
     $session->shouldReceive('getId')->andReturn($sessionId);
     $session->shouldReceive('getSport')->andReturn($sport);
-
-    // Mock de l'utilisateur
-    $user = mock('App\Entities\User');
-    $user->shouldReceive('getId')->andReturn($userId);
-    $user->shouldReceive('getFirstname')->andReturn('Jane');
-    $user->shouldReceive('getLastname')->andReturn('Smith');
 
     // Mock des repositories
     $this->sportSessionRepository->shouldReceive('findById')
@@ -146,10 +123,6 @@ test('should decline invitation without adding sport to preferences', function (
     $this->sportSessionRepository->shouldReceive('findById')
         ->with($sessionId)
         ->andReturn($session);
-
-    $this->userRepository->shouldReceive('findById')
-        ->with($userId)
-        ->andReturn($user);
 
     // Ne devrait pas appeler l'ajout aux préférences pour un refus
     $this->updateSportsPreferencesUseCase->shouldNotReceive('addSportToPreferences');
@@ -167,13 +140,6 @@ test('should decline invitation without adding sport to preferences', function (
 
     $this->expoPushService->shouldReceive('sendNotification')
         ->andReturn(['success' => true]);
-
-    // Mock du commentaire
-    $comment = mock('App\Entities\SportSessionComment');
-    $comment->shouldReceive('getId')->andReturn('comment-123');
-
-    $this->commentRepository->shouldReceive('createComment')
-        ->andReturn($comment);
 
     // Act
     $result = $this->useCase->execute($sessionId, $userId, $response);
@@ -197,17 +163,14 @@ test('should continue accepting invitation even if adding sport to preferences f
 
     $session = mock('App\Entities\SportSession');
     $session->shouldReceive('isParticipant')->with($userId)->andReturn(true);
+    $session->shouldReceive('isScheduled')->andReturn(true);
+    $session->shouldReceive('getStatus')->andReturn('scheduled');
+    $session->shouldReceive('getEndDate')->andReturn(now()->addDay());
     $session->shouldReceive('getMaxParticipants')->andReturn(null);
     $session->shouldReceive('getParticipants')->andReturn([]);
     $session->shouldReceive('getOrganizer')->andReturn($organizer);
     $session->shouldReceive('getId')->andReturn($sessionId);
     $session->shouldReceive('getSport')->andReturn($sport);
-
-    // Mock de l'utilisateur
-    $user = mock('App\Entities\User');
-    $user->shouldReceive('getId')->andReturn($userId);
-    $user->shouldReceive('getFirstname')->andReturn('Jane');
-    $user->shouldReceive('getLastname')->andReturn('Smith');
 
     // Mock des repositories
     $this->sportSessionRepository->shouldReceive('findById')
@@ -221,10 +184,6 @@ test('should continue accepting invitation even if adding sport to preferences f
     $this->sportSessionRepository->shouldReceive('findById')
         ->with($sessionId)
         ->andReturn($session);
-
-    $this->userRepository->shouldReceive('findById')
-        ->with($userId)
-        ->andReturn($user);
 
     // Mock de l'échec de l'ajout automatique du sport aux préférences
     $this->updateSportsPreferencesUseCase->shouldReceive('addSportToPreferences')
@@ -244,13 +203,6 @@ test('should continue accepting invitation even if adding sport to preferences f
 
     $this->expoPushService->shouldReceive('sendNotification')
         ->andReturn(['success' => true]);
-
-    // Mock du commentaire
-    $comment = mock('App\Entities\SportSessionComment');
-    $comment->shouldReceive('getId')->andReturn('comment-123');
-
-    $this->commentRepository->shouldReceive('createComment')
-        ->andReturn($comment);
 
     // Act
     $result = $this->useCase->execute($sessionId, $userId, $response);
@@ -274,17 +226,14 @@ test('should add sport to preferences for existing sport in user preferences', f
 
     $session = mock('App\Entities\SportSession');
     $session->shouldReceive('isParticipant')->with($userId)->andReturn(true);
+    $session->shouldReceive('isScheduled')->andReturn(true);
+    $session->shouldReceive('getStatus')->andReturn('scheduled');
+    $session->shouldReceive('getEndDate')->andReturn(now()->addDay());
     $session->shouldReceive('getMaxParticipants')->andReturn(null);
     $session->shouldReceive('getParticipants')->andReturn([]);
     $session->shouldReceive('getOrganizer')->andReturn($organizer);
     $session->shouldReceive('getId')->andReturn($sessionId);
     $session->shouldReceive('getSport')->andReturn($sport);
-
-    // Mock de l'utilisateur
-    $user = mock('App\Entities\User');
-    $user->shouldReceive('getId')->andReturn($userId);
-    $user->shouldReceive('getFirstname')->andReturn('Jane');
-    $user->shouldReceive('getLastname')->andReturn('Smith');
 
     // Mock des repositories
     $this->sportSessionRepository->shouldReceive('findById')
@@ -298,10 +247,6 @@ test('should add sport to preferences for existing sport in user preferences', f
     $this->sportSessionRepository->shouldReceive('findById')
         ->with($sessionId)
         ->andReturn($session);
-
-    $this->userRepository->shouldReceive('findById')
-        ->with($userId)
-        ->andReturn($user);
 
     // Mock de l'ajout automatique du sport aux préférences (retourne les préférences existantes)
     $this->updateSportsPreferencesUseCase->shouldReceive('addSportToPreferences')
@@ -321,13 +266,6 @@ test('should add sport to preferences for existing sport in user preferences', f
 
     $this->expoPushService->shouldReceive('sendNotification')
         ->andReturn(['success' => true]);
-
-    // Mock du commentaire
-    $comment = mock('App\Entities\SportSessionComment');
-    $comment->shouldReceive('getId')->andReturn('comment-123');
-
-    $this->commentRepository->shouldReceive('createComment')
-        ->andReturn($comment);
 
     // Act
     $result = $this->useCase->execute($sessionId, $userId, $response);

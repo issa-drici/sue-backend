@@ -49,18 +49,16 @@ class FindUserByIdTest extends TestCase
         $session1 = SportSessionModel::factory()->create([
             'organizer_id' => $this->user->id,
             'sport' => 'tennis',
-            'date' => now()->addDays(7)->format('Y-m-d'),
-            'start_time' => '14:00',
-            'end_time' => '16:00',
+            'start_date' => now()->addDays(7)->setTime(14, 0),
+            'end_date' => now()->addDays(7)->setTime(16, 0),
             'location' => 'Tennis Club',
         ]);
 
         $session2 = SportSessionModel::factory()->create([
             'organizer_id' => $this->user->id,
             'sport' => 'football',
-            'date' => now()->addDays(10)->format('Y-m-d'),
-            'start_time' => '16:00',
-            'end_time' => '18:00',
+            'start_date' => now()->addDays(10)->setTime(16, 0),
+            'end_date' => now()->addDays(10)->setTime(18, 0),
             'location' => 'Stade Municipal',
         ]);
 
@@ -68,9 +66,8 @@ class FindUserByIdTest extends TestCase
         $session3 = SportSessionModel::factory()->create([
             'organizer_id' => $this->otherUser->id,
             'sport' => 'basketball',
-            'date' => now()->addDays(5)->format('Y-m-d'),
-            'start_time' => '18:00',
-            'end_time' => '20:00',
+            'start_date' => now()->addDays(5)->setTime(18, 0),
+            'end_date' => now()->addDays(5)->setTime(20, 0),
             'location' => 'Gymnase',
         ]);
 
@@ -363,9 +360,8 @@ class FindUserByIdTest extends TestCase
         $session = SportSessionModel::factory()->create([
             'organizer_id' => $this->user->id,
             'sport' => 'tennis',
-            'date' => now()->addDays(7)->format('Y-m-d'),
-            'start_time' => '14:00',
-            'end_time' => '16:00',
+            'start_date' => now()->addDays(7)->setTime(14, 0),
+            'end_date' => now()->addDays(7)->setTime(16, 0),
             'location' => 'Tennis Club',
         ]);
 

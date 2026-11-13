@@ -34,11 +34,13 @@ test('peut réinviter un utilisateur qui a décliné une invitation', function (
 
     // Mock de la session
     $session = mock('App\Entities\SportSession');
+    $session->shouldReceive('getUserStatus')->with($inviterId)->andReturn('organizer');
     $session->shouldReceive('getId')->andReturn($sessionId);
     $session->shouldReceive('getSport')->andReturn('tennis');
     $session->shouldReceive('getDate')->andReturn('2024-01-15');
     $session->shouldReceive('getStartTime')->andReturn('14:00');
     $session->shouldReceive('getEndTime')->andReturn('16:00');
+    $session->shouldReceive('isScheduled')->andReturn(true);
 
     // Mock de l'utilisateur
     $user = mock('App\Entities\User');
@@ -93,6 +95,11 @@ test('peut réinviter un utilisateur qui a décliné une invitation', function (
     $notification = mock('App\Entities\Notification');
     $notification->shouldReceive('getId')->andReturn('notification-123');
 
+    // Pas de notification d'invitation existante (anti-doublon)
+    $this->notificationRepository->shouldReceive('hasInvitationNotification')
+        ->with($userId, $sessionId)
+        ->andReturn(false);
+
     $this->notificationRepository->shouldReceive('create')
         ->andReturn($notification);
 
@@ -127,11 +134,13 @@ test('peut inviter un nouvel utilisateur', function () {
 
     // Mock de la session
     $session = mock('App\Entities\SportSession');
+    $session->shouldReceive('getUserStatus')->with($inviterId)->andReturn('organizer');
     $session->shouldReceive('getId')->andReturn($sessionId);
     $session->shouldReceive('getSport')->andReturn('tennis');
     $session->shouldReceive('getDate')->andReturn('2024-01-15');
     $session->shouldReceive('getStartTime')->andReturn('14:00');
     $session->shouldReceive('getEndTime')->andReturn('16:00');
+    $session->shouldReceive('isScheduled')->andReturn(true);
 
     // Mock de l'utilisateur
     $user = mock('App\Entities\User');
@@ -173,6 +182,11 @@ test('peut inviter un nouvel utilisateur', function () {
     $notification = mock('App\Entities\Notification');
     $notification->shouldReceive('getId')->andReturn('notification-123');
 
+    // Pas de notification d'invitation existante (anti-doublon)
+    $this->notificationRepository->shouldReceive('hasInvitationNotification')
+        ->with($userId, $sessionId)
+        ->andReturn(false);
+
     $this->notificationRepository->shouldReceive('create')
         ->andReturn($notification);
 
@@ -207,6 +221,7 @@ test('ne peut pas inviter un utilisateur qui participe déjà', function () {
 
     // Mock de la session
     $session = mock('App\Entities\SportSession');
+    $session->shouldReceive('getUserStatus')->with($inviterId)->andReturn('organizer');
     $session->shouldReceive('getId')->andReturn($sessionId);
 
     // Mock de l'utilisateur
@@ -235,5 +250,6 @@ test('ne peut pas inviter un utilisateur qui participe déjà', function () {
     expect($result['success'])->toBe(false);
     expect($result['error']['code'])->toBe('VALIDATION_ERROR');
     expect($result['error']['message'])->toBe('Aucun utilisateur n\'a pu être invité');
-    expect($result['error']['details'])->toContain('participe déjà');
+    expect($result['error']['details'])->toHaveCount(1);
+    expect($result['error']['details'][0])->toContain('participe déjà');
 });

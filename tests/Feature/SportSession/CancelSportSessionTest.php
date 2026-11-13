@@ -37,9 +37,8 @@ class CancelSportSessionTest extends TestCase
         $this->session = SportSessionModel::factory()->create([
             'organizer_id' => $this->organizer->id,
             'sport' => 'tennis',
-            'date' => now()->addDays(7)->format('Y-m-d'),
-            'start_time' => '14:00',
-            'end_time' => '16:00',
+            'start_date' => now()->addDays(7)->setTime(14, 0),
+            'end_date' => now()->addDays(7)->setTime(16, 0),
             'location' => 'Tennis Club',
             'status' => 'active',
         ]);
@@ -129,9 +128,8 @@ class CancelSportSessionTest extends TestCase
         $pastSession = SportSessionModel::factory()->create([
             'organizer_id' => $this->organizer->id,
             'sport' => 'tennis',
-            'date' => now()->subDays(1)->format('Y-m-d'),
-            'start_time' => '14:00',
-            'end_time' => '16:00',
+            'start_date' => now()->subDays(1)->setTime(14, 0),
+            'end_date' => now()->subDays(1)->setTime(16, 0),
             'location' => 'Tennis Club',
             'status' => 'active',
         ]);

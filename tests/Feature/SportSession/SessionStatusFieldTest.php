@@ -39,9 +39,8 @@ class SessionStatusFieldTest extends TestCase
         $this->activeSession = SportSessionModel::factory()->create([
             'organizer_id' => $this->organizer->id,
             'sport' => 'tennis',
-            'date' => now()->addDays(7)->format('Y-m-d'),
-            'start_time' => '14:00',
-            'end_time' => '16:00',
+            'start_date' => now()->addDays(7)->setTime(14, 0),
+            'end_date' => now()->addDays(7)->setTime(16, 0),
             'location' => 'Tennis Club',
             'status' => 'active',
         ]);
@@ -50,9 +49,8 @@ class SessionStatusFieldTest extends TestCase
         $this->cancelledSession = SportSessionModel::factory()->create([
             'organizer_id' => $this->organizer->id,
             'sport' => 'golf',
-            'date' => now()->addDays(5)->format('Y-m-d'),
-            'start_time' => '10:00',
-            'end_time' => '12:00',
+            'start_date' => now()->addDays(5)->setTime(10, 0),
+            'end_date' => now()->addDays(5)->setTime(12, 0),
             'location' => 'Golf Club',
             'status' => 'cancelled',
         ]);
@@ -61,9 +59,8 @@ class SessionStatusFieldTest extends TestCase
         $this->completedSession = SportSessionModel::factory()->create([
             'organizer_id' => $this->organizer->id,
             'sport' => 'football',
-            'date' => now()->subDays(1)->format('Y-m-d'),
-            'start_time' => '16:00',
-            'end_time' => '18:00',
+            'start_date' => now()->subDays(1)->setTime(16, 0),
+            'end_date' => now()->subDays(1)->setTime(18, 0),
             'location' => 'Stade Municipal',
             'status' => 'completed',
         ]);
@@ -105,7 +102,8 @@ class SessionStatusFieldTest extends TestCase
                         'id',
                         'sport',
                         'date',
-                        'time',
+                        'startTime',
+                        'endTime',
                         'location',
                         'status', // Vérifier que le champ status est présent
                         'organizer',
@@ -140,7 +138,8 @@ class SessionStatusFieldTest extends TestCase
                     'id',
                     'sport',
                     'date',
-                    'time',
+                    'startTime',
+                    'endTime',
                     'location',
                     'status', // Vérifier que le champ status est présent
                     'organizer',
@@ -170,7 +169,8 @@ class SessionStatusFieldTest extends TestCase
                         'id',
                         'sport',
                         'date',
-                        'time',
+                        'startTime',
+                        'endTime',
                         'location',
                         'status', // Vérifier que le champ status est présent
                         'organizer',
@@ -206,7 +206,8 @@ class SessionStatusFieldTest extends TestCase
                         'id',
                         'sport',
                         'date',
-                        'time',
+                        'startTime',
+                        'endTime',
                         'location',
                         'status', // Vérifier que le champ status est présent
                         'organizer',
@@ -242,7 +243,8 @@ class SessionStatusFieldTest extends TestCase
                         'id',
                         'sport',
                         'date',
-                        'time',
+                        'startTime',
+                        'endTime',
                         'location',
                         'status', // Vérifier que le champ status est présent
                         'organizer',
@@ -270,7 +272,8 @@ class SessionStatusFieldTest extends TestCase
         $sessionData = [
             'sport' => 'basketball',
             'date' => now()->addDays(10)->format('Y-m-d'),
-            'time' => '18:00',
+            'startTime' => '18:00',
+            'endTime' => '20:00',
             'location' => 'Gymnase Municipal',
         ];
 
@@ -284,7 +287,8 @@ class SessionStatusFieldTest extends TestCase
                     'id',
                     'sport',
                     'date',
-                    'time',
+                    'startTime',
+                    'endTime',
                     'location',
                     'status', // Vérifier que le champ status est présent
                     'organizer',
@@ -306,7 +310,8 @@ class SessionStatusFieldTest extends TestCase
     {
         $updateData = [
             'date' => now()->addDays(8)->format('Y-m-d'),
-            'time' => '15:00',
+            'startTime' => '15:00',
+            'endTime' => '17:00',
             'location' => 'Nouveau Tennis Club',
         ];
 
@@ -320,7 +325,8 @@ class SessionStatusFieldTest extends TestCase
                     'id',
                     'sport',
                     'date',
-                    'time',
+                    'startTime',
+                    'endTime',
                     'location',
                     'status', // Vérifier que le champ status est présent
                     'organizer',
@@ -352,7 +358,8 @@ class SessionStatusFieldTest extends TestCase
                         'id',
                         'sport',
                         'date',
-                        'time',
+                        'startTime',
+                        'endTime',
                         'location',
                         'status', // Vérifier que le champ status est présent
                         'organizer',
@@ -417,8 +424,8 @@ class SessionStatusFieldTest extends TestCase
         $sessionWithDefaultStatus = SportSessionModel::factory()->create([
             'organizer_id' => $this->organizer->id,
             'sport' => 'musculation',
-            'date' => now()->addDays(3)->format('Y-m-d'),
-            'time' => '19:00',
+            'start_date' => now()->addDays(3)->setTime(19, 0),
+            'end_date' => now()->addDays(3)->setTime(21, 0),
             'location' => 'Salle de sport',
             'status' => 'active', // Utiliser le statut par défaut
         ]);

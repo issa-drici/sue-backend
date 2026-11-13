@@ -34,7 +34,7 @@ test('should create session and add sport to organizer preferences when sport is
     $sport = 'aïkido';
     $sessionData = [
         'sport' => $sport,
-        'date' => '2025-12-21',
+        'date' => now()->addMonth()->format('Y-m-d'),
         'startTime' => '14:00',
         'endTime' => '16:00',
         'location' => 'Dojo central',
@@ -54,7 +54,7 @@ test('should create session and add sport to organizer preferences when sport is
     $session = mock('App\Entities\SportSession');
     $session->shouldReceive('getId')->andReturn('session-123');
     $session->shouldReceive('getSport')->andReturn($sport);
-    $session->shouldReceive('getDate')->andReturn('2025-12-21');
+    $session->shouldReceive('getDate')->andReturn(now()->addMonth()->format('Y-m-d'));
     $session->shouldReceive('getStartTime')->andReturn('14:00');
     $session->shouldReceive('getEndTime')->andReturn('16:00');
     $session->shouldReceive('getLocation')->andReturn('Dojo central');
@@ -94,7 +94,7 @@ test('should create session without adding sport if already in preferences', fun
     $sport = 'tennis';
     $sessionData = [
         'sport' => $sport,
-        'date' => '2025-12-21',
+        'date' => now()->addMonth()->format('Y-m-d'),
         'startTime' => '14:00',
         'endTime' => '16:00',
         'location' => 'Court de tennis',
@@ -112,7 +112,7 @@ test('should create session without adding sport if already in preferences', fun
     $session = mock('App\Entities\SportSession');
     $session->shouldReceive('getId')->andReturn('session-123');
     $session->shouldReceive('getSport')->andReturn($sport);
-    $session->shouldReceive('getDate')->andReturn('2025-12-21');
+    $session->shouldReceive('getDate')->andReturn(now()->addMonth()->format('Y-m-d'));
     $session->shouldReceive('getStartTime')->andReturn('14:00');
     $session->shouldReceive('getEndTime')->andReturn('16:00');
     $session->shouldReceive('getLocation')->andReturn('Court de tennis');
@@ -152,7 +152,7 @@ test('should create session even if adding sport to preferences fails', function
     $sport = 'aïkido';
     $sessionData = [
         'sport' => $sport,
-        'date' => '2025-12-21',
+        'date' => now()->addMonth()->format('Y-m-d'),
         'startTime' => '14:00',
         'endTime' => '16:00',
         'location' => 'Dojo central',
@@ -169,7 +169,7 @@ test('should create session even if adding sport to preferences fails', function
     $session = mock('App\Entities\SportSession');
     $session->shouldReceive('getId')->andReturn('session-123');
     $session->shouldReceive('getSport')->andReturn($sport);
-    $session->shouldReceive('getDate')->andReturn('2025-12-21');
+    $session->shouldReceive('getDate')->andReturn(now()->addMonth()->format('Y-m-d'));
     $session->shouldReceive('getStartTime')->andReturn('14:00');
     $session->shouldReceive('getEndTime')->andReturn('16:00');
     $session->shouldReceive('getLocation')->andReturn('Dojo central');
@@ -210,7 +210,7 @@ test('should create session with participants and add sport to organizer prefere
     $sport = 'basketball';
     $sessionData = [
         'sport' => $sport,
-        'date' => '2025-12-21',
+        'date' => now()->addMonth()->format('Y-m-d'),
         'startTime' => '18:00',
         'endTime' => '20:00',
         'location' => 'Gymnase municipal',
@@ -232,7 +232,7 @@ test('should create session with participants and add sport to organizer prefere
     $session = mock('App\Entities\SportSession');
     $session->shouldReceive('getId')->andReturn('session-123');
     $session->shouldReceive('getSport')->andReturn($sport);
-    $session->shouldReceive('getDate')->andReturn('2025-12-21');
+    $session->shouldReceive('getDate')->andReturn(now()->addMonth()->format('Y-m-d'));
     $session->shouldReceive('getStartTime')->andReturn('18:00');
     $session->shouldReceive('getEndTime')->andReturn('20:00');
     $session->shouldReceive('getLocation')->andReturn('Gymnase municipal');
