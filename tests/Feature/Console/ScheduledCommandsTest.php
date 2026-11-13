@@ -211,6 +211,9 @@ class ScheduledCommandsTest extends TestCase
         $this->assertSame(5, SessionSlotProposalModel::count());
         $this->assertSame(3, NotificationModel::where('user_id', $me->id)->count());
         $this->assertSame(['Alex', 'Martin'], [$me->fresh()->firstname, $me->fresh()->lastname]);
+        // Discussion du five : 7 messages, pas de doublon après un second passage, tout lu
+        $this->assertSame(7, \App\Models\SessionChatMessageModel::count());
+        $this->assertSame(0, $this->actingAs($me)->getJson('/api/sessions/' . \App\Models\SessionChatMessageModel::first()->session_id . '/chat')->assertOk()->json('data.unreadCount'));
 
         // Les sessions à venir de la démo sont bien listées pour le compte (pas le volley)
         $this->actingAs($me)->getJson('/api/sessions')->assertOk()->assertJsonPath('pagination.total', 5);

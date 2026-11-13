@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\FriendModel;
 use App\Models\NotificationModel;
+use App\Models\SessionChatMessageModel;
+use App\Models\SessionChatStateModel;
 use App\Models\SessionSlotAvailabilityModel;
 use App\Models\SessionSlotProposalModel;
 use App\Models\SportSessionModel;
@@ -76,6 +78,17 @@ class SeedReviewAccountCommand extends Command
                 [$thomas, 'accepted'], [$lucas, 'accepted'], [$camille, 'accepted'], [$yanis, 'accepted'],
                 [$ines, 'accepted'], [$hugo, 'accepted'], [$lea, 'accepted'], [$sarah, 'pending'],
             ]);
+
+            // Discussion du five : quelques messages récents, une mention du compte de démo, tout lu
+            $this->chat($five, [
+                [$thomas, 'Bien joué pour l\'orga ! Qui ramène un ballon ?', [], 95],
+                [$lucas, 'Moi, j\'en ai un neuf', [], 90],
+                [$camille, 'Je peux venir 15 min plus tôt pour l\'échauffement 🙌', [], 80],
+                [$yanis, '@Alex on est 8, tu relances Sarah ?', [$me], 60],
+                [$me, 'Je lui renvoie le lien, et je demande à Hugo s\'il a un pote dispo', [], 45],
+                [$hugo, 'Mon cousin est chaud, je te dis ce soir 👍', [], 30],
+                [$lea, 'Trop bien, on sera 10 !', [], 10],
+            ], [$me, $thomas, $lucas, $camille, $yanis, $ines, $hugo, $lea, $sarah]);
 
             // Invitation à confirmer : padel organisé par Lucas
             $padel = $this->session($lucas, 'padel', 'Padel Club Le Havre', 3, '20:30', 90, 4, 12.5, [
@@ -232,6 +245,33 @@ class SeedReviewAccountCommand extends Command
             'start_date' => (clone $slots)->min('start_date'),
             'end_date' => (clone $slots)->max('end_date'),
         ]);
+    }
+
+    /**
+     * @param array<int, array{0: UserModel, 1: string, 2: array<int, UserModel>, 3: int}> $messages auteur, texte, mentionnés, il y a N minutes
+     * @param array<int, UserModel> $readers membres qui ont tout lu
+     */
+    private function chat(SportSessionModel $session, array $messages, array $readers): void
+    {
+        $lastId = 0;
+        foreach ($messages as [$author, $body, $mentioned, $minutesAgo]) {
+            $message = SessionChatMessageModel::create([
+                'session_id' => $session->id,
+                'user_id' => $author->id,
+                'client_id' => Str::uuid(),
+                'body' => $body,
+                'mentions' => array_map(fn ($u) => $u->id, $mentioned),
+            ]);
+            $at = now()->subMinutes($minutesAgo);
+            $message->forceFill(['created_at' => $at, 'updated_at' => $at])->save();
+            $lastId = $message->id;
+        }
+        foreach ($readers as $reader) {
+            SessionChatStateModel::updateOrCreate(
+                ['session_id' => $session->id, 'user_id' => $reader->id],
+                ['last_read_message_id' => $lastId, 'muted' => false]
+            );
+        }
     }
 
     private function notify(UserModel $user, ?SportSessionModel $session, string $type, string $title, string $message, int $minutesAgo): void
