@@ -5,7 +5,7 @@ namespace App\Services;
 class SportService
 {
     /**
-     * Liste complète des sports supportés (47 sports)
+     * Liste complète des sports supportés
      * Triés par ordre alphabétique
      */
     public static function getSupportedSports(): array
@@ -26,6 +26,7 @@ class SportService
             'danse',
             'équitation',
             'escalade',
+            'esport',
             'football',
             'golf',
             'gymnastique',
@@ -145,7 +146,7 @@ class SportService
                 'golf', 'tir-à-l-arc', 'pétanque'
             ],
             'autres' => [
-                'musculation', 'escalade', 'équitation', 'gymnastique', 'athlétisme', 'bowling', 'pêche'
+                'musculation', 'escalade', 'équitation', 'gymnastique', 'athlétisme', 'bowling', 'pêche', 'esport'
             ]
         ];
     }

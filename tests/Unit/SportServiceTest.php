@@ -7,11 +7,11 @@ use PHPUnit\Framework\TestCase;
 
 class SportServiceTest extends TestCase
 {
-    public function test_get_supported_sports_returns_48_sports()
+    public function test_get_supported_sports_returns_49_sports()
     {
         $sports = SportService::getSupportedSports();
 
-        $this->assertCount(48, $sports);
+        $this->assertCount(49, $sports);
         $this->assertIsArray($sports);
     }
 
