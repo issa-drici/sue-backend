@@ -44,7 +44,10 @@ return [
                 'useTLS' => env('PUSHER_SCHEME', 'https') === 'https',
             ],
             'client_options' => [
-                // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
+                // Délais courts : si Soketi ne répond plus, l'envoi d'un message de chat ne doit pas
+                // rester bloqué (le message est déjà enregistré, l'app le rattrapera)
+                'timeout' => 3,
+                'connect_timeout' => 2,
             ],
         ],
 

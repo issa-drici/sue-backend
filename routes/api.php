@@ -6,8 +6,6 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\EmailVerificationNotificationController;
-use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\RefreshTokenController;
 use App\Http\Controllers\Auth\PhoneAuthController;
 use App\Http\Controllers\Example\FindAllExamplesAction;
@@ -31,9 +29,9 @@ use App\Http\Controllers\SportSession\ConfirmSessionSlotAction;
 use App\Http\Controllers\SportSession\UpdateSessionSlotsAction;
 use App\Http\Controllers\SportSession\ProposeSessionSlotAction;
 use App\Http\Controllers\SportSession\RemoveProposedSlotAction;
+use App\Http\Controllers\SportSession\SessionChatController;
 use App\Http\Controllers\Badge\GetUserBadgesAction;
 use App\Http\Controllers\Badge\MarkBadgesSeenAction;
-use App\Http\Controllers\SportSession\AddSessionCommentAction;
 use App\Http\Controllers\SportSession\InviteUsersToSessionAction;
 use App\Http\Controllers\SportSession\FindMyCreatedSessionsAction;
 use App\Http\Controllers\SportSession\FindMyParticipationsAction;
@@ -43,12 +41,6 @@ use App\Http\Controllers\SportSession\ResolveSessionByShareTokenAction;
 use App\Http\Controllers\SportSession\JoinSessionByShareTokenAction;
 use App\Http\Controllers\Sport\GetSportsAction;
 use App\Http\Controllers\Sport\GetMyPlayedSportsAction;
-
-// Comment Controllers
-use App\Http\Controllers\SportSession\CreateCommentAction;
-use App\Http\Controllers\SportSession\GetCommentsAction;
-use App\Http\Controllers\SportSession\UpdateCommentAction;
-use App\Http\Controllers\SportSession\DeleteCommentAction;
 
 // Presence Controllers
 use App\Http\Controllers\SportSession\JoinSessionAction;
@@ -131,8 +123,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Auth
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
     Route::post('/auth/refresh', [RefreshTokenController::class, '__invoke']);
-    Route::post('/email/verification-notification', [EmailVerificationNotificationController::class, 'store']);
-    Route::get('/verify-email/{id}/{hash}', [VerifyEmailController::class, '__invoke']);
 
     // Examples
     Route::get('/examples', FindAllExamplesAction::class);
@@ -172,15 +162,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/sessions/{id}/slots', UpdateSessionSlotsAction::class);
     Route::post('/sessions/{id}/slots/propose', ProposeSessionSlotAction::class);
     Route::delete('/sessions/{id}/slots/{slotId}', RemoveProposedSlotAction::class);
+
+    // Chat de la session (cf. SessionChatController)
+    Route::get('/sessions/{id}/chat', [SessionChatController::class, 'show']);
+    Route::get('/sessions/{id}/chat/messages', [SessionChatController::class, 'messages']);
+    Route::post('/sessions/{id}/chat/messages', [SessionChatController::class, 'send'])->middleware('throttle:60,1');
+    Route::post('/sessions/{id}/chat/read', [SessionChatController::class, 'read']);
+    Route::put('/sessions/{id}/chat/mute', [SessionChatController::class, 'mute']);
+    Route::post('/sessions/{id}/chat/typing', [SessionChatController::class, 'typing'])->middleware('throttle:40,1');
     Route::patch('/sessions/{id}/cancel-participation', CancelParticipationAction::class);
     Route::patch('/sessions/{id}/cancel', CancelSportSessionAction::class);
     Route::patch('/sessions/{id}/change-organizer', ChangeSessionOrganizerAction::class);
-
-    // Commentaires en temps réel
-    Route::get('/sessions/{sessionId}/comments', GetCommentsAction::class);
-    Route::post('/sessions/{sessionId}/comments', CreateCommentAction::class);
-    Route::put('/sessions/{sessionId}/comments/{commentId}', UpdateCommentAction::class);
-    Route::delete('/sessions/{sessionId}/comments/{commentId}', DeleteCommentAction::class);
 
     // Présence en temps réel
     Route::post('/sessions/{sessionId}/presence/join', JoinSessionAction::class);

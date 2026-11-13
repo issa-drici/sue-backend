@@ -12,7 +12,8 @@ class BroadcastServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Broadcast::routes();
+        // L'app s'authentifie avec son jeton Sanctum (pas de session web) : POST /broadcasting/auth
+        Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
         require base_path('routes/channels.php');
     }
