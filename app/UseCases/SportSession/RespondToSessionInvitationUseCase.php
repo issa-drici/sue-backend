@@ -8,10 +8,7 @@ use App\Repositories\Notification\NotificationRepositoryInterface;
 use App\Repositories\PushToken\PushTokenRepositoryInterface;
 use App\Services\ExpoPushNotificationService;
 use App\Services\DateFormatterService;
-use App\Repositories\SportSessionComment\SportSessionCommentRepositoryInterface;
-use App\Repositories\User\UserRepositoryInterface;
 use App\UseCases\User\UpdateSportsPreferencesUseCase;
-use App\Events\CommentCreated;
 use Exception;
 
 class RespondToSessionInvitationUseCase
@@ -19,8 +16,6 @@ class RespondToSessionInvitationUseCase
     public function __construct(
         private SportSessionRepositoryInterface $sportSessionRepository,
         private NotificationRepositoryInterface $notificationRepository,
-        private SportSessionCommentRepositoryInterface $commentRepository,
-        private UserRepositoryInterface $userRepository,
         private PushTokenRepositoryInterface $pushTokenRepository,
         private ExpoPushNotificationService $expoService,
         private UpdateSportsPreferencesUseCase $updateSportsPreferencesUseCase
@@ -38,6 +33,14 @@ class RespondToSessionInvitationUseCase
         // Vérifier que l'utilisateur est un participant
         if (!$session->isParticipant($userId)) {
             throw new Exception('Vous n\'êtes pas invité à cette session');
+        }
+
+        // Plus de réponse possible sur une session annulée ou terminée
+        if ($session->getStatus() === 'cancelled') {
+            throw new Exception('Cette session est annulée.');
+        }
+        if ($session->getEndDate() < now()) {
+            throw new Exception('Cette session est terminée.');
         }
 
         // Validation de la réponse
@@ -72,9 +75,6 @@ class RespondToSessionInvitationUseCase
 
         // Créer une notification pour l'organisateur
         $this->createResponseNotification($session, $userId, $response);
-
-        // Ajouter un commentaire système
-        $this->createSystemComment($session, $userId, $response);
 
         // Récupérer la session mise à jour
         $updatedSession = $this->sportSessionRepository->findById($sessionId);
@@ -150,42 +150,6 @@ class RespondToSessionInvitationUseCase
         // Vérifier si on peut encore accepter des participants
         if ($acceptedParticipants >= $maxParticipants) {
             throw new Exception("Impossible d'accepter l'invitation : la session a atteint sa limite de {$maxParticipants} participants");
-        }
-    }
-
-            private function createSystemComment(SportSession $session, string $userId, string $response): void
-    {
-        // Récupérer les informations de l'utilisateur
-        $user = $this->userRepository->findById($userId);
-
-        if (!$user) {
-            return; // Ne pas créer de commentaire si l'utilisateur n'existe pas
-        }
-
-        $userName = $user->getFirstname() . ' ' . $user->getLastname();
-
-        // Créer le message du commentaire système
-        $message = $response === 'accept'
-            ? "a accepté l'invitation à cette session ✅"
-            : "a décliné l'invitation à cette session ❌";
-
-        // Créer le commentaire système
-        $comment = $this->commentRepository->createComment(
-            sessionId: $session->getId(),
-            userId: $userId,
-            content: $message
-        );
-
-        // Émettre l'événement Laravel Broadcasting pour le temps réel
-        try {
-            broadcast(new CommentCreated($comment, $session->getId()));
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Failed to broadcast event for system comment", [
-                'sessionId' => $session->getId(),
-                'userId' => $userId,
-                'response' => $response,
-                'error' => $e->getMessage()
-            ]);
         }
     }
 

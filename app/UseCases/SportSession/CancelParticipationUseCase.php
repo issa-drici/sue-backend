@@ -114,9 +114,6 @@ class CancelParticipationUseCase
         // $session est lue avant le désistement : elle dit si la session était complète
         $this->notifyCancellation($session, $userId);
 
-        // Ajouter un commentaire système pour informer de l'annulation
-        $this->createCancellationComment($session, $userId);
-
         // Récupérer la session mise à jour
         $updatedSession = $this->sportSessionRepository->findById($sessionId);
 
@@ -200,38 +197,5 @@ class CancelParticipationUseCase
         return $session->isScheduled()
             ? $sportName . ', ' . DateFormatterService::formatDateAndTime($session->getDate(), $session->getStartTime())
             : $sportName;
-    }
-
-    private function createCancellationComment(SportSession $session, string $userId): void
-    {
-        try {
-            $user = $this->userRepository->findById($userId);
-            $userName = $user ? ($user->getFirstname() . ' ' . $user->getLastname()) : 'Un participant';
-
-            // Créer un commentaire système
-            $commentContent = "{$userName} a annulé sa participation à cette session.";
-
-            $success = $this->sportSessionRepository->addComment($session->getId(), $userId, $commentContent);
-
-            if ($success) {
-                \Illuminate\Support\Facades\Log::info("Commentaire système créé pour annulation de participation", [
-                    'sessionId' => $session->getId(),
-                    'userId' => $userId,
-                    'commentContent' => $commentContent,
-                ]);
-            } else {
-                \Illuminate\Support\Facades\Log::error("Échec de la création du commentaire système", [
-                    'sessionId' => $session->getId(),
-                    'userId' => $userId,
-                ]);
-            }
-
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Erreur lors de la création du commentaire système', [
-                'sessionId' => $session->getId(),
-                'userId' => $userId,
-                'error' => $e->getMessage(),
-            ]);
-        }
     }
 }

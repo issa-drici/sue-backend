@@ -12,19 +12,20 @@ class SportSessionPresenceRepository implements SportSessionPresenceRepositoryIn
 {
     public function joinSession(string $sessionId, string $userId): SportSessionPresence
     {
-        $presence = SportSessionPresenceModel::updateOrCreate(
-            [
-                'sport_session_id' => $sessionId,
-                'user_id' => $userId,
-            ],
-            [
-                'id' => Str::uuid(),
-                'is_online' => true,
-                'is_typing' => false,
-                'last_seen_at' => now(),
-                'typing_started_at' => null,
-            ]
-        );
+        // L'id n'est généré qu'à la création : le remettre à chaque re-connexion écrasait la clé primaire
+        $presence = SportSessionPresenceModel::firstOrNew([
+            'sport_session_id' => $sessionId,
+            'user_id' => $userId,
+        ]);
+        if (!$presence->exists) {
+            $presence->id = (string) Str::uuid();
+        }
+        $presence->fill([
+            'is_online' => true,
+            'is_typing' => false,
+            'last_seen_at' => now(),
+            'typing_started_at' => null,
+        ])->save();
 
         return $this->loadPresenceWithUser($presence);
     }

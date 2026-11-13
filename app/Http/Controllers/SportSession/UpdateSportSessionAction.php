@@ -3,18 +3,25 @@
 namespace App\Http\Controllers\SportSession;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\SportSession\Concerns\ValidatesMaxParticipants;
 use App\UseCases\SportSession\UpdateSportSessionUseCase;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class UpdateSportSessionAction extends Controller
 {
+    use ValidatesMaxParticipants;
+
     public function __construct(
         private UpdateSportSessionUseCase $updateSportSessionUseCase
     ) {}
 
     public function __invoke(Request $request, string $id): JsonResponse
     {
+        if ($error = $this->maxParticipantsError($request)) {
+            return $error;
+        }
+
         try {
             $data = $request->validate([
                 'sport' => 'sometimes|in:' . \App\Services\SportService::getValidationRule(),
@@ -22,7 +29,7 @@ class UpdateSportSessionAction extends Controller
                 'startTime' => 'sometimes|date_format:H:i',
                 'endTime' => 'sometimes|date_format:H:i',
                 'location' => 'sometimes|string|max:200',
-                'maxParticipants' => 'sometimes|nullable|integer|min:1|max:100',
+                'maxParticipants' => 'sometimes|nullable|integer|min:2|max:100',
                 'pricePerPerson' => 'sometimes|nullable|numeric|min:0',
             ]);
 
@@ -58,6 +65,15 @@ class UpdateSportSessionAction extends Controller
                 ],
             ], 400);
 
+        } catch (\App\Exceptions\InvalidSessionDataException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'VALIDATION_ERROR',
+                    'message' => $e->getMessage(),
+                ],
+            ], 422);
+
         } catch (\Exception $e) {
             $statusCode = 500;
             $errorCode = 'INTERNAL_ERROR';
@@ -68,6 +84,9 @@ class UpdateSportSessionAction extends Controller
             } elseif (str_contains($e->getMessage(), 'pas autorisé')) {
                 $statusCode = 403;
                 $errorCode = 'FORBIDDEN';
+            } elseif (str_contains($e->getMessage(), 'session passée')) {
+                $statusCode = 400;
+                $errorCode = 'SESSION_ENDED';
             }
 
             return response()->json([

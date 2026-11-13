@@ -6,7 +6,6 @@ use App\Entities\SportSession;
 use App\Entities\User;
 use App\Models\SportSessionModel;
 use App\Models\SportSessionParticipantModel;
-use App\Models\SportSessionCommentModel;
 use App\Models\UserModel;
 use App\Models\SessionSlotProposalModel;
 use App\Models\SessionSlotAvailabilityModel;
@@ -17,7 +16,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 {
     public function findById(string $id): ?SportSession
     {
-        $model = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])->find($id);
+        $model = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'slotProposals.availabilities'])->find($id);
 
         if (!$model) {
             return null;
@@ -28,7 +27,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findByShareToken(string $shareToken): ?SportSession
     {
-        $model = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])
+        $model = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'slotProposals.availabilities'])
             ->where('share_token', $shareToken)
             ->first();
 
@@ -41,7 +40,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findAll(array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator
     {
-        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'slotProposals.availabilities'])
             ->where('status', 'active'); // Exclure les sessions annulées
 
         if (isset($filters['sport'])) {
@@ -67,7 +66,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findMySessions(string $userId, array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator
     {
-        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'slotProposals.availabilities'])
             ->whereHas('participants', function ($q) use ($userId) {
                 $q->where('user_id', $userId)
                   ->whereNotIn('status', ['declined']); // Exclure complètement les sessions refusées
@@ -206,7 +205,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findByOrganizer(string $organizerId, array $filters = []): array
     {
-        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'slotProposals.availabilities'])
             ->where('status', 'active') // Exclure les sessions annulées
             ->byOrganizer($organizerId);
 
@@ -221,7 +220,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findByParticipant(string $userId, array $filters = []): array
     {
-        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'slotProposals.availabilities'])
             ->where('status', 'active') // Exclure les sessions annulées
             ->whereHas('participants', function ($q) use ($userId) {
                 $q->where('user_id', $userId);
@@ -238,7 +237,7 @@ class SportSessionRepository implements SportSessionRepositoryInterface
 
     public function findByParticipantPaginated(string $userId, array $filters = [], int $page = 1, int $limit = 20): LengthAwarePaginator
     {
-        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'comments.user', 'slotProposals.availabilities'])
+        $query = SportSessionModel::with(['organizer.profile.avatarFile', 'participants.user.profile.avatarFile', 'slotProposals.availabilities'])
             ->where('status', 'active') // Exclure les sessions annulées
             ->whereHas('participants', function ($q) use ($userId) {
                 $q->where('user_id', $userId)
@@ -296,34 +295,6 @@ class SportSessionRepository implements SportSessionRepositoryInterface
         }
 
         return $participant->delete();
-    }
-
-    public function addComment(string $sessionId, string $userId, string $content): bool
-    {
-        return SportSessionCommentModel::create([
-            'id' => Str::uuid(),
-            'session_id' => $sessionId,
-            'user_id' => $userId,
-            'content' => $content,
-        ]) !== null;
-    }
-
-    public function getComments(string $sessionId): array
-    {
-        return SportSessionCommentModel::with('user')
-            ->bySession($sessionId)
-            ->orderBy('created_at', 'asc')
-            ->get()
-            ->map(function ($comment) {
-                return [
-                    'id' => $comment->id,
-                    'userId' => $comment->user_id,
-                    'fullName' => $comment->user->firstname . ' ' . $comment->user->lastname,
-                    'content' => $comment->content,
-                    'createdAt' => $comment->created_at->format('c'),
-                ];
-            })
-            ->toArray();
     }
 
     public function isUserInvited(string $sessionId, string $userId): bool
@@ -450,16 +421,6 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             ]);
         }
 
-        $comments = $model->comments->map(function ($comment) {
-            return [
-                'id' => $comment->id,
-                'userId' => $comment->user->id,
-                'fullName' => $comment->user->firstname . ' ' . $comment->user->lastname,
-                'content' => $comment->content,
-                'createdAt' => $comment->created_at->format('c'),
-            ];
-        })->toArray();
-
         return new SportSession(
             $model->id,
             $model->sport,
@@ -471,7 +432,6 @@ class SportSessionRepository implements SportSessionRepositoryInterface
             $model->status ?? 'active',
             $organizer,
             $participants,
-            $comments,
             $model->share_token,
             $model->scheduling ?? 'scheduled',
             $this->mapSlotProposals($model)

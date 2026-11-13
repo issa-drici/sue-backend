@@ -12,6 +12,10 @@ class SportSessionPresenceModel extends Model
 
     protected $table = 'sport_session_presence';
 
+    // Clé primaire UUID (sinon Eloquent la traite comme un entier auto-incrémenté)
+    protected $keyType = 'string';
+    public $incrementing = false;
+
     protected $fillable = [
         'id',
         'sport_session_id',

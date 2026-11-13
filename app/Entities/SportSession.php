@@ -20,7 +20,6 @@ class SportSession
     private array $slotProposals;
     private User $organizer;
     private array $participants;
-    private array $comments;
 
     public function __construct(
         string $id,
@@ -33,7 +32,6 @@ class SportSession
         string $status,
         User $organizer,
         array $participants = [],
-        array $comments = [],
         ?string $shareToken = null,
         string $scheduling = 'scheduled',
         array $slotProposals = []
@@ -49,7 +47,6 @@ class SportSession
         $this->shareToken = $shareToken;
         $this->organizer = $organizer;
         $this->participants = $participants;
-        $this->comments = $comments;
         $this->scheduling = $scheduling;
         $this->slotProposals = $slotProposals;
     }
@@ -265,28 +262,12 @@ class SportSession
         return $this->participants;
     }
 
-    public function getComments(): array
-    {
-        return $this->comments;
-    }
-
     public function addParticipant(User $user, string $status = 'pending'): void
     {
         $this->participants[] = [
             'id' => $user->getId(),
             'fullName' => $user->getFirstname() . ' ' . $user->getLastname(),
             'status' => $status
-        ];
-    }
-
-    public function addComment(User $user, string $content): void
-    {
-        $this->comments[] = [
-            'id' => uniqid(),
-            'userId' => $user->getId(),
-            'fullName' => $user->getFirstname() . ' ' . $user->getLastname(),
-            'content' => $content,
-            'createdAt' => (new DateTime())->format('c')
         ];
     }
 
@@ -343,7 +324,9 @@ class SportSession
                 'avatarUrl' => $this->findOrganizerAvatarUrl(),
             ],
             'participants' => $this->participants,
-            'comments' => $this->comments
+            // Ancien système de commentaires supprimé (remplacé par le chat) : toujours vide,
+            // gardé pour les versions de l'app qui lisent encore ce champ
+            'comments' => [],
         ];
     }
 

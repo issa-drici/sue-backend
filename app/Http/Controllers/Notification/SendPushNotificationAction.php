@@ -17,6 +17,17 @@ class SendPushNotificationAction extends Controller
 
     public function __invoke(Request $request): JsonResponse
     {
+        // Push libre vers n'importe quel utilisateur : réservé aux administrateurs
+        if ($request->user()->role !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'FORBIDDEN',
+                    'message' => 'Réservé aux administrateurs.'
+                ]
+            ], 403);
+        }
+
         try {
             $data = $request->validate([
                 'recipientId' => 'required|string|uuid',

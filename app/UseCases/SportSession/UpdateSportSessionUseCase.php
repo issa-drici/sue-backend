@@ -8,6 +8,7 @@ use App\Repositories\Notification\NotificationRepositoryInterface;
 use App\Repositories\PushToken\PushTokenRepositoryInterface;
 use App\Services\ExpoPushNotificationService;
 use App\Services\SportService;
+use App\Exceptions\InvalidSessionDataException;
 use Exception;
 
 class UpdateSportSessionUseCase
@@ -40,7 +41,7 @@ class UpdateSportSessionUseCase
 
         // Créneau à définir : la date se fixe en confirmant un des créneaux proposés
         if (!$session->isScheduled() && (isset($data['date']) || isset($data['startTime']) || isset($data['endTime']))) {
-            throw new Exception('Confirme un des créneaux proposés pour fixer la date');
+            throw new InvalidSessionDataException('Confirme un des créneaux proposés pour fixer la date');
         }
 
         // Validation des données
@@ -75,48 +76,48 @@ class UpdateSportSessionUseCase
     {
         // Validation du sport
         if (isset($data['sport']) && !SportService::isValidSport($data['sport'])) {
-            throw new Exception('Sport invalide');
+            throw new InvalidSessionDataException('Sport invalide');
         }
 
         if (isset($data['startTime']) && !$this->isValidTime($data['startTime'])) {
-            throw new Exception('Heure de début invalide');
+            throw new InvalidSessionDataException('Heure de début invalide');
         }
 
         if (isset($data['endTime']) && !$this->isValidTime($data['endTime'])) {
-            throw new Exception('Heure de fin invalide');
+            throw new InvalidSessionDataException('Heure de fin invalide');
         }
 
         // Une fin avant le début tombe le lendemain : seule une durée nulle est refusée
         if (isset($data['startTime']) && isset($data['endTime'])) {
             if ($data['endTime'] === $data['startTime']) {
-                throw new Exception('L\'heure de fin doit être différente de l\'heure de début');
+                throw new InvalidSessionDataException('L\'heure de fin doit être différente de l\'heure de début');
             }
         }
 
         if (isset($data['location']) && empty(trim($data['location']))) {
-            throw new Exception('Lieu requis');
+            throw new InvalidSessionDataException('Lieu requis');
         }
 
         if (isset($data['location']) && strlen($data['location']) > 200) {
-            throw new Exception('Le lieu ne peut pas dépasser 200 caractères');
+            throw new InvalidSessionDataException('Le lieu ne peut pas dépasser 200 caractères');
         }
 
         if (isset($data['date']) && !$this->isValidDate($data['date'])) {
-            throw new Exception('Date invalide');
+            throw new InvalidSessionDataException('Date invalide');
         }
 
         if (isset($data['date']) && strtotime($data['date']) < strtotime(date('Y-m-d'))) {
-            throw new Exception('La date ne peut pas être dans le passé');
+            throw new InvalidSessionDataException('La date ne peut pas être dans le passé');
         }
 
         // Validation de maxParticipants
-        if (isset($data['maxParticipants']) && $data['maxParticipants'] !== null && ($data['maxParticipants'] < 1 || $data['maxParticipants'] > 100)) {
-            throw new Exception('Le nombre maximum de participants doit être entre 1 et 100');
+        if (isset($data['maxParticipants']) && $data['maxParticipants'] !== null && ($data['maxParticipants'] < 2 || $data['maxParticipants'] > 100)) {
+            throw new InvalidSessionDataException('Le nombre de joueurs doit être entre 2 et 100.');
         }
 
         // Validation de pricePerPerson
         if (isset($data['pricePerPerson']) && $data['pricePerPerson'] !== null && $data['pricePerPerson'] < 0) {
-            throw new Exception('Le prix par personne ne peut pas être négatif');
+            throw new InvalidSessionDataException('Le prix par personne ne peut pas être négatif');
         }
     }
 

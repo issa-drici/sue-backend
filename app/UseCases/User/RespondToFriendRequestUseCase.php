@@ -28,9 +28,27 @@ class RespondToFriendRequestUseCase
             ];
         }
 
-        // Vérifier que l'utilisateur est bien le destinataire de la demande
-        // Note: Pour l'instant, on suppose que l'ID de la demande correspond au sender_id
-        // Dans une vraie implémentation, il faudrait vérifier le receiver_id
+        // Seul le destinataire peut répondre
+        if ($request->getReceiverId() !== $userId) {
+            return [
+                'success' => false,
+                'error' => [
+                    'code' => 'FORBIDDEN',
+                    'message' => 'Tu ne peux pas répondre à cette demande d\'ami.'
+                ]
+            ];
+        }
+
+        // Et seulement à une demande encore en attente
+        if (!$request->isPending()) {
+            return [
+                'success' => false,
+                'error' => [
+                    'code' => 'ALREADY_HANDLED',
+                    'message' => 'Cette demande d\'ami a déjà été traitée.'
+                ]
+            ];
+        }
 
         // Valider la réponse
         if (!in_array($response, ['accept', 'decline'])) {

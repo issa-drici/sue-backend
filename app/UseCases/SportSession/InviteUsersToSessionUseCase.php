@@ -33,16 +33,17 @@ class InviteUsersToSessionUseCase
             ];
         }
 
-        // Vérifier que l'inviteur est le créateur de la session
-        // if ($session->getOrganizer()->getId() !== $inviterId) {
-        //     return [
-        //         'success' => false,
-        //         'error' => [
-        //             'code' => 'FORBIDDEN',
-        //             'message' => 'Seul le créateur de la session peut inviter des utilisateurs'
-        //         ]
-        //     ];
-        // }
+        // L'organisateur et les participants (acceptés ou en attente) peuvent inviter ;
+        // pas les personnes extérieures ni ceux qui ont refusé
+        if (!in_array($session->getUserStatus($inviterId), ['organizer', 'accepted', 'pending'], true)) {
+            return [
+                'success' => false,
+                'error' => [
+                    'code' => 'FORBIDDEN',
+                    'message' => 'Tu ne fais pas partie de cette session.'
+                ]
+            ];
+        }
 
         $invitedUsers = [];
         $errors = [];

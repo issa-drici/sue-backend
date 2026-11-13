@@ -53,6 +53,12 @@ class RespondToSessionInvitationAction extends Controller
             } elseif (str_contains($e->getMessage(), 'pas invité')) {
                 $statusCode = 403;
                 $errorCode = 'FORBIDDEN';
+            } elseif (str_contains($e->getMessage(), 'Cette session est annulée')) {
+                $statusCode = 400;
+                $errorCode = 'SESSION_CANCELLED';
+            } elseif (str_contains($e->getMessage(), 'Cette session est terminée')) {
+                $statusCode = 400;
+                $errorCode = 'SESSION_ENDED';
             } elseif (str_contains($e->getMessage(), 'Réponse invalide')) {
                 $statusCode = 400;
                 $errorCode = 'INVALID_RESPONSE';

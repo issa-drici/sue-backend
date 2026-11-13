@@ -22,7 +22,6 @@ class LeaveSessionAction extends Controller
         if (!$result['success']) {
             $errorCode = match ($result['error']['code']) {
                 'VALIDATION_ERROR' => 400,
-                'LEAVE_FAILED' => 500,
                 default => 500,
             };
 

@@ -33,6 +33,8 @@ class RespondToFriendRequestAction extends Controller
         if (!$result['success']) {
             $statusCode = match($result['error']['code']) {
                 'USER_NOT_FOUND' => 404,
+                'FORBIDDEN' => 403,
+                'ALREADY_HANDLED' => 409,
                 default => 400
             };
 

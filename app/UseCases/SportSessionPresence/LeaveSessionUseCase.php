@@ -37,21 +37,9 @@ class LeaveSessionUseCase
         // Récupérer la présence actuelle pour l'événement
         $currentPresence = $this->presenceRepository->findPresenceBySessionAndUser($sessionId, $userId);
 
-        // Quitter la session
-        $left = $this->presenceRepository->leaveSession($sessionId, $userId);
-
-        if (!$left) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'LEAVE_FAILED',
-                    'message' => 'Échec de la déconnexion de la session',
-                ],
-            ];
-        }
-
-        // Diffuser l'événement si la présence existait
+        // Jamais rejoint : rien à faire (pas une erreur)
         if ($currentPresence) {
+            $this->presenceRepository->leaveSession($sessionId, $userId);
             event(new UserOffline($currentPresence));
         }
 

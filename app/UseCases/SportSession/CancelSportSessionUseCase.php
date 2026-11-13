@@ -5,7 +5,7 @@ namespace App\UseCases\SportSession;
 use App\Entities\SportSession;
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
 use App\Repositories\Notification\NotificationRepositoryInterface;
-use App\Services\ExpoPushNotificationService;
+use App\Services\SessionNotificationService;
 use Exception;
 
 class CancelSportSessionUseCase
@@ -13,7 +13,7 @@ class CancelSportSessionUseCase
     public function __construct(
         private SportSessionRepositoryInterface $sportSessionRepository,
         private NotificationRepositoryInterface $notificationRepository,
-        private ExpoPushNotificationService $pushNotificationService
+        private SessionNotificationService $sessionNotificationService
     ) {}
 
     public function execute(string $sessionId, string $userId): array
@@ -77,11 +77,8 @@ class CancelSportSessionUseCase
             ];
         }
 
-        // Créer des notifications pour tous les participants
-        $this->createCancellationNotifications($updatedSession);
-
-        // Envoyer des notifications push
-        $this->sendPushNotifications($updatedSession);
+        // Notification in-app + push pour les participants confirmés
+        $this->notifyParticipants($updatedSession);
 
         return [
             'success' => true,
@@ -92,65 +89,38 @@ class CancelSportSessionUseCase
         ];
     }
 
-    private function createCancellationNotifications(SportSession $session): void
+    private function notifyParticipants(SportSession $session): void
     {
+        $organizerId = $session->getOrganizer()->getId();
         $organizerName = $session->getOrganizer()->getFirstname() . ' ' . $session->getOrganizer()->getLastname();
+        $title = 'Session annulée';
+        $message = "{$organizerName} a annulé sa session de {$session->getSport()}";
+        $data = [
+            'type' => 'session_cancelled',
+            'session_id' => $session->getId(),
+            'organizer_id' => $organizerId,
+            'sport' => $session->getSport(),
+            'date' => $session->getDate(),
+            'startTime' => $session->getStartTime(),
+            'endTime' => $session->getEndTime(),
+        ];
 
         foreach ($session->getParticipants() as $participant) {
-            // Ne pas notifier l'organisateur lui-même
-            if ($participant['id'] === $session->getOrganizer()->getId()) {
+            // Seulement les participants confirmés, jamais l'organisateur lui-même
+            if ($participant['id'] === $organizerId || $participant['status'] !== 'accepted') {
                 continue;
             }
 
-            // Notifier seulement les participants qui ont accepté
-            if ($participant['status'] === 'accepted') {
-                $this->notificationRepository->create([
-                    'user_id' => $participant['id'],
-                    'type' => 'session_cancelled',
-                    'title' => 'Session annulée',
-                    'message' => "{$organizerName} a annulé sa session de {$session->getSport()}",
-                    'session_id' => $session->getId(),
-                    'push_data' => [
-                        'type' => 'session_cancelled',
-                        'session_id' => $session->getId(),
-                        'organizer_id' => $session->getOrganizer()->getId(),
-                        'sport' => $session->getSport(),
-                        'date' => $session->getDate(),
-                        'startTime' => $session->getStartTime(),
-                        'endTime' => $session->getEndTime(),
-                    ],
-                ]);
-            }
-        }
-    }
+            $notification = $this->notificationRepository->create([
+                'user_id' => $participant['id'],
+                'type' => 'session_cancelled',
+                'title' => $title,
+                'message' => $message,
+                'session_id' => $session->getId(),
+                'push_data' => $data,
+            ]);
 
-    private function sendPushNotifications(SportSession $session): void
-    {
-        $organizerName = $session->getOrganizer()->getFirstname() . ' ' . $session->getOrganizer()->getLastname();
-
-        foreach ($session->getParticipants() as $participant) {
-            // Ne pas notifier l'organisateur lui-même
-            if ($participant['id'] === $session->getOrganizer()->getId()) {
-                continue;
-            }
-
-            // Envoyer seulement aux participants qui ont accepté
-            if ($participant['status'] === 'accepted') {
-                $this->pushNotificationService->sendToUser(
-                    $participant['id'],
-                    'Session annulée',
-                    "{$organizerName} a annulé sa session de {$session->getSport()}",
-                    [
-                        'type' => 'session_cancelled',
-                        'session_id' => $session->getId(),
-                        'organizer_id' => $session->getOrganizer()->getId(),
-                        'sport' => $session->getSport(),
-                        'date' => $session->getDate(),
-                        'startTime' => $session->getStartTime(),
-                        'endTime' => $session->getEndTime(),
-                    ]
-                );
-            }
+            $this->sessionNotificationService->push($participant['id'], $notification->getId(), $title, $message, $data);
         }
     }
 }

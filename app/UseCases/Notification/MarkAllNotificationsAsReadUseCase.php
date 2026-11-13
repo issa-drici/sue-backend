@@ -12,17 +12,12 @@ class MarkAllNotificationsAsReadUseCase
 
     public function execute(string $userId): array
     {
-        $success = $this->notificationRepository->markAllAsRead($userId);
-
-        if (!$success) {
-            throw new \Exception('Erreur lors de la mise à jour des notifications');
-        }
-
-        $unreadCount = $this->notificationRepository->getUnreadCount($userId);
+        // Rien à marquer n'est pas une erreur : updatedCount vaut alors 0
+        $updatedCount = $this->notificationRepository->markAllAsRead($userId);
 
         return [
-            'updatedCount' => $unreadCount,
-            'success' => $success
+            'updatedCount' => $updatedCount,
+            'success' => true
         ];
     }
 }

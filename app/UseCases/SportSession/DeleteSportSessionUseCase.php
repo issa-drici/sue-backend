@@ -4,13 +4,15 @@ namespace App\UseCases\SportSession;
 
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
 use App\Repositories\Notification\NotificationRepositoryInterface;
+use App\Services\SessionNotificationService;
 use Exception;
 
 class DeleteSportSessionUseCase
 {
     public function __construct(
         private SportSessionRepositoryInterface $sportSessionRepository,
-        private NotificationRepositoryInterface $notificationRepository
+        private NotificationRepositoryInterface $notificationRepository,
+        private SessionNotificationService $sessionNotificationService
     ) {}
 
     public function execute(string $sessionId, string $userId): bool
@@ -39,18 +41,35 @@ class DeleteSportSessionUseCase
         return $this->sportSessionRepository->delete($sessionId);
     }
 
+    /**
+     * Notification in-app + push pour les participants confirmés (comme une annulation),
+     * jamais pour l'organisateur. Sans session_id : la session n'existera plus.
+     */
     private function createSessionDeletedNotifications($session): void
     {
+        $organizerId = $session->getOrganizer()->getId();
+        $title = 'Session annulée';
+        $message = "La session de {$session->getSport()} a été annulée";
+
         foreach ($session->getParticipants() as $participant) {
-            if ($participant['status'] === 'accepted') {
-                $this->notificationRepository->create([
-                    'user_id' => $participant['id'],
-                    'type' => 'update',
-                    'title' => 'Session annulée',
-                    'message' => "La session de {$session->getSport()} a été annulée",
-                    'session_id' => null, // Session supprimée
-                ]);
+            if ($participant['id'] === $organizerId || $participant['status'] !== 'accepted') {
+                continue;
             }
+
+            $notification = $this->notificationRepository->create([
+                'user_id' => $participant['id'],
+                'type' => 'update',
+                'title' => $title,
+                'message' => $message,
+                'session_id' => null, // Session supprimée
+            ]);
+
+            $this->sessionNotificationService->push($participant['id'], $notification->getId(), $title, $message, [
+                'type' => 'session_cancelled',
+                'sport' => $session->getSport(),
+                'date' => $session->getDate(),
+                'startTime' => $session->getStartTime(),
+            ]);
         }
     }
 }

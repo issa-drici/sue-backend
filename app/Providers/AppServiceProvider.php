@@ -21,8 +21,6 @@ use App\Repositories\Friend\FriendRepositoryInterface;
 use App\Repositories\Friend\FriendRepository;
 use App\Repositories\FriendRequest\FriendRequestRepositoryInterface;
 use App\Repositories\FriendRequest\FriendRequestRepository;
-use App\Repositories\SportSessionComment\SportSessionCommentRepositoryInterface;
-use App\Repositories\SportSessionComment\SportSessionCommentRepository;
 use App\Repositories\SportSessionPresence\SportSessionPresenceRepositoryInterface;
 use App\Repositories\SportSessionPresence\SportSessionPresenceRepository;
 use App\Repositories\PushToken\PushTokenRepositoryInterface;
@@ -56,18 +54,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(FriendRepositoryInterface::class, FriendRepository::class);
         $this->app->bind(FriendRequestRepositoryInterface::class, FriendRequestRepository::class);
 
-        // Comment and Presence repositories
-        $this->app->bind(SportSessionCommentRepositoryInterface::class, SportSessionCommentRepository::class);
+        // Presence repository
         $this->app->bind(SportSessionPresenceRepositoryInterface::class, SportSessionPresenceRepository::class);
 
         // Push Token repository
         $this->app->bind(PushTokenRepositoryInterface::class, PushTokenRepository::class);
 
         // Services
-        $this->app->singleton(\App\Services\SocketIOService::class, function ($app) {
-            return new \App\Services\SocketIOService();
-        });
-
         $this->app->singleton(\App\Services\ExpoPushNotificationService::class, function ($app) {
             return new \App\Services\ExpoPushNotificationService();
         });

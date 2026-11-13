@@ -22,7 +22,7 @@ class UserTyping implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new Channel("sport-session.{$this->presence->sportSessionId}"),
+            new PrivateChannel("sport-session.{$this->presence->sportSessionId}"),
         ];
     }
 

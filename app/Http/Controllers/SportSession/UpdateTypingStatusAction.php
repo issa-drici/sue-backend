@@ -23,7 +23,7 @@ class UpdateTypingStatusAction extends Controller
         if (!$result['success']) {
             $errorCode = match ($result['error']['code']) {
                 'VALIDATION_ERROR' => 400,
-                'UPDATE_FAILED' => 500,
+                'NOT_PRESENT' => 400,
                 default => 500,
             };
 

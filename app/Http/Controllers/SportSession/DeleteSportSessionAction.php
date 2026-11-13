@@ -38,6 +38,9 @@ class DeleteSportSessionAction extends Controller
             } elseif (str_contains($e->getMessage(), 'pas autorisé')) {
                 $statusCode = 403;
                 $errorCode = 'FORBIDDEN';
+            } elseif (str_contains($e->getMessage(), 'session passée')) {
+                $statusCode = 400;
+                $errorCode = 'SESSION_ENDED';
             }
 
             return response()->json([

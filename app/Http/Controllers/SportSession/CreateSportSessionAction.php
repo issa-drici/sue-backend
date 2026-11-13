@@ -3,18 +3,25 @@
 namespace App\Http\Controllers\SportSession;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\SportSession\Concerns\ValidatesMaxParticipants;
 use App\UseCases\SportSession\CreateSportSessionUseCase;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class CreateSportSessionAction extends Controller
 {
+    use ValidatesMaxParticipants;
+
     public function __construct(
         private CreateSportSessionUseCase $createSportSessionUseCase
     ) {}
 
     public function __invoke(Request $request): JsonResponse
     {
+        if ($error = $this->maxParticipantsError($request)) {
+            return $error;
+        }
+
         try {
             $findingSlot = $request->input('scheduling') === 'finding_slot';
 
@@ -30,7 +37,7 @@ class CreateSportSessionAction extends Controller
                 'slotProposals.*.startTime' => 'required|date_format:H:i',
                 'slotProposals.*.endTime' => 'required|date_format:H:i',
                 'location' => 'required|string|max:255',
-                'maxParticipants' => 'nullable|integer|min:1|max:100',
+                'maxParticipants' => 'nullable|integer|min:2|max:100',
                 'pricePerPerson' => 'nullable|numeric|min:0',
                 'participantIds' => 'nullable|array',
                 'participantIds.*' => 'required|string|uuid'
@@ -73,6 +80,15 @@ class CreateSportSessionAction extends Controller
                     'details' => $e->errors(),
                 ],
             ], 400);
+
+        } catch (\App\Exceptions\InvalidSessionDataException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'VALIDATION_ERROR',
+                    'message' => $e->getMessage(),
+                ],
+            ], 422);
 
         } catch (\Exception $e) {
             return response()->json([

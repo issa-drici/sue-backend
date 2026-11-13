@@ -10,6 +10,7 @@ use App\Repositories\PushToken\PushTokenRepositoryInterface;
 use App\Services\ExpoPushNotificationService;
 use App\Services\DateFormatterService;
 use App\UseCases\User\UpdateSportsPreferencesUseCase;
+use App\Exceptions\InvalidSessionDataException;
 use Exception;
 
 class CreateSportSessionUseCase
@@ -51,7 +52,7 @@ class CreateSportSessionUseCase
     private function validateData(array $data): void
     {
         if (!isset($data['sport']) || !\App\Services\SportService::isValidSport($data['sport'])) {
-            throw new Exception('Sport invalide');
+            throw new InvalidSessionDataException('Sport invalide');
         }
 
         if (($data['scheduling'] ?? 'scheduled') === 'finding_slot') {
@@ -61,12 +62,12 @@ class CreateSportSessionUseCase
 
             // Vérifier que la date n'est pas dans le passé
             if (strtotime($data['date']) < strtotime(date('Y-m-d'))) {
-                throw new Exception('La date ne peut pas être dans le passé');
+                throw new InvalidSessionDataException('La date ne peut pas être dans le passé');
             }
         }
 
         if (!isset($data['location']) || empty(trim($data['location']))) {
-            throw new Exception('Lieu requis');
+            throw new InvalidSessionDataException('Lieu requis');
         }
 
         if (!isset($data['organizer_id'])) {
@@ -74,13 +75,13 @@ class CreateSportSessionUseCase
         }
 
         // Validation de maxParticipants
-        if (isset($data['maxParticipants']) && $data['maxParticipants'] !== null && ($data['maxParticipants'] < 1 || $data['maxParticipants'] > 100)) {
-            throw new Exception('Le nombre maximum de participants doit être entre 1 et 100');
+        if (isset($data['maxParticipants']) && $data['maxParticipants'] !== null && ($data['maxParticipants'] < 2 || $data['maxParticipants'] > 100)) {
+            throw new InvalidSessionDataException('Le nombre de joueurs doit être entre 2 et 100.');
         }
 
         // Validation de pricePerPerson
         if (isset($data['pricePerPerson']) && $data['pricePerPerson'] !== null && $data['pricePerPerson'] < 0) {
-            throw new Exception('Le prix par personne ne peut pas être négatif');
+            throw new InvalidSessionDataException('Le prix par personne ne peut pas être négatif');
         }
 
         // Vérifier que l'organisateur existe
@@ -93,27 +94,27 @@ class CreateSportSessionUseCase
     private function validateTimeRange(array $range): void
     {
         if (!isset($range['date']) || !$this->isValidDate($range['date'])) {
-            throw new Exception('Date invalide');
+            throw new InvalidSessionDataException('Date invalide');
         }
 
         if (!isset($range['startTime']) || !$this->isValidTime($range['startTime'])) {
-            throw new Exception('Heure de début invalide');
+            throw new InvalidSessionDataException('Heure de début invalide');
         }
 
         if (!isset($range['endTime']) || !$this->isValidTime($range['endTime'])) {
-            throw new Exception('Heure de fin invalide');
+            throw new InvalidSessionDataException('Heure de fin invalide');
         }
 
         // Une fin avant le début tombe le lendemain : seule une durée nulle est refusée
         if ($range['endTime'] === $range['startTime']) {
-            throw new Exception('L\'heure de fin doit être différente de l\'heure de début');
+            throw new InvalidSessionDataException('L\'heure de fin doit être différente de l\'heure de début');
         }
     }
 
     private function validateSlotProposals(array $slots): void
     {
         if (empty($slots)) {
-            throw new Exception('Au moins un créneau doit être proposé');
+            throw new InvalidSessionDataException('Au moins un créneau doit être proposé');
         }
 
         $seen = [];
@@ -123,12 +124,12 @@ class CreateSportSessionUseCase
 
             $start = new \DateTime($slot['date'] . ' ' . $slot['startTime'], new \DateTimeZone('Europe/Paris'));
             if ($start < $now) {
-                throw new Exception('Un créneau proposé est déjà passé');
+                throw new InvalidSessionDataException('Un créneau proposé est déjà passé');
             }
 
             $key = $slot['date'] . ' ' . $slot['startTime'] . ' ' . $slot['endTime'];
             if (isset($seen[$key])) {
-                throw new Exception('Le même créneau est proposé deux fois');
+                throw new InvalidSessionDataException('Le même créneau est proposé deux fois');
             }
             $seen[$key] = true;
         }

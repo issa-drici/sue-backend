@@ -6,7 +6,6 @@ use App\Models\FriendModel;
 use App\Models\NotificationModel;
 use App\Models\SessionSlotAvailabilityModel;
 use App\Models\SessionSlotProposalModel;
-use App\Models\SportSessionCommentModel;
 use App\Models\SportSessionModel;
 use App\Models\SportSessionParticipantModel;
 use App\Models\UserModel;
@@ -31,6 +30,9 @@ class SeedReviewAccountCommand extends Command
 
     protected $description = "Remplit (ou rafraîchit) le compte de démo utilisé par les équipes de review";
 
+    /** Lien d'invitation fixe de la session de volley (ouvert par les tests Maestro) */
+    public const E2E_JOIN_TOKEN = 'e2eDemoJoinLinkVolleyHugo000000000000000';
+
     private const FRIENDS = [
         ['Thomas', 'Bernard'], ['Lucas', 'Moreau'], ['Camille', 'Petit'], ['Yanis', 'Haddad'],
         ['Inès', 'Lambert'], ['Hugo', 'Girard'], ['Sarah', 'Dubois'], ['Léa', 'Rousseau'],
@@ -45,10 +47,12 @@ class SeedReviewAccountCommand extends Command
         }
 
         DB::transaction(function () use ($phone) {
+            // Nom remis à chaque connexion : un changement fait pendant une démo ne reste pas
             $me = UserModel::firstOrCreate(
                 ['phone' => $phone],
                 ['firstname' => 'Alex', 'lastname' => 'Martin', 'email' => null, 'password' => null, 'role' => 'player']
             );
+            $me->update(['firstname' => 'Alex', 'lastname' => 'Martin']);
 
             $friends = [];
             foreach (self::FRIENDS as $i => [$firstname, $lastname]) {
@@ -72,9 +76,6 @@ class SeedReviewAccountCommand extends Command
                 [$thomas, 'accepted'], [$lucas, 'accepted'], [$camille, 'accepted'], [$yanis, 'accepted'],
                 [$ines, 'accepted'], [$hugo, 'accepted'], [$lea, 'accepted'], [$sarah, 'pending'],
             ]);
-            $this->addComment($five, $thomas, 'Je ramène le ballon ⚽', 180);
-            $this->addComment($five, $hugo, 'Qui a des chasubles ?', 95);
-            $this->addComment($five, $me, "Moi ! Rendez-vous 18h50 devant l'entrée", 60);
 
             // Invitation à confirmer : padel organisé par Lucas
             $padel = $this->session($lucas, 'padel', 'Padel Club Le Havre', 3, '20:30', 90, 4, 12.5, [
@@ -100,6 +101,29 @@ class SeedReviewAccountCommand extends Command
             SportSessionParticipantModel::where('session_id', $basket->id)
                 ->whereIn('user_id', [$thomas->id, $camille->id, $yanis->id, $hugo->id])
                 ->update(['slot_responded_at' => now()->subHour()]);
+
+            // À voter côté invité : tennis organisé par Yanis, le compte de démo n'a pas encore
+            // donné ses disponibilités
+            $tennis = $this->session($yanis, 'tennis', 'Tennis Club du Havre', 8, '18:00', 60, 4, null, [
+                [$me, 'pending'], [$ines, 'pending'],
+            ], 'finding_slot');
+            $this->slot($tennis, 8, '18:00', 60, null, [$ines]);
+            $this->slot($tennis, 9, '12:30', 60, null, []);
+            $this->syncFindingSlotRange($tennis);
+            SessionSlotProposalModel::where('session_id', $tennis->id)->update([
+                'created_at' => now()->subHours(3),
+                'updated_at' => now()->subHours(3),
+            ]);
+            SportSessionParticipantModel::where('session_id', $tennis->id)
+                ->where('user_id', $ines->id)
+                ->update(['slot_responded_at' => now()->subHours(2)]);
+
+            // Lien d'invitation (tests de bout en bout) : volley organisé par Hugo, sans le compte de
+            // démo, avec un lien fixe que le test ouvre pour rejoindre la session
+            $volley = $this->session($hugo, 'volleyball', 'Plage du Havre', 7, '17:00', 90, 6, null, [
+                [$lea, 'accepted'],
+            ]);
+            $volley->update(['share_token' => self::E2E_JOIN_TOKEN]);
 
             // Running organisé par Camille, sans limite de joueurs
             $this->session($camille, 'course', 'Plage du Havre', 6, '09:30', 60, null, null, [
@@ -131,7 +155,6 @@ class SeedReviewAccountCommand extends Command
     private function clearDemoSessions(array $users): void
     {
         $sessionIds = SportSessionModel::whereIn('organizer_id', array_map(fn ($u) => $u->id, $users))->pluck('id');
-        SportSessionCommentModel::whereIn('session_id', $sessionIds)->delete();
         NotificationModel::whereIn('session_id', $sessionIds)->delete();
         SportSessionParticipantModel::whereIn('session_id', $sessionIds)->delete();
         SessionSlotProposalModel::whereIn('session_id', $sessionIds)->delete();
@@ -209,18 +232,6 @@ class SeedReviewAccountCommand extends Command
             'start_date' => (clone $slots)->min('start_date'),
             'end_date' => (clone $slots)->max('end_date'),
         ]);
-    }
-
-    private function addComment(SportSessionModel $session, UserModel $user, string $content, int $minutesAgo): void
-    {
-        $comment = SportSessionCommentModel::create([
-            'session_id' => $session->id,
-            'user_id' => $user->id,
-            'content' => $content,
-            'mentions' => [],
-        ]);
-        $comment->created_at = now()->subMinutes($minutesAgo);
-        $comment->save();
     }
 
     private function notify(UserModel $user, ?SportSessionModel $session, string $type, string $title, string $message, int $minutesAgo): void

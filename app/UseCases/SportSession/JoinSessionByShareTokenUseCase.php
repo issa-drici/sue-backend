@@ -8,14 +8,11 @@ use App\Exceptions\SessionFullException;
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
 use App\Repositories\Notification\NotificationRepositoryInterface;
 use App\Repositories\PushToken\PushTokenRepositoryInterface;
-use App\Repositories\SportSessionComment\SportSessionCommentRepositoryInterface;
-use App\Repositories\User\UserRepositoryInterface;
 use App\Repositories\Friend\FriendRepositoryInterface;
 use App\Repositories\FriendRequest\FriendRequestRepositoryInterface;
 use App\Services\ExpoPushNotificationService;
 use App\Services\DateFormatterService;
 use App\UseCases\User\UpdateSportsPreferencesUseCase;
-use App\Events\CommentCreated;
 
 /**
  * Permet à un utilisateur authentifié de rejoindre une session à partir d'un
@@ -29,8 +26,6 @@ class JoinSessionByShareTokenUseCase
     public function __construct(
         private SportSessionRepositoryInterface $sportSessionRepository,
         private NotificationRepositoryInterface $notificationRepository,
-        private SportSessionCommentRepositoryInterface $commentRepository,
-        private UserRepositoryInterface $userRepository,
         private PushTokenRepositoryInterface $pushTokenRepository,
         private ExpoPushNotificationService $expoService,
         private UpdateSportsPreferencesUseCase $updateSportsPreferencesUseCase,
@@ -88,9 +83,8 @@ class JoinSessionByShareTokenUseCase
         // Ajouter automatiquement le sport aux préférences de l'utilisateur
         $this->addSportToUserPreferences($userId, $session->getSport());
 
-        // Notifier l'organisateur + commentaire système (comme pour l'acceptation d'invitation)
+        // Notifier l'organisateur (comme pour l'acceptation d'invitation)
         $this->createJoinNotification($session, $userId);
-        $this->createSystemComment($session, $userId);
 
         // Le participant devient automatiquement ami avec la personne qui a partagé le lien
         // (paramètre "from"), ou à défaut avec l'organisateur.
@@ -188,31 +182,6 @@ class JoinSessionByShareTokenUseCase
             \Illuminate\Support\Facades\Log::error('Error sending push for share-link join', [
                 'sessionId' => $session->getId(),
                 'organizerId' => $organizerId,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    private function createSystemComment(SportSession $session, string $userId): void
-    {
-        $user = $this->userRepository->findById($userId);
-
-        if (!$user) {
-            return;
-        }
-
-        $comment = $this->commentRepository->createComment(
-            sessionId: $session->getId(),
-            userId: $userId,
-            content: 'a rejoint cette session via un lien de partage 🔗'
-        );
-
-        try {
-            broadcast(new CommentCreated($comment, $session->getId()));
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to broadcast event for share-link join comment', [
-                'sessionId' => $session->getId(),
-                'userId' => $userId,
                 'error' => $e->getMessage(),
             ]);
         }

@@ -60,11 +60,12 @@ class NotificationRepository implements NotificationRepositoryInterface
         return $model->update(['read' => true]);
     }
 
-    public function markAllAsRead(string $userId): bool
+    /** Nombre de notifications marquées comme lues (0 s'il n'y avait rien à marquer) */
+    public function markAllAsRead(string $userId): int
     {
         return NotificationModel::byUser($userId)
             ->unread()
-            ->update(['read' => true]) > 0;
+            ->update(['read' => true]);
     }
 
     public function delete(string $id): bool

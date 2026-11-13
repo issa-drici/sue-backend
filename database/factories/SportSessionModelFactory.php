@@ -29,9 +29,8 @@ class SportSessionModelFactory extends Factory
         return [
             'id' => Str::uuid(),
             'sport' => $this->faker->randomElement(\App\Services\SportService::getSupportedSports()),
-            'date' => $this->faker->dateTimeBetween('now', '+30 days')->format('Y-m-d'),
-            'start_time' => $this->faker->time('H:i'),
-            'end_time' => $this->faker->time('H:i'),
+            'start_date' => $start = \Carbon\Carbon::instance($this->faker->dateTimeBetween('+1 day', '+30 days'))->setTime(14, 0),
+            'end_date' => $start->copy()->addHours(2),
             'location' => $this->faker->city() . ' ' . $this->faker->randomElement(['Club', 'Centre Sportif', 'Gymnase', 'Stade']),
             'organizer_id' => UserModel::factory(),
             'max_participants' => $this->faker->optional()->numberBetween(2, 20),
@@ -46,7 +45,8 @@ class SportSessionModelFactory extends Factory
     public function past(): static
     {
         return $this->state(fn (array $attributes) => [
-            'date' => $this->faker->dateTimeBetween('-30 days', 'now')->format('Y-m-d'),
+            'start_date' => $start = \Carbon\Carbon::instance($this->faker->dateTimeBetween('-30 days', '-1 day'))->setTime(14, 0),
+            'end_date' => $start->copy()->addHours(2),
         ]);
     }
 
@@ -56,7 +56,8 @@ class SportSessionModelFactory extends Factory
     public function today(): static
     {
         return $this->state(fn (array $attributes) => [
-            'date' => now()->format('Y-m-d'),
+            'start_date' => now()->setTime(23, 0),
+            'end_date' => now()->setTime(23, 59),
         ]);
     }
 
@@ -66,7 +67,8 @@ class SportSessionModelFactory extends Factory
     public function tomorrow(): static
     {
         return $this->state(fn (array $attributes) => [
-            'date' => now()->addDay()->format('Y-m-d'),
+            'start_date' => now()->addDay()->setTime(14, 0),
+            'end_date' => now()->addDay()->setTime(16, 0),
         ]);
     }
 

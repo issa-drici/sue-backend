@@ -43,8 +43,8 @@ class UpdateTypingStatusUseCase
             return [
                 'success' => false,
                 'error' => [
-                    'code' => 'UPDATE_FAILED',
-                    'message' => 'Échec de la mise à jour du statut de frappe',
+                    'code' => 'NOT_PRESENT',
+                    'message' => 'Rejoins d\'abord la session pour écrire.',
                 ],
             ];
         }

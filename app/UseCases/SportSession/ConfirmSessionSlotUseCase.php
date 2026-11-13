@@ -3,13 +3,10 @@
 namespace App\UseCases\SportSession;
 
 use App\Entities\SportSession;
-use App\Events\CommentCreated;
 use App\Repositories\SportSession\SportSessionRepositoryInterface;
-use App\Repositories\SportSessionComment\SportSessionCommentRepositoryInterface;
 use App\Services\DateFormatterService;
 use App\Services\SessionNotificationService;
 use Exception;
-use Illuminate\Support\Facades\Log;
 
 /**
  * "Trouver un créneau" : l'organisateur confirme un créneau.
@@ -21,7 +18,6 @@ class ConfirmSessionSlotUseCase
 {
     public function __construct(
         private SportSessionRepositoryInterface $sportSessionRepository,
-        private SportSessionCommentRepositoryInterface $commentRepository,
         private SessionNotificationService $sessionNotificationService
     ) {}
 
@@ -61,7 +57,6 @@ class ConfirmSessionSlotUseCase
 
         $slotLabel = DateFormatterService::formatDate($slot['date']) . ' à ' . DateFormatterService::formatTime($slot['startTime']);
         $this->notifyPlayers($session, $newlyAccepted, $slotLabel);
-        $this->createSystemComment($session, $userId, $slotLabel);
 
         return $this->sportSessionRepository->findById($sessionId);
     }
@@ -114,23 +109,6 @@ class ConfirmSessionSlotUseCase
                 : "Session de {$sportName} à {$session->getLocation()}. Tu viens ?";
 
             $this->sessionNotificationService->notify($participantId, $session->getId(), $title, $message, 'slot_confirmed');
-        }
-    }
-
-    private function createSystemComment(SportSession $session, string $userId, string $slotLabel): void
-    {
-        try {
-            $comment = $this->commentRepository->createComment(
-                sessionId: $session->getId(),
-                userId: $userId,
-                content: "a confirmé le créneau : {$slotLabel} 📅"
-            );
-            broadcast(new CommentCreated($comment, $session->getId()));
-        } catch (\Exception $e) {
-            Log::error('Failed to create system comment for slot confirmation', [
-                'sessionId' => $session->getId(),
-                'error' => $e->getMessage(),
-            ]);
         }
     }
 }

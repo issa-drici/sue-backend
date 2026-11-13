@@ -33,10 +33,6 @@ interface SportSessionRepositoryInterface
 
     public function removeParticipant(string $sessionId, string $userId): bool;
 
-    public function addComment(string $sessionId, string $userId, string $content): bool;
-
-    public function getComments(string $sessionId): array;
-
     public function isUserInvited(string $sessionId, string $userId): bool;
 
     public function isUserParticipant(string $sessionId, string $userId): bool;

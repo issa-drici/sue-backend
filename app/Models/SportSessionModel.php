@@ -51,11 +51,6 @@ class SportSessionModel extends Model
         return $this->hasMany(SportSessionParticipantModel::class, 'session_id');
     }
 
-    public function comments(): HasMany
-    {
-        return $this->hasMany(SportSessionCommentModel::class, 'session_id');
-    }
-
     public function slotProposals(): HasMany
     {
         return $this->hasMany(SessionSlotProposalModel::class, 'session_id')->orderBy('start_date');

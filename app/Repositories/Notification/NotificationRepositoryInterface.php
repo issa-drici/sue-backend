@@ -15,7 +15,7 @@ interface NotificationRepositoryInterface
 
     public function markAsRead(string $id): bool;
 
-    public function markAllAsRead(string $userId): bool;
+    public function markAllAsRead(string $userId): int;
 
     public function delete(string $id): bool;
 
