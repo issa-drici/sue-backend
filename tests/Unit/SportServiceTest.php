@@ -18,14 +18,17 @@ class SportServiceTest extends TestCase
     public function test_supported_sports_are_alphabetically_sorted()
     {
         $sports = SportService::getSupportedSports();
-        $sortedSports = $sports;
 
-        // Trier en ignorant les accents comme dans SportService
-        usort($sortedSports, function($a, $b) {
-            return strcoll(iconv('UTF-8', 'ASCII//TRANSLIT', $a), iconv('UTF-8', 'ASCII//TRANSLIT', $b));
-        });
-
-        $this->assertEquals($sortedSports, $sports);
+        // Accents rangés avec leur lettre : « équitation » parmi les E, « pêche » après « padel »
+        $this->assertSame('aïkido', $sports[0]);
+        $this->assertSame('yoga', end($sports));
+        $pos = array_flip($sports);
+        $this->assertTrue($pos['danse'] < $pos['équitation'] && $pos['équitation'] < $pos['escalade']);
+        $this->assertTrue($pos['padel'] < $pos['pêche'] && $pos['pêche'] < $pos['pétanque']);
+        $ascii = array_map(fn ($s) => \Illuminate\Support\Str::ascii($s), $sports);
+        $sorted = $ascii;
+        sort($sorted);
+        $this->assertSame($sorted, $ascii);
     }
 
     public function test_all_original_sports_are_included()

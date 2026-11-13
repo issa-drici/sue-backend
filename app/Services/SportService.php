@@ -63,9 +63,8 @@ class SportService
         ];
 
         // Trier alphabétiquement en ignorant les accents
-        usort($sports, function($a, $b) {
-            return strcoll(iconv('UTF-8', 'ASCII//TRANSLIT', $a), iconv('UTF-8', 'ASCII//TRANSLIT', $b));
-        });
+        // Str::ascii : translittération fiable (é → e) quel que soit le serveur, contrairement à iconv
+        usort($sports, fn ($a, $b) => strcmp(\Illuminate\Support\Str::ascii($a), \Illuminate\Support\Str::ascii($b)));
 
         return $sports;
     }
